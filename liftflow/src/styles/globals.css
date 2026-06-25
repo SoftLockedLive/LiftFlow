@@ -1,0 +1,73 @@
+* {
+  box-sizing: border-box;
+}
+
+/* Base */
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text-h);
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* Theme */
+:root {
+  --accent: #00e5ff;
+  --accent-bg: rgba(0, 229, 255, 0.08);
+  --accent-border: rgba(0, 229, 255, 0.4);
+  --bg: #0b0f14;
+  --card: #111827;
+  --border: #1f2937;
+  --text-h: #e5e7eb;
+  --social-bg: rgba(255,255,255,0.05);
+  --shadow: 0 0 20px rgba(0,0,0,0.4);
+}
+
+/* Components */
+.card {
+  background: var(--card);
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  border-left: 3px solid var(--accent);
+  box-shadow: var(--shadow);
+}
+
+.counter {
+  font-size: 16px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 2px solid transparent;
+  transition: border-color 0.2s ease;
+  margin-bottom: 24px;
+}
+
+.counter:hover {
+  border-color: var(--accent-border);
+}
+
+.counter:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Inputs */
+input, button {
+  background: #111827;
+  border: 1px solid var(--border);
+  color: var(--text-h);
+  padding: 8px 10px;
+  border-radius: 8px;
+  outline: none;
+}
+
+button {
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+button:hover {
+  border-color: var(--accent-border);
+}
