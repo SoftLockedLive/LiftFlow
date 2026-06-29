@@ -2,19 +2,22 @@ const KEY = "liftflow_workouts";
 
 export function getWorkouts() {
   if (typeof window === "undefined") return [];
-
-  return JSON.parse(
-    localStorage.getItem(KEY) || "[]"
-  );
+  return JSON.parse(localStorage.getItem(KEY) || "[]");
 }
 
 export function saveWorkout(workout) {
-  const workouts = getWorkouts();
+  if (typeof window === "undefined") return;
 
-  workouts.push(workout);
+  const existing = getWorkouts();
 
-  localStorage.setItem(
-    KEY,
-    JSON.stringify(workouts)
-  );
+  const updated = [
+    ...existing,
+    {
+      id: crypto.randomUUID(),
+      date: Date.now(),
+      workout,
+    },
+  ];
+
+  localStorage.setItem(KEY, JSON.stringify(updated));
 }

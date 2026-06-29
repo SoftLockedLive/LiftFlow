@@ -1,41 +1,55 @@
 import { useEffect, useState } from "react";
+
 import Card from "../components/Card";
+
 import { getPlan } from "../lib/plan";
 import { getTodayName } from "../lib/today";
 import { saveWorkout } from "../lib/workoutStorage";
 
+import { getCoachState } from "../lib/coachState";
+
 export default function Workout() {
-  const [todayWorkout, setTodayWorkout] = useState([]);
+  const [program, setProgram] = useState([]);
   const [session, setSession] = useState({});
+  const [coach, setCoach] = useState({});
 
   useEffect(() => {
     const today = getTodayName();
     const plan = getPlan();
 
-    setTodayWorkout(plan[today] || []);
+    const todayWorkout = plan[today]?.lifts || [];
+
+    setProgram(todayWorkout);
+    setCoach(getCoachState());
   }, []);
 
   function updateSet(exerciseId, setIndex, field, value) {
     setSession((prev) => {
-      const next = { ...prev };
+      const copy = { ...prev };
 
-      if (!next[exerciseId]) next[exerciseId] = [];
+      if (!copy[exerciseId]) {
+        copy[exerciseId] = [];
+      }
 
-      next[exerciseId][setIndex] = {
-        ...(next[exerciseId][setIndex] || {}),
+      copy[exerciseId][setIndex] = {
+        ...(copy[exerciseId][setIndex] || {}),
         [field]: Number(value),
       };
 
-      return next;
+      return copy;
     });
   }
 
   function finishWorkout() {
-    const completedWorkout = todayWorkout.map((lift) => ({
-      exercise: lift.exercise,
-      sets: session[lift.id] || [],
-      date: Date.now(),
-    }));
+    const completedWorkout = [];
+
+    program.forEach((lift) => {
+      completedWorkout.push({
+        exercise: lift.exercise,
+        sets: session[lift.id] || [],
+        date: Date.now(),
+      });
+    });
 
     saveWorkout(completedWorkout);
 
@@ -45,21 +59,35 @@ export default function Workout() {
   }
 
   return (
-    <div style={{ padding: 24, maxWidth: 700, margin: "0 auto" }}>
+    <div
+      style={{
+        padding: 24,
+        maxWidth: 700,
+        margin: "0 auto",
+      }}
+    >
       <h1>Today's Workout</h1>
 
-      {todayWorkout.length === 0 ? (
+      {program.length === 0 ? (
         <Card>
           <p>No workout planned for today.</p>
         </Card>
       ) : (
-        todayWorkout.map((lift) => (
+        program.map((lift) => (
           <Card key={lift.id}>
             <h3>{lift.exercise}</h3>
 
             <p>
               Target: {lift.sets} × {lift.reps}
             </p>
+
+            {/* Coach suggestion hint */}
+            {coach[lift.exercise]?.suggestedWeight && (
+              <p style={{ opacity: 0.6 }}>
+                Coach suggests:{" "}
+                <b>{coach[lift.exercise].suggestedWeight} lbs</b>
+              </p>
+            )}
 
             {Array.from({ length: lift.sets }).map((_, i) => (
               <div
@@ -70,11 +98,14 @@ export default function Workout() {
                   marginBottom: 10,
                 }}
               >
+                {/* WEIGHT INPUT */}
                 <input
                   type="number"
                   placeholder={`Set ${i + 1} Weight`}
                   value={
-                    session[lift.id]?.[i]?.weight || ""
+                    session[lift.id]?.[i]?.weight ||
+                    coach[lift.exercise]?.suggestedWeight ||
+                    ""
                   }
                   onChange={(e) =>
                     updateSet(
@@ -86,6 +117,7 @@ export default function Workout() {
                   }
                 />
 
+                {/* REPS INPUT */}
                 <input
                   type="number"
                   placeholder={`Set ${i + 1} Reps`}

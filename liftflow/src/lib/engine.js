@@ -1,6 +1,37 @@
 import { getWorkouts } from "./workoutStorage";
 
 /**
+ * Returns average performance per exercise
+ */
+export function getExerciseTrends() {
+  const workouts = getWorkouts();
+
+  const stats = {};
+
+  workouts.forEach((session) => {
+    session.workout.forEach((lift) => {
+      if (!stats[lift.exercise]) {
+        stats[lift.exercise] = {
+          totalWeight: 0,
+          count: 0,
+          lastWeight: 0,
+        };
+      }
+
+      lift.sets.forEach((set) => {
+        if (!set.weight) return;
+
+        stats[lift.exercise].totalWeight += set.weight;
+        stats[lift.exercise].count += 1;
+        stats[lift.exercise].lastWeight = set.weight;
+      });
+    });
+  });
+
+  return stats;
+}
+
+/**
  * PR SYSTEM
  * Finds max lift per exercise across all workouts
  */
