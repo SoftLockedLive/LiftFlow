@@ -1,110 +1,221 @@
 import { useEffect, useState } from "react";
-import Card from "../components/Card";
-import {
-  getPlan,
-  addExercise,
-  removeExercise,
-} from "../lib/plan";
+import PageShell from "../components/PageShell";
+import { getPlan, savePlan } from "../lib/plan";
 
 export default function Plan() {
   const [plan, setPlan] = useState({});
-  const [inputs, setInputs] = useState({});
+  const [selectedDay, setSelectedDay] = useState("Monday");
 
+  const [exercise, setExercise] = useState("");
+  const [sets, setSets] = useState("");
+  const [reps, setReps] = useState("");
+
+  // ---------------- LOAD ----------------
   useEffect(() => {
     setPlan(getPlan());
   }, []);
 
-  function refresh() {
-    setPlan(getPlan());
+  // ---------------- ADD EXERCISE ----------------
+  function handleAdd() {
+    if (!exercise || !sets || !reps) return;
+
+    const updated = { ...plan };
+
+    if (!updated[selectedDay]) {
+      updated[selectedDay] = [];
+    }
+
+    updated[selectedDay] = [
+      ...updated[selectedDay],
+      {
+        id: crypto.randomUUID(),
+        exercise,
+        sets: Number(sets),
+        reps: Number(reps),
+      },
+    ];
+
+    setPlan(updated);
+    savePlan(updated);
+
+    setExercise("");
+    setSets("");
+    setReps("");
   }
 
-  function handleAdd(day) {
-    const value = inputs[day];
+  // ---------------- DELETE EXERCISE ----------------
+  function handleDelete(id) {
+    const updated = { ...plan };
 
-    if (!value) return;
+    updated[selectedDay] = updated[selectedDay].filter(
+      (lift) => lift.id !== id
+    );
 
-    addExercise(day, value);
-
-    setInputs((prev) => ({
-      ...prev,
-      [day]: "",
-    }));
-
-    refresh();
+    setPlan(updated);
+    savePlan(updated);
   }
+
+  const days = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+  ];
+
+  const todayPlan = plan[selectedDay] || [];
 
   return (
-    <div
-      style={{
-        padding: 24,
-        maxWidth: 900,
-        margin: "0 auto",
-      }}
-    >
-      <h1>Training Plan</h1>
+    <PageShell>
+      <h2 style={{ marginBottom: 12 }}>Plan</h2>
 
-      {Object.keys(plan).map((day) => (
-        <Card key={day}>
-          <h2>{day}</h2>
+      {/* DAY SELECTOR */}
+      <div style={dayRow}>
+        {days.map((day) => (
+          <button
+            key={day}
+            onClick={() => setSelectedDay(day)}
+            style={{
+              ...dayBtn,
+              ...(selectedDay === day ? activeDay : {}),
+            }}
+          >
+            {day.slice(0, 3)}
+          </button>
+        ))}
+      </div>
 
-          {/* Add exercise */}
-          <div style={{ display: "flex", gap: 10 }}>
-            <input
-              placeholder="Add exercise"
-              value={inputs[day] || ""}
-              onChange={(e) =>
-                setInputs({
-                  ...inputs,
-                  [day]: e.target.value,
-                })
-              }
-            />
+      {/* ADD FORM */}
+      <div style={card}>
+        <h3>Add Exercise</h3>
 
-            <button
-              onClick={() => handleAdd(day)}
-            >
-              Add
-            </button>
+        <input
+          placeholder="Exercise"
+          value={exercise}
+          onChange={(e) => setExercise(e.target.value)}
+          style={input}
+        />
+
+        <div style={{ display: "flex", gap: 10 }}>
+          <input
+            placeholder="Sets"
+            type="number"
+            value={sets}
+            onChange={(e) => setSets(e.target.value)}
+            style={input}
+          />
+
+          <input
+            placeholder="Reps"
+            type="number"
+            value={reps}
+            onChange={(e) => setReps(e.target.value)}
+            style={input}
+          />
+        </div>
+
+        <button onClick={handleAdd} style={primaryBtn}>
+          Add
+        </button>
+      </div>
+
+      {/* LIST */}
+      <div style={{ marginTop: 16 }}>
+        {todayPlan.length === 0 ? (
+          <div style={card}>
+            No workouts for {selectedDay}
           </div>
-
-          {/* Exercise list */}
-          <div style={{ marginTop: 10 }}>
-            {plan[day]?.length === 0 && (
-              <p>No exercises</p>
-            )}
-
-            {plan[day]?.map((ex) => (
-              <div
-                key={ex.id}
-                style={{
-                  display: "flex",
-                  justifyContent:
-                    "space-between",
-                  marginTop: 8,
-                  padding: 8,
-                  background:
-                    "rgba(255,255,255,0.03)",
-                  borderRadius: 6,
-                }}
-              >
-                <span>
-                  {ex.exercise} — {ex.sets}×
-                  {ex.reps}
-                </span>
+        ) : (
+          todayPlan.map((lift) => (
+            <div key={lift.id} style={card}>
+              <div style={row}>
+                <div>
+                  <b>{lift.exercise}</b>
+                  <div style={{ fontSize: 12, opacity: 0.7 }}>
+                    {lift.sets} × {lift.reps}
+                  </div>
+                </div>
 
                 <button
-                  onClick={() => {
-                    removeExercise(day, ex.id);
-                    refresh();
-                  }}
+                  onClick={() => handleDelete(lift.id)}
+                  style={deleteBtn}
                 >
-                  X
+                  remove
                 </button>
               </div>
-            ))}
-          </div>
-        </Card>
-      ))}
-    </div>
+            </div>
+          ))
+        )}
+      </div>
+    </PageShell>
   );
 }
+
+/* ================= STYLES ================= */
+
+const dayRow = {
+  display: "flex",
+  overflowX: "auto",
+  gap: 8,
+  marginBottom: 16, // 🔥 increase spacing
+  paddingBottom: 6, // 🔥 prevents visual collision
+};
+
+const dayBtn = {
+  padding: "6px 10px",
+  borderRadius: 999,
+  border: "1px solid #1f2937",
+  background: "#111827",
+  color: "white",
+  fontSize: 12,
+  minWidth: 48
+};
+
+const activeDay = {
+  borderColor: "#00e5ff",
+  color: "#00e5ff",
+};
+
+const card = {
+  background: "#111827",
+  border: "1px solid #1f2937",
+  borderRadius: 12,
+  padding: 12,
+  marginBottom: 10,
+};
+
+const input = {
+  width: "100%",
+  padding: 10,
+  marginTop: 8,
+  borderRadius: 8,
+  border: "1px solid #333",
+  background: "#0f172a",
+  color: "white",
+};
+
+const primaryBtn = {
+  marginTop: 10,
+  width: "100%",
+  padding: 10,
+  borderRadius: 8,
+  background: "#00e5ff",
+  border: "none",
+  fontWeight: 600,
+};
+
+const deleteBtn = {
+  background: "#ef4444",
+  border: "none",
+  color: "white",
+  padding: "6px 10px",
+  borderRadius: 8,
+};
+
+const row = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+};

@@ -1,66 +1,90 @@
 import { useEffect, useState } from "react";
-import Card from "../components/Card";
+import PageShell from "../components/PageShell";
 import { getWorkouts } from "../lib/workoutStorage";
 
 export default function History() {
   const [workouts, setWorkouts] = useState([]);
 
   useEffect(() => {
-    setWorkouts(getWorkouts());
+    const data = getWorkouts();
+
+    // 🔥 force array safety
+    setWorkouts(Array.isArray(data) ? data : []);
   }, []);
 
+  // ---------------- SAFE DATE HANDLER ----------------
   function getWorkoutDate(workout) {
-    // find first valid date in workout safely
-    const found = workout?.find((w) => w.date);
-    return found?.date || Date.now();
+    // must be array or fallback
+    if (!Array.isArray(workout)) return Date.now();
+
+    // manual loop (NO .find)
+    for (let i = 0; i < workout.length; i++) {
+      const item = workout[i];
+      if (item && item.date) {
+        return item.date;
+      }
+    }
+
+    return Date.now();
+  }
+
+  function formatDate(ts) {
+    try {
+      return new Date(ts).toLocaleDateString();
+    } catch {
+      return "Unknown date";
+    }
   }
 
   return (
-    <div style={{ padding: 24, maxWidth: 700, margin: "0 auto" }}>
-      <h1>Workout History</h1>
+    <PageShell>
+      <h2 style={{ marginBottom: 12 }}>History</h2>
 
+      {/* EMPTY STATE */}
       {workouts.length === 0 ? (
-        <Card>
-          <p>No workouts recorded yet.</p>
-        </Card>
+        <div style={card}>No workouts logged yet</div>
       ) : (
-        workouts
-          .slice()
-          .reverse()
-          .map((workout, workoutIndex) => (
-            <Card key={workoutIndex}>
-              <h3>
-                Workout{" "}
-                {new Date(getWorkoutDate(workout)).toLocaleDateString()}
-              </h3>
+        workouts.map((workout, index) => {
+          const date = getWorkoutDate(workout);
 
-              {Array.isArray(workout) &&
-                workout.map((exercise, exerciseIndex) => (
-                  <div
-                    key={exerciseIndex}
-                    style={{
-                      marginBottom: 20,
-                      paddingBottom: 10,
-                      borderBottom: "1px solid rgba(255,255,255,0.1)",
-                    }}
-                  >
-                    <h4>{exercise.exercise || "Unknown Exercise"}</h4>
+          return (
+            <div key={index} style={card}>
+              {/* DATE HEADER */}
+              <div style={{ fontSize: 12, opacity: 0.7 }}>
+                {formatDate(date)}
+              </div>
 
-                    {exercise.sets?.length > 0 ? (
-                      exercise.sets.map((set, setIndex) => (
-                        <p key={setIndex}>
-                          Set {setIndex + 1}: {set.weight ?? "-"} lbs ×{" "}
-                          {set.reps ?? "-"}
-                        </p>
-                      ))
-                    ) : (
-                      <p>No sets recorded</p>
-                    )}
+              {/* WORKOUT CONTENT */}
+              <div style={{ marginTop: 8 }}>
+                {Array.isArray(workout) ? (
+                  workout.map((set, i) => (
+                    <div key={i} style={{ marginTop: 6 }}>
+                      <b>{set?.exercise || "Unknown exercise"}</b>
+                      <div style={{ fontSize: 12, opacity: 0.8 }}>
+                        {set?.weight || 0} lbs × {set?.reps || 0}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ fontSize: 12, opacity: 0.7 }}>
+                    Invalid workout data
                   </div>
-                ))}
-            </Card>
-          ))
+                )}
+              </div>
+            </div>
+          );
+        })
       )}
-    </div>
+    </PageShell>
   );
 }
+
+/* ================= STYLES ================= */
+
+const card = {
+  background: "#111827",
+  border: "1px solid #1f2937",
+  borderRadius: 12,
+  padding: 12,
+  marginBottom: 10,
+};

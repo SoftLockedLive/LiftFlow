@@ -1,26 +1,21 @@
 import { useEffect, useState } from "react";
-
 import Card from "../components/Card";
 
-import { getPlan } from "../lib/plan";
 import { getTodayName } from "../lib/today";
+import { buildTodaysWorkout } from "../lib/trainingEngine";
 import { saveWorkout } from "../lib/workoutStorage";
-
-import { getCoachState } from "../lib/coachState";
 
 export default function Workout() {
   const [program, setProgram] = useState([]);
   const [session, setSession] = useState({});
-  const [coach, setCoach] = useState({});
 
   useEffect(() => {
     const today = getTodayName();
-    const plan = getPlan();
 
-    const todayWorkout = plan[today]?.lifts || [];
+    // 🔥 central orchestration layer
+    const todaysWorkout = buildTodaysWorkout(today);
 
-    setProgram(todayWorkout);
-    setCoach(getCoachState());
+    setProgram(todaysWorkout);
   }, []);
 
   function updateSet(exerciseId, setIndex, field, value) {
@@ -48,13 +43,15 @@ export default function Workout() {
         exercise: lift.exercise,
         sets: session[lift.id] || [],
         date: Date.now(),
+
+        // optional future use (coach feedback storage)
+        suggestedWeight: lift.suggestedWeight || null,
       });
     });
 
     saveWorkout(completedWorkout);
 
     alert("Workout saved!");
-
     setSession({});
   }
 
@@ -81,11 +78,17 @@ export default function Workout() {
               Target: {lift.sets} × {lift.reps}
             </p>
 
-            {/* Coach suggestion hint */}
-            {coach[lift.exercise]?.suggestedWeight && (
-              <p style={{ opacity: 0.6 }}>
-                Coach suggests:{" "}
-                <b>{coach[lift.exercise].suggestedWeight} lbs</b>
+            {/* Coach suggestion (non-blocking) */}
+            {lift.suggestedWeight && (
+              <p style={{ color: "#00e5ff" }}>
+                Suggested Weight: {lift.suggestedWeight} lbs
+              </p>
+            )}
+
+            {/* Coach note (optional) */}
+            {lift.coachNote && (
+              <p style={{ fontSize: 12, opacity: 0.8 }}>
+                Coach: {lift.coachNote}
               </p>
             )}
 
@@ -98,15 +101,10 @@ export default function Workout() {
                   marginBottom: 10,
                 }}
               >
-                {/* WEIGHT INPUT */}
                 <input
                   type="number"
                   placeholder={`Set ${i + 1} Weight`}
-                  value={
-                    session[lift.id]?.[i]?.weight ||
-                    coach[lift.exercise]?.suggestedWeight ||
-                    ""
-                  }
+                  value={session[lift.id]?.[i]?.weight || ""}
                   onChange={(e) =>
                     updateSet(
                       lift.id,
@@ -117,13 +115,10 @@ export default function Workout() {
                   }
                 />
 
-                {/* REPS INPUT */}
                 <input
                   type="number"
                   placeholder={`Set ${i + 1} Reps`}
-                  value={
-                    session[lift.id]?.[i]?.reps || ""
-                  }
+                  value={session[lift.id]?.[i]?.reps || ""}
                   onChange={(e) =>
                     updateSet(
                       lift.id,

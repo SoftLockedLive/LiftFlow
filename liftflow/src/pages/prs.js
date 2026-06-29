@@ -1,49 +1,31 @@
 import { useEffect, useState } from "react";
 import Card from "../components/Card";
 import { getWorkouts } from "../lib/workoutStorage";
-import { calculatePRs } from "../lib/engine";
+import { getPRs } from "../lib/engine";
 
 export default function PRs() {
   const [prs, setPrs] = useState({});
 
   useEffect(() => {
     const workouts = getWorkouts();
-    setPrs(calculatePRs(workouts));
+    setPrs(getPRs(workouts));
   }, []);
 
   return (
-    <div
-      style={{
-        padding: 24,
-        maxWidth: 700,
-        margin: "0 auto",
-      }}
-    >
+    <div style={{ padding: 24, maxWidth: 700, margin: "0 auto" }}>
       <h1>Personal Records</h1>
 
-      {Object.keys(prs).length === 0 ? (
-        <Card>
-          <p>No PRs recorded yet.</p>
-        </Card>
-      ) : (
-        Object.entries(prs).map(
-          ([exercise, pr]) => (
-            <Card key={exercise}>
-              <h2>{exercise}</h2>
-
-              <p>
-                🏆 Heaviest Weight:{" "}
-                <b>{pr.maxWeight} lbs</b>
-              </p>
-
-              <p>
-                📈 Estimated 1RM:{" "}
-                <b>{pr.estimated1RM} lbs</b>
-              </p>
-            </Card>
-          )
-        )
-      )}
+      <Card>
+        {Object.keys(prs).length === 0 ? (
+          <p>No PRs recorded yet</p>
+        ) : (
+          Object.entries(prs).map(([exercise, weight]) => (
+            <p key={exercise}>
+              <b>{exercise}</b>: {weight} lbs
+            </p>
+          ))
+        )}
+      </Card>
     </div>
   );
 }

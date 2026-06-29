@@ -1,15 +1,26 @@
 import { getWorkouts } from "./workoutStorage";
 
 /**
+ * Normalize workout shape safely
+ */
+function normalizeWorkout(workout) {
+  // supports both old + new structures safely
+  if (Array.isArray(workout)) return workout;
+  if (workout?.workout) return workout.workout;
+  return [];
+}
+
+/**
  * Returns average performance per exercise
  */
 export function getExerciseTrends() {
   const workouts = getWorkouts();
-
   const stats = {};
 
   workouts.forEach((session) => {
-    session.workout.forEach((lift) => {
+    const lifts = normalizeWorkout(session);
+
+    lifts.forEach((lift) => {
       if (!stats[lift.exercise]) {
         stats[lift.exercise] = {
           totalWeight: 0,
@@ -32,30 +43,27 @@ export function getExerciseTrends() {
 }
 
 /**
- * PR SYSTEM
- * Finds max lift per exercise across all workouts
+ * SINGLE PR SYSTEM (FIXED + CONSISTENT)
+ * Returns max weight per exercise
  */
-export function calculatePRs(workouts = getWorkouts()) {
+export function getPRs(workouts = getWorkouts()) {
   const prs = {};
 
-  workouts.forEach((workout) => {
-    workout.forEach((exercise) => {
+  workouts.forEach((session) => {
+    const lifts = normalizeWorkout(session);
+
+    lifts.forEach((exercise) => {
       const name = exercise.exercise;
 
       if (!prs[name]) {
-        prs[name] = {
-          weight: 0,
-          reps: 0,
-        };
+        prs[name] = 0;
       }
 
       exercise.sets.forEach((set) => {
         const weight = set.weight || 0;
-        const reps = set.reps || 0;
 
-        if (weight > prs[name].weight) {
-          prs[name].weight = weight;
-          prs[name].reps = reps;
+        if (weight > prs[name]) {
+          prs[name] = weight;
         }
       });
     });
@@ -65,17 +73,16 @@ export function calculatePRs(workouts = getWorkouts()) {
 }
 
 /**
- * Calculates total volume for a workout set array
+ * Calculates total volume for a workout
  */
 function calculateSetVolume(set) {
   return (set.weight || 0) * (set.reps || 0);
 }
 
-/**
- * Calculates total workout volume
- */
 export function calculateWorkoutVolume(workout) {
-  return workout.reduce((total, exercise) => {
+  const lifts = normalizeWorkout(workout);
+
+  return lifts.reduce((total, exercise) => {
     const exerciseVolume = exercise.sets.reduce((sum, set) => {
       return sum + calculateSetVolume(set);
     }, 0);
@@ -85,7 +92,7 @@ export function calculateWorkoutVolume(workout) {
 }
 
 /**
- * Returns estimated fatigue score based on recent workouts
+ * Fatigue based on last 3 workouts
  */
 export function calculateFatigue(workouts = getWorkouts()) {
   const last3 = workouts.slice(-3);
@@ -100,35 +107,10 @@ export function calculateFatigue(workouts = getWorkouts()) {
 }
 
 /**
- * Simple intensity recommendation engine
+ * Intensity recommendation
  */
 export function intensityLevel(fatigue) {
   if (fatigue < 3000) return "HIGH";
   if (fatigue < 6000) return "MODERATE";
   return "LOW (DELOAD RECOMMENDED)";
-}
-
-/**
- * PR detection (simple version)
- */
-export function getPRs(workouts = getWorkouts()) {
-  const prs = {};
-
-  workouts.forEach((workout) => {
-    workout.forEach((exercise) => {
-      exercise.sets.forEach((set) => {
-        const weight = set.weight || 0;
-
-        if (!prs[exercise.exercise]) {
-          prs[exercise.exercise] = weight;
-        }
-
-        if (weight > prs[exercise.exercise]) {
-          prs[exercise.exercise] = weight;
-        }
-      });
-    });
-  });
-
-  return prs;
 }
