@@ -1,29 +1,118 @@
-html, body {
-  margin: 0;
-  padding: 0;
-  background: #0b0f19;
-  color: white;
-  font-family: system-ui, -apple-system, sans-serif;
-}
+/* =========================
+   LIFTFLOW V2 THEME
+   mobile-first fitness UI
+========================= */
 
-/* kill ALL tap/focus artifacts (DeX + Chrome fix) */
 * {
+  box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
 }
 
-*:focus,
-*:focus-visible {
+html, body {
+  margin: 0;
+  padding: 0;
+  background: radial-gradient(
+    circle at top,
+    #0f172a 0%,
+    #0b0f19 45%,
+    #070a12 100%
+  );
+  color: white;
+  font-family: system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+}
+
+/* smooth UI feel */
+html {
+  scroll-behavior: smooth;
+}
+
+/* remove ugly focus */
+*:focus {
+  outline: none !important;
+}
+
+/* selection color */
+::selection {
+  background: rgba(0, 229, 255, 0.25);
+}
+
+/* =========================
+   GLOBAL CARD STYLE
+========================= */
+
+.card {
+  background: linear-gradient(
+    180deg,
+    rgba(17, 24, 39, 0.9),
+    rgba(17, 24, 39, 0.6)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  padding: 14px;
+  backdrop-filter: blur(10px);
+}
+
+/* =========================
+   BUTTONS
+========================= */
+
+button {
+  border: none;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-weight: 600;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+/* primary button glow */
+button.primary {
+  background: #00e5ff;
+  color: black;
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.15);
+}
+
+/* =========================
+   INPUTS
+========================= */
+
+input, select {
+  width: 100%;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(15, 23, 42, 0.7);
+  color: white;
+}
+
+/* focus glow */
+input:focus, select:focus {
+  border-color: #00e5ff;
+  box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.12);
+}
+
+/* =========================
+   SCROLL CLEAN
+========================= */
+
+::-webkit-scrollbar {
+  display: none;
+}
+
+* {
+  outline: none !important;
+  -webkit-tap-highlight-color: transparent;
+}
+
+a, button, div {
+  outline: none !important;
+}
+
+* {
   outline: none !important;
   box-shadow: none !important;
-}
-
-/* buttons/links clean state */
-button, a {
-  outline: none;
-  border: none;
-}
-
-/* prevent weird scroll glow on mobile/DeX */
-body {
-  overscroll-behavior: none;
+  border: none !important;
 }
