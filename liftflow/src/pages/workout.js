@@ -1,84 +1,121 @@
-import { useState } from "react";
-import { addSet, getSession, clearSession, startSession } from "../lib/session";
-import { saveWorkout } from "../lib/storage";
+import { useEffect, useState } from "react";
+import Card from "../components/Card";
+import { getPlan } from "../lib/plan";
+import { getTodayName } from "../lib/today";
+import { saveWorkout } from "../lib/workoutStorage";
 
 export default function Workout() {
-  const [exercise, setExercise] = useState("");
-  const [weight, setWeight] = useState("");
-  const [reps, setReps] = useState([]);
-  const [sessionState, setSessionState] = useState([]);
+  const [todayWorkout, setTodayWorkout] = useState([]);
+  const [session, setSession] = useState({});
 
-  function handleStart() {
-    startSession();
-    setSessionState(getSession());
+  useEffect(() => {
+    const today = getTodayName();
+    const plan = getPlan();
+
+    setTodayWorkout(plan[today] || []);
+  }, []);
+
+  function updateSet(exerciseId, setIndex, field, value) {
+    setSession((prev) => {
+      const next = { ...prev };
+
+      if (!next[exerciseId]) next[exerciseId] = [];
+
+      next[exerciseId][setIndex] = {
+        ...(next[exerciseId][setIndex] || {}),
+        [field]: Number(value),
+      };
+
+      return next;
+    });
   }
 
-  function handleAddSet() {
-    const set = {
-      exercise,
-      weight,
-      reps,
-      date: new Date().toISOString(),
-    };
+  function finishWorkout() {
+    const completedWorkout = todayWorkout.map((lift) => ({
+      exercise: lift.exercise,
+      sets: session[lift.id] || [],
+      date: Date.now(),
+    }));
 
-    addSet(set);
-    setSessionState(getSession());
+    saveWorkout(completedWorkout);
 
-    setReps("");
-  }
+    alert("Workout saved!");
 
-  function handleFinish() {
-    const session = getSession();
-
-    session.forEach(saveWorkout);
-
-    clearSession();
-    setSessionState([]);
+    setSession({});
   }
 
   return (
     <div style={{ padding: 24, maxWidth: 700, margin: "0 auto" }}>
-      <h1>Workout Session</h1>
+      <h1>Today's Workout</h1>
 
-      <button onClick={handleStart}>Start Session</button>
+      {todayWorkout.length === 0 ? (
+        <Card>
+          <p>No workout planned for today.</p>
+        </Card>
+      ) : (
+        todayWorkout.map((lift) => (
+          <Card key={lift.id}>
+            <h3>{lift.exercise}</h3>
 
-      <div style={{ marginTop: 20 }}>
-        <input
-          placeholder="Exercise"
-          value={exercise}
-          onChange={(e) => setExercise(e.target.value)}
-        />
+            <p>
+              Target: {lift.sets} × {lift.reps}
+            </p>
 
-        <input
-          placeholder="Weight"
-          value={weight}
-          onChange={(e) => setWeight(e.target.value)}
-        />
+            {Array.from({ length: lift.sets }).map((_, i) => (
+              <div
+                key={i}
+                style={{
+                  display: "flex",
+                  gap: 10,
+                  marginBottom: 10,
+                }}
+              >
+                <input
+                  type="number"
+                  placeholder={`Set ${i + 1} Weight`}
+                  value={
+                    session[lift.id]?.[i]?.weight || ""
+                  }
+                  onChange={(e) =>
+                    updateSet(
+                      lift.id,
+                      i,
+                      "weight",
+                      e.target.value
+                    )
+                  }
+                />
 
-        <input
-          placeholder="Reps"
-          value={reps}
-          onChange={(e) => setReps(e.target.value)}
-        />
+                <input
+                  type="number"
+                  placeholder={`Set ${i + 1} Reps`}
+                  value={
+                    session[lift.id]?.[i]?.reps || ""
+                  }
+                  onChange={(e) =>
+                    updateSet(
+                      lift.id,
+                      i,
+                      "reps",
+                      e.target.value
+                    )
+                  }
+                />
+              </div>
+            ))}
+          </Card>
+        ))
+      )}
 
-        <br /><br />
-
-        <button onClick={handleAddSet}>Add Set</button>
-      </div>
-
-      <div style={{ marginTop: 20 }}>
-        <h3>Session</h3>
-
-        {sessionState.map((s, i) => (
-          <div key={i}>
-            {s.exercise} — {s.weight} × {s.reps}
-          </div>
-        ))}
-      </div>
-
-      <br />
-
-      <button onClick={handleFinish}>
+      <button
+        onClick={finishWorkout}
+        style={{
+          width: "100%",
+          padding: 14,
+          marginTop: 20,
+          fontSize: 16,
+        }}
+      >
         Finish Workout
       </button>
     </div>

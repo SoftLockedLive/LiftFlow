@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
-import { getWorkouts } from "../lib/storage";
-import { calculateFatigue, intensityLevel } from "../lib/trainingEngine";
+import { getWorkouts } from "../lib/workoutStorage";
+import {
+  calculateFatigue,
+  intensityLevel,
+  getPRs,
+} from "../lib/engine";
 import Card from "../components/Card";
 
 export default function Home() {
