@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
+import { getMuscleGroup, tint as groupTint } from "../lib/muscleGroups";
 import { getPlan } from "../lib/plan";
 import { getTodayName } from "../lib/today";
 import { getWorkouts } from "../lib/workoutStorage";
@@ -45,7 +46,7 @@ export default function Home() {
 
   return (
     <div>
-      <section style={focusCard}>
+      <section className="home-focus" style={focusCard}>
         <div>
           <p style={eyebrow}>Today&apos;s Flow</p>
           <h2 style={focusTitle}>{today}</h2>
@@ -67,7 +68,7 @@ export default function Home() {
       </section>
 
       <section style={section}>
-        <div style={sectionHeader}>
+        <div className="section-header" style={sectionHeader}>
           <div>
             <h2 style={sectionTitle}>This Week</h2>
             <p style={sectionMeta}>{plannedDays} training days set</p>
@@ -77,7 +78,7 @@ export default function Home() {
           </button>
         </div>
 
-        <div style={weekGrid}>
+        <div className="home-week-grid" style={weekGrid}>
           {week.map((item) => (
             <article
               key={item.day}
@@ -100,9 +101,7 @@ export default function Home() {
               {item.lifts.length > 0 ? (
                 <div style={liftPreview}>
                   {item.lifts.slice(0, 3).map((lift) => (
-                    <span key={lift.id || lift.exercise} style={liftChip}>
-                      {lift.exercise} · {lift.sets}x{lift.reps}
-                    </span>
+                    <MuscleChip key={lift.id || lift.exercise} lift={lift} />
                   ))}
                   {item.lifts.length > 3 && (
                     <span style={liftChip}>+{item.lifts.length - 3} more</span>
@@ -153,6 +152,23 @@ export default function Home() {
   );
 }
 
+function MuscleChip({ lift }) {
+  const group = getMuscleGroup(lift.muscleGroup);
+
+  return (
+    <span
+      style={{
+        ...liftChip,
+        color: group.color,
+        borderColor: groupTint(group.color, 0.32),
+        background: groupTint(group.color, 0.08),
+      }}
+    >
+      {lift.exercise} · {lift.sets}x{lift.reps}
+    </span>
+  );
+}
+
 function getDayTitle(day) {
   if (day.name) return day.name;
   if (day.lifts.length === 0) return "Recovery";
@@ -199,7 +215,6 @@ const focusCard = {
   borderRadius: 16,
   background: "#101010",
   padding: "24px 26px",
-  display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
   gap: 18,
@@ -237,7 +252,6 @@ const section = {
 };
 
 const sectionHeader = {
-  display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
   gap: 14,
@@ -265,8 +279,6 @@ const ghostButton = {
 };
 
 const weekGrid = {
-  display: "grid",
-  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
   gap: 14,
 };
 

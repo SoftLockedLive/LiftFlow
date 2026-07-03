@@ -5,7 +5,7 @@ export function getWorkouts() {
   return JSON.parse(localStorage.getItem(KEY) || "[]");
 }
 
-export function saveWorkout(workout) {
+export function saveWorkout(workout, metadata = {}) {
   if (typeof window === "undefined") return;
 
   const existing = getWorkouts();
@@ -15,6 +15,7 @@ export function saveWorkout(workout) {
     {
       id: crypto.randomUUID(),
       date: Date.now(),
+      ...metadata,
       workout,
     },
   ];

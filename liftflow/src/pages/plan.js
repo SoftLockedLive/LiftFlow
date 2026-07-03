@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { getMuscleGroup, MUSCLE_GROUPS, tint } from "../lib/muscleGroups";
 import { getPlan, savePlan } from "../lib/plan";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -11,6 +12,7 @@ export default function Plan() {
   const [exercise, setExercise] = useState("");
   const [sets, setSets] = useState("");
   const [reps, setReps] = useState("");
+  const [muscleGroup, setMuscleGroup] = useState("chest");
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -56,6 +58,7 @@ export default function Plan() {
       {
         id: crypto.randomUUID(),
         exercise,
+        muscleGroup,
         sets: Number(sets),
         reps: Number(reps),
       },
@@ -66,6 +69,7 @@ export default function Plan() {
     setExercise("");
     setSets("");
     setReps("");
+    setMuscleGroup("chest");
   }
 
   function handleDelete(id) {
@@ -122,7 +126,7 @@ export default function Plan() {
           onChange={(event) => setExercise(event.target.value)}
         />
 
-        <div style={fieldRow}>
+        <div className="field-row" style={fieldRow}>
           <input
             placeholder="Sets"
             type="number"
@@ -137,6 +141,15 @@ export default function Plan() {
           />
         </div>
 
+        <label style={label}>Muscle Group</label>
+        <select value={muscleGroup} onChange={(event) => setMuscleGroup(event.target.value)}>
+          {MUSCLE_GROUPS.map((group) => (
+            <option key={group.id} value={group.id}>
+              {group.label}
+            </option>
+          ))}
+        </select>
+
         <button type="button" className="primary" onClick={handleAdd} style={fullButton}>
           Add Exercise
         </button>
@@ -146,12 +159,22 @@ export default function Plan() {
         {todayPlan.length === 0 ? (
           <div style={empty}>No exercises for {selectedDay} yet.</div>
         ) : (
-          todayPlan.map((lift) => (
-            <article key={lift.id} style={liftCard}>
+          todayPlan.map((lift) => {
+            const group = getMuscleGroup(lift.muscleGroup);
+
+            return (
+            <article
+              key={lift.id}
+              style={{
+                ...liftCard,
+                borderColor: tint(group.color, 0.42),
+                background: tint(group.color, 0.08),
+              }}
+            >
               <div>
-                <h3 style={liftName}>{lift.exercise}</h3>
+                <h3 style={{ ...liftName, color: group.color }}>{lift.exercise}</h3>
                 <p style={liftMeta}>
-                  {lift.sets} sets x {lift.reps} reps
+                  {group.label} · {lift.sets} sets x {lift.reps} reps
                 </p>
               </div>
 
@@ -159,7 +182,8 @@ export default function Plan() {
                 Remove
               </button>
             </article>
-          ))
+            );
+          })
         )}
       </section>
     </div>
@@ -247,8 +271,6 @@ const cardTitle = {
 };
 
 const fieldRow = {
-  display: "grid",
-  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
   gap: 10,
 };
 

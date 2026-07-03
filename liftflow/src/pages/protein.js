@@ -54,7 +54,7 @@ export default function Protein() {
         <div style={streakBadge}>{summary.streak} day streak</div>
       </header>
 
-      <section style={heroCard}>
+      <section className="protein-hero" style={heroCard}>
         <div>
           <p style={heroLabel}>Today</p>
           <div style={heroNumber}>
@@ -77,7 +77,7 @@ export default function Protein() {
           </button>
         </div>
 
-        <div style={quickGrid}>
+        <div className="protein-quick-grid" style={quickGrid}>
           {QUICK_AMOUNTS.map((amount) => (
             <button
               key={amount}
@@ -90,7 +90,7 @@ export default function Protein() {
           ))}
         </div>
 
-        <div style={customRow}>
+        <div className="protein-custom-row" style={customRow}>
           <input
             type="number"
             placeholder="Custom grams"
@@ -124,7 +124,7 @@ export default function Protein() {
         <h2 style={cardTitle}>Last 7 Days</h2>
         <div style={dayList}>
           {recentDays.map((day) => (
-            <div key={day.key} style={dayRow}>
+            <div key={day.key} className="protein-day-row" style={dayRow}>
               <div>
                 <strong style={dayName}>{day.label}</strong>
                 <p style={mutedSmall}>{day.total}g / {target}g</p>
@@ -202,7 +202,6 @@ const heroCard = {
   borderRadius: 16,
   background: "#101010",
   padding: 22,
-  display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
   gap: 18,
@@ -279,8 +278,6 @@ const ghostButton = {
 };
 
 const quickGrid = {
-  display: "grid",
-  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
   gap: 10,
 };
 
@@ -291,7 +288,6 @@ const quickButton = {
 };
 
 const customRow = {
-  display: "grid",
   gridTemplateColumns: "1fr auto",
   gap: 10,
   marginTop: 12,
@@ -308,8 +304,6 @@ const dayList = {
 };
 
 const dayRow = {
-  display: "grid",
-  gridTemplateColumns: "150px 1fr",
   alignItems: "center",
   gap: 14,
 };

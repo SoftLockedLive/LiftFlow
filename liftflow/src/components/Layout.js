@@ -87,13 +87,13 @@ export default function Layout({ children }) {
 
   return (
     <div style={shell}>
-      <header style={hero}>
+      <header className="app-hero" style={hero}>
         <div>
           <h1 style={brand}>LiftFlow</h1>
-          <p style={subhead}>{bodyweight} - {goalLabel} - Training Dashboard</p>
+          <p style={subhead}>{goalLabel} training · {bodyweight}</p>
         </div>
 
-        <div style={heroRight}>
+        <div className="app-hero-right" style={heroRight}>
           <div style={clubTotal}>
             <span style={mutedLabel}>Big 3 total</span>
             <strong style={totalValue}>{hasTotal ? `${total}${units}` : "--"}</strong>
@@ -105,7 +105,7 @@ export default function Layout({ children }) {
         </div>
       </header>
 
-      <section style={clubGrid} aria-label="Club total and PRs">
+      <section className="app-metrics" style={clubGrid} aria-label="Club total and PRs">
         {liftCards.map((lift) => (
           <div key={lift.label} style={{ ...metricCard, borderColor: tint(lift.accent, 0.35) }}>
             <span style={metricLabel}>{lift.label}</span>
@@ -132,7 +132,7 @@ export default function Layout({ children }) {
       </section>
 
       <nav style={tabWrapper} aria-label="Main navigation">
-        <div style={tabBar}>
+        <div className="app-tabs" style={tabBar}>
           {tabs.map((tab) => {
             const active = tab.path && router.pathname === tab.path;
 
@@ -153,7 +153,7 @@ export default function Layout({ children }) {
         </div>
       </nav>
 
-      <main style={page}>{children}</main>
+      <main className="app-page" style={page}>{children}</main>
 
       {profileOpen && (
         <div style={overlay} onClick={() => setProfileOpen(false)}>
@@ -287,34 +287,24 @@ const shell = {
 };
 
 const hero = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "flex-start",
-  gap: 16,
-  maxWidth: 980,
-  margin: "0 auto",
-  padding: "28px 24px 14px",
 };
 
 const brand = {
   margin: 0,
   color: ACCENTS.lime,
-  fontSize: "clamp(40px, 8vw, 56px)",
+  fontSize: "clamp(34px, 7vw, 48px)",
   lineHeight: 1,
   fontWeight: 900,
 };
 
 const subhead = {
-  margin: "12px 0 0",
+  margin: "8px 0 0",
   color: "#626262",
-  fontSize: 18,
-  fontWeight: 900,
+  fontSize: 15,
+  fontWeight: 750,
 };
 
 const heroRight = {
-  display: "flex",
-  alignItems: "flex-start",
-  gap: 14,
 };
 
 const profileButton = {
@@ -328,12 +318,6 @@ const profileButton = {
 };
 
 const clubGrid = {
-  display: "grid",
-  gridTemplateColumns: "repeat(6, minmax(0, 1fr))",
-  gap: 12,
-  maxWidth: 980,
-  margin: "0 auto",
-  padding: "14px 24px 12px",
 };
 
 const clubTotal = {
@@ -347,13 +331,13 @@ const clubTotal = {
 
 const mutedLabel = {
   color: "#555",
-  fontSize: 16,
-  fontWeight: 900,
+  fontSize: 14,
+  fontWeight: 800,
 };
 
 const totalValue = {
   color: ACCENTS.lime,
-  fontSize: 28,
+  fontSize: 24,
   lineHeight: 1,
 };
 
@@ -372,20 +356,20 @@ const metricCard = {
 
 const metricLabel = {
   color: "#5f5f5f",
-  fontSize: 16,
-  fontWeight: 900,
+  fontSize: 14,
+  fontWeight: 800,
   textTransform: "uppercase",
 };
 
 const metricValue = {
-  fontSize: 20,
+  fontSize: 18,
   lineHeight: 1,
 };
 
 const metricHint = {
   color: "#454545",
-  fontSize: 16,
-  fontWeight: 900,
+  fontSize: 14,
+  fontWeight: 800,
 };
 
 const wideCard = {
@@ -414,21 +398,15 @@ const tabWrapper = {
 };
 
 const tabBar = {
-  display: "flex",
-  gap: 8,
-  maxWidth: 980,
-  margin: "0 auto",
-  padding: "18px 16px 12px",
-  overflowX: "auto",
 };
 
 const tabPill = {
   flex: "0 0 auto",
-  padding: "10px 18px",
+  padding: "9px 15px",
   borderColor: "#1d1d1d",
   background: "#050505",
   color: "#5e5e5e",
-  fontSize: 16,
+  fontSize: 14,
   textTransform: "uppercase",
 };
 
@@ -439,9 +417,6 @@ const activeTab = {
 };
 
 const page = {
-  maxWidth: 980,
-  margin: "0 auto",
-  padding: "26px 24px 120px",
 };
 
 const overlay = {
@@ -485,4 +460,16 @@ const modalBody = {
   display: "grid",
   gap: 12,
   padding: 16,
+};
+
+const modalField = {
+  display: "grid",
+  gap: 6,
+};
+
+const modalLabel = {
+  color: "#777",
+  fontSize: 12,
+  fontWeight: 850,
+  textTransform: "uppercase",
 };

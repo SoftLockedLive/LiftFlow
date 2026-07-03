@@ -36,7 +36,7 @@ export default function History() {
         </div>
       </header>
 
-      <section style={statsGrid}>
+      <section className="history-stats" style={statsGrid}>
         <Stat label="Sessions" value={totals.sessions} />
         <Stat label="Sets" value={totals.sets} />
         <Stat label="Volume" value={`${totals.volume.toLocaleString()} lb`} />
@@ -59,7 +59,7 @@ export default function History() {
 
               <div style={liftList}>
                 {session.lifts.map((lift, index) => (
-                  <div key={`${session.id}-${lift.exercise}-${index}`} style={liftRow}>
+                  <div key={`${session.id}-${lift.exercise}-${index}`} className="phone-stack" style={liftRow}>
                     <div>
                       <strong style={liftName}>{lift.exercise}</strong>
                       <p style={setLine}>
@@ -158,8 +158,6 @@ const title = {
 };
 
 const statsGrid = {
-  display: "grid",
-  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
   gap: 12,
   marginBottom: 16,
 };

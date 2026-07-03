@@ -38,7 +38,7 @@ export default function Profile() {
 
   return (
     <div style={wrap}>
-      <header style={header}>
+      <header className="profile-header" style={header}>
         <div>
           <p style={eyebrow}>Athlete</p>
           <h1 style={title}>Profile</h1>
@@ -48,20 +48,20 @@ export default function Profile() {
         </button>
       </header>
 
-      <section style={statsGrid}>
+      <section className="profile-stats" style={statsGrid}>
         <Stat label="Big 3" value={`${total} lb`} />
         <Stat label="Lean Mass" value={`${leanMass} lb`} />
         <Stat label="Change" value={`${weightChange > 0 ? "+" : ""}${weightChange} lb`} />
       </section>
 
-      <section style={grid}>
+      <section className="profile-grid" style={grid}>
         <Panel title="Personal">
           <Field
             label="Full name"
             value={profile.name || ""}
             onChange={(event) => update("name", event.target.value)}
           />
-          <div style={fieldRow}>
+          <div className="field-row" style={fieldRow}>
             <Field
               label="Age"
               type="number"
@@ -74,7 +74,7 @@ export default function Profile() {
               onChange={(event) => update("sex", event.target.value)}
             />
           </div>
-          <div style={fieldRow}>
+          <div className="field-row" style={fieldRow}>
             <SelectField
               label="Goal"
               value={profile.goal || "strength"}
@@ -102,7 +102,7 @@ export default function Profile() {
             value={profile.height || ""}
             onChange={(event) => update("height", event.target.value)}
           />
-          <div style={fieldRow}>
+          <div className="field-row" style={fieldRow}>
             <Field
               label="Weight"
               type="number"
@@ -121,7 +121,7 @@ export default function Profile() {
               <option value="kg">KG</option>
             </SelectField>
           </div>
-          <div style={fieldRow}>
+          <div className="field-row" style={fieldRow}>
             <Field
               label="Start weight"
               type="number"
@@ -138,7 +138,7 @@ export default function Profile() {
         </Panel>
 
         <Panel title="Current PRs">
-          <div style={fieldRow}>
+          <div className="field-row" style={fieldRow}>
             <Field
               label="Bench PR"
               type="number"
@@ -161,7 +161,7 @@ export default function Profile() {
         </Panel>
 
         <Panel title="Goals">
-          <div style={fieldRow}>
+          <div className="field-row" style={fieldRow}>
             <Field
               label="Goal weight"
               type="number"
@@ -175,7 +175,7 @@ export default function Profile() {
               onChange={(event) => update("goalBodyFat", event.target.value)}
             />
           </div>
-          <div style={fieldRow}>
+          <div className="field-row" style={fieldRow}>
             <Field
               label="Goal bench"
               type="number"
@@ -243,7 +243,6 @@ const wrap = {
 };
 
 const header = {
-  display: "flex",
   justifyContent: "space-between",
   alignItems: "flex-start",
   gap: 16,
@@ -269,8 +268,6 @@ const saveTop = {
 };
 
 const statsGrid = {
-  display: "grid",
-  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
   gap: 12,
   marginBottom: 16,
 };
@@ -298,8 +295,6 @@ const statValue = {
 };
 
 const grid = {
-  display: "grid",
-  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
   gap: 14,
 };
 
@@ -322,8 +317,6 @@ const panelBody = {
 };
 
 const fieldRow = {
-  display: "grid",
-  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
   gap: 10,
 };
 
