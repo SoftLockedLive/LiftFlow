@@ -97,7 +97,7 @@ export default function Layout({ children }) {
           <div style={clubTotal}>
             <span style={mutedLabel}>Big 3 total</span>
             <strong style={totalValue}>{hasTotal ? `${total}${units}` : "--"}</strong>
-            <span style={mutedLabel}>Track your strongest lifts</span>
+            <span style={mutedLabel}>Best lifts</span>
           </div>
           <button style={profileButton} onClick={() => setProfileOpen(true)}>
             {initials}
@@ -308,8 +308,8 @@ const heroRight = {
 };
 
 const profileButton = {
-  width: 46,
-  height: 46,
+  width: 42,
+  height: 42,
   padding: 0,
   borderRadius: "50%",
   borderColor: "#262626",
@@ -325,8 +325,8 @@ const clubTotal = {
   flexDirection: "column",
   alignItems: "flex-end",
   justifyContent: "center",
-  minHeight: 84,
-  gap: 10,
+  minHeight: 46,
+  gap: 4,
 };
 
 const mutedLabel = {
@@ -343,7 +343,7 @@ const totalValue = {
 
 const metricCard = {
   gridColumn: "span 2",
-  minHeight: 116,
+  minHeight: 94,
   background: "#101010",
   border: "1px solid",
   borderRadius: 16,
@@ -351,7 +351,7 @@ const metricCard = {
   flexDirection: "column",
   alignItems: "center",
   justifyContent: "center",
-  gap: 12,
+  gap: 8,
 };
 
 const metricLabel = {
@@ -374,14 +374,14 @@ const metricHint = {
 
 const wideCard = {
   gridColumn: "span 3",
-  minHeight: 98,
-  padding: 14,
+  minHeight: 82,
+  padding: 12,
   background: "#101010",
   border: "1px solid",
   borderRadius: 16,
   display: "flex",
   flexDirection: "column",
-  gap: 16,
+  gap: 10,
 };
 
 const wideValue = {

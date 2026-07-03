@@ -210,11 +210,11 @@ function tint(hex, alpha) {
 }
 
 const focusCard = {
-  minHeight: 138,
+  minHeight: 112,
   border: "1px solid rgba(228, 255, 47, 0.35)",
   borderRadius: 16,
   background: "#101010",
-  padding: "24px 26px",
+  padding: "18px 20px",
   alignItems: "center",
   justifyContent: "space-between",
   gap: 18,
@@ -229,16 +229,16 @@ const eyebrow = {
 };
 
 const focusTitle = {
-  margin: "8px 0 8px",
+  margin: "6px 0 6px",
   color: "#f7f7f2",
-  fontSize: 30,
+  fontSize: 26,
   lineHeight: 1,
 };
 
 const focusCopy = {
   margin: 0,
   color: "#747474",
-  fontSize: 17,
+  fontSize: 15,
   lineHeight: 1.4,
   fontWeight: 700,
 };
@@ -248,20 +248,20 @@ const focusButton = {
 };
 
 const section = {
-  marginTop: 28,
+  marginTop: 22,
 };
 
 const sectionHeader = {
   alignItems: "center",
   justifyContent: "space-between",
   gap: 14,
-  marginBottom: 18,
+  marginBottom: 14,
 };
 
 const sectionTitle = {
   margin: 0,
   color: "#f7f7f2",
-  fontSize: 26,
+  fontSize: 22,
   lineHeight: 1,
 };
 
@@ -279,14 +279,14 @@ const ghostButton = {
 };
 
 const weekGrid = {
-  gap: 14,
+  gap: 10,
 };
 
 const dayCard = {
-  minHeight: 188,
+  minHeight: 142,
   border: "1px solid",
   borderRadius: 16,
-  padding: 18,
+  padding: 13,
   display: "flex",
   flexDirection: "column",
   alignItems: "flex-start",
@@ -294,7 +294,7 @@ const dayCard = {
 
 const sundayCard = {
   gridColumn: "1 / -1",
-  minHeight: 150,
+  minHeight: 118,
 };
 
 const dayTopline = {
@@ -319,8 +319,8 @@ const todayBadge = {
 };
 
 const dayTitle = {
-  margin: "16px 0 12px",
-  fontSize: 24,
+  margin: "12px 0 10px",
+  fontSize: 20,
   lineHeight: 1.1,
 };
 
@@ -328,7 +328,7 @@ const liftPreview = {
   display: "flex",
   flexWrap: "wrap",
   gap: 7,
-  marginBottom: 16,
+  marginBottom: 12,
 };
 
 const liftChip = {
@@ -351,7 +351,7 @@ const openButton = {
   marginTop: "auto",
   minWidth: 82,
   padding: "8px 16px",
-  fontSize: 16,
+  fontSize: 14,
 };
 
 const emptyState = {

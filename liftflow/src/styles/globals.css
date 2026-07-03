@@ -183,12 +183,12 @@ input:focus, select:focus {
   .app-hero {
     padding: 18px 14px 8px;
     gap: 12px;
+    align-items: center;
   }
 
   .app-hero-right {
-    flex-direction: column-reverse;
-    align-items: flex-end;
-    gap: 10px;
+    align-items: center;
+    gap: 9px;
   }
 
   .app-metrics {
@@ -222,16 +222,14 @@ input:focus, select:focus {
   .section-header,
   .protein-hero,
   .profile-header {
-    flex-direction: column;
-    align-items: stretch !important;
+    align-items: center;
   }
 
-  .home-week-grid,
-  .profile-grid,
-  .history-stats {
-    grid-template-columns: 1fr;
+  .home-week-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .history-stats,
   .profile-stats {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -240,7 +238,6 @@ input:focus, select:focus {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .protein-custom-row,
   .protein-day-row {
     grid-template-columns: 1fr;
   }
@@ -252,12 +249,27 @@ input:focus, select:focus {
 }
 
 @media (max-width: 430px) {
-  .app-metrics,
+  .app-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .profile-stats {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .field-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .section-header {
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 360px) {
+  .field-row,
+  .profile-stats,
+  .history-stats {
     grid-template-columns: 1fr;
   }
 }
