@@ -1,31 +1,41 @@
 import { useEffect, useState } from "react";
 import { addNote, deleteNote, getNoteLevel, getNotes, NOTE_LEVELS } from "../lib/notes";
 import { tint } from "../lib/muscleGroups";
+import { getPlan } from "../lib/plan";
 
 const ACCENT = "#32cfff";
+const YELLOW = "#e4ff2f";
+const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 export default function Notes() {
   const [notes, setNotes] = useState([]);
+  const [options, setOptions] = useState([]);
   const [level, setLevel] = useState("good");
   const [lift, setLift] = useState("");
+  const [customLift, setCustomLift] = useState("");
   const [text, setText] = useState("");
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setNotes(getNotes()), 0);
+    const timer = window.setTimeout(() => {
+      setNotes(getNotes());
+      setOptions(buildSessionOptions(getPlan()));
+    }, 0);
     return () => window.clearTimeout(timer);
   }, []);
 
   function saveNote() {
-    if (!text.trim() && !lift.trim()) return;
+    const subject = lift === "custom" ? customLift.trim() : lift.trim();
+    if (!text.trim() && !subject) return;
 
     setNotes(
       addNote({
         level,
-        lift: lift.trim(),
+        lift: subject,
         text: text.trim(),
       })
     );
     setLift("");
+    setCustomLift("");
     setText("");
     setLevel("good");
   }
@@ -49,6 +59,7 @@ export default function Notes() {
               onClick={() => setLevel(item.id)}
               style={{
                 ...levelButton,
+                ...(item.id === "great" || item.id === "good" ? levelButtonLarge : {}),
                 color: item.color,
                 borderColor: level === item.id ? item.color : tint(item.color, 0.28),
                 background: level === item.id ? tint(item.color, 0.16) : "#0b0b0b",
@@ -60,11 +71,29 @@ export default function Notes() {
           ))}
         </div>
 
-        <input
-          placeholder="Lift or session name"
-          value={lift}
-          onChange={(event) => setLift(event.target.value)}
-        />
+        <label style={fieldWrap}>
+          <span style={fieldLabel}>Lift or session</span>
+          <select value={lift} onChange={(event) => setLift(event.target.value)}>
+            <option value="">Choose from your split...</option>
+            {options.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+            <option value="custom">Custom note subject</option>
+          </select>
+        </label>
+
+        {lift === "custom" && (
+          <label style={fieldWrap}>
+            <span style={fieldLabel}>Custom subject</span>
+            <input
+              placeholder="Lift or session name"
+              value={customLift}
+              onChange={(event) => setCustomLift(event.target.value)}
+            />
+          </label>
+        )}
         <textarea
           placeholder="Custom note..."
           value={text}
@@ -114,6 +143,20 @@ export default function Notes() {
   );
 }
 
+function buildSessionOptions(plan) {
+  return DAYS.flatMap((day) => {
+    const lifts = Array.isArray(plan[day]) ? plan[day] : [];
+    const focus = plan.__meta?.[day]?.name?.trim() || day;
+    const dayOption = lifts.length > 0 ? [{ value: focus, label: `${focus} session` }] : [];
+    const liftOptions = lifts.map((lift) => ({
+      value: `${focus} - ${lift.exercise}`,
+      label: `${focus} - ${lift.exercise}`,
+    }));
+
+    return [...dayOption, ...liftOptions];
+  });
+}
+
 function formatDate(date) {
   return new Intl.DateTimeFormat("en", {
     month: "short",
@@ -147,7 +190,7 @@ const title = {
 };
 
 const card = {
-  border: "1px solid rgba(50, 207, 255, 0.35)",
+  border: "1px solid rgba(228, 255, 47, 0.35)",
   borderRadius: 16,
   background: "#101010",
   padding: 16,
@@ -174,6 +217,10 @@ const levelButton = {
   borderRadius: 14,
 };
 
+const levelButtonLarge = {
+  gridColumn: "span 3",
+};
+
 const emoji = {
   fontSize: 18,
   lineHeight: 1,
@@ -194,6 +241,18 @@ const textarea = {
 
 const saveButton = {
   width: "100%",
+};
+
+const fieldWrap = {
+  display: "grid",
+  gap: 6,
+};
+
+const fieldLabel = {
+  color: YELLOW,
+  fontSize: 12,
+  fontWeight: 850,
+  textTransform: "uppercase",
 };
 
 const list = {

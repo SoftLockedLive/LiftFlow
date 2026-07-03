@@ -7,6 +7,7 @@ import { getWorkouts } from "../lib/workoutStorage";
 
 const ACCENTS = {
   lime: "#32cfff",
+  yellow: "#e4ff2f",
   orange: "#ff6b2c",
   cyan: "#32cfff",
   violet: "#be72ff",
@@ -337,7 +338,7 @@ const mutedLabel = {
 };
 
 const totalValue = {
-  color: ACCENTS.lime,
+  color: ACCENTS.yellow,
   fontSize: 24,
   lineHeight: 1,
 };

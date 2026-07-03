@@ -173,7 +173,7 @@ input:focus, select:focus {
 
 .notes-level-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
 }
 
 @media (max-width: 720px) {
@@ -241,10 +241,6 @@ input:focus, select:focus {
 
   .protein-quick-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .notes-level-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .protein-day-row {
