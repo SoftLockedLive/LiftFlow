@@ -6,7 +6,7 @@ import { getProteinLog, getProteinSummary, getProteinTarget } from "../lib/prote
 import { getWorkouts } from "../lib/workoutStorage";
 
 const ACCENTS = {
-  lime: "#e4ff2f",
+  lime: "#32cfff",
   orange: "#ff6b2c",
   cyan: "#32cfff",
   violet: "#be72ff",
@@ -74,6 +74,7 @@ export default function Layout({ children }) {
     { name: "Program", path: "/plan" },
     { name: "Workout", path: "/workout" },
     { name: "Protein", path: "/protein" },
+    { name: "Notes", path: "/notes" },
     { name: "History", path: "/history" },
     { name: "PRs", path: "/prs" },
     { name: "Profile", path: "/profile" },

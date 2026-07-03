@@ -6,7 +6,7 @@ import { getTodayName } from "../lib/today";
 import { getWorkouts } from "../lib/workoutStorage";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-const ACCENTS = ["#e4ff2f", "#ff6b2c", "#32cfff", "#be72ff", "#ff9b34", "#32df76", "#f7f7f2"];
+const ACCENTS = ["#32cfff", "#ff6b2c", "#32cfff", "#be72ff", "#ff9b34", "#32df76", "#f7f7f2"];
 
 export default function Home() {
   const router = useRouter();
@@ -211,7 +211,7 @@ function tint(hex, alpha) {
 
 const focusCard = {
   minHeight: 112,
-  border: "1px solid rgba(228, 255, 47, 0.35)",
+  border: "1px solid rgba(50, 207, 255, 0.35)",
   borderRadius: 16,
   background: "#101010",
   padding: "18px 20px",
@@ -222,7 +222,7 @@ const focusCard = {
 
 const eyebrow = {
   margin: 0,
-  color: "#e4ff2f",
+  color: "#32cfff",
   fontSize: 14,
   fontWeight: 850,
   textTransform: "uppercase",
@@ -272,9 +272,9 @@ const sectionMeta = {
 };
 
 const ghostButton = {
-  color: "#e4ff2f",
-  borderColor: "rgba(228, 255, 47, 0.4)",
-  background: "rgba(228, 255, 47, 0.08)",
+  color: "#32cfff",
+  borderColor: "rgba(50, 207, 255, 0.4)",
+  background: "rgba(50, 207, 255, 0.08)",
   whiteSpace: "nowrap",
 };
 
@@ -383,7 +383,7 @@ const recentCard = {
 
 const recentExercise = {
   margin: 0,
-  color: "#e4ff2f",
+  color: "#32cfff",
   fontSize: 19,
 };
 

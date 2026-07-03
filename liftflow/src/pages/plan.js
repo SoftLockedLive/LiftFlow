@@ -3,7 +3,7 @@ import { getMuscleGroup, MUSCLE_GROUPS, tint } from "../lib/muscleGroups";
 import { getPlan, savePlan } from "../lib/plan";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-const ACCENT = "#e4ff2f";
+const ACCENT = "#32cfff";
 
 export default function Plan() {
   const [plan, setPlan] = useState({});
@@ -13,6 +13,7 @@ export default function Plan() {
   const [sets, setSets] = useState("");
   const [reps, setReps] = useState("");
   const [muscleGroup, setMuscleGroup] = useState("chest");
+  const [editingId, setEditingId] = useState(null);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -27,6 +28,7 @@ export default function Plan() {
   function selectDay(day) {
     setSelectedDay(day);
     setDayName(plan.__meta?.[day]?.name || "");
+    clearForm();
   }
 
   function saveDayName(value) {
@@ -47,29 +49,56 @@ export default function Plan() {
     savePlan(updated);
   }
 
-  function handleAdd() {
+  function handleSaveExercise() {
     if (!exercise || !sets || !reps) return;
 
     const updated = { ...plan };
     const dayPlan = Array.isArray(updated[selectedDay]) ? updated[selectedDay] : [];
 
-    updated[selectedDay] = [
-      ...dayPlan,
-      {
+    if (editingId) {
+      updated[selectedDay] = dayPlan.map((lift) =>
+        lift.id === editingId
+          ? {
+              ...lift,
+              exercise,
+              muscleGroup,
+              sets,
+              reps,
+            }
+          : lift
+      );
+    } else {
+      updated[selectedDay] = [
+        ...dayPlan,
+        {
         id: crypto.randomUUID(),
         exercise,
         muscleGroup,
-        sets: Number(sets),
-        reps: Number(reps),
-      },
-    ];
+        sets,
+        reps,
+        },
+      ];
+    }
 
     setPlan(updated);
     savePlan(updated);
+    clearForm();
+  }
+
+  function clearForm() {
+    setEditingId(null);
     setExercise("");
     setSets("");
     setReps("");
     setMuscleGroup("chest");
+  }
+
+  function startEdit(lift) {
+    setEditingId(lift.id);
+    setExercise(lift.exercise || "");
+    setSets(String(lift.sets || ""));
+    setReps(String(lift.reps || ""));
+    setMuscleGroup(lift.muscleGroup || "other");
   }
 
   function handleDelete(id) {
@@ -119,7 +148,7 @@ export default function Plan() {
       </section>
 
       <section style={card}>
-        <h2 style={cardTitle}>Add Exercise</h2>
+        <h2 style={cardTitle}>{editingId ? "Edit Exercise" : "Add Exercise"}</h2>
         <input
           placeholder="Exercise"
           value={exercise}
@@ -128,8 +157,8 @@ export default function Plan() {
 
         <div className="field-row" style={fieldRow}>
           <input
-            placeholder="Sets"
-            type="number"
+            placeholder="Sets or range, e.g. 3-5"
+            inputMode="numeric"
             value={sets}
             onChange={(event) => setSets(event.target.value)}
           />
@@ -150,9 +179,14 @@ export default function Plan() {
           ))}
         </select>
 
-        <button type="button" className="primary" onClick={handleAdd} style={fullButton}>
-          Add Exercise
+        <button type="button" className="primary" onClick={handleSaveExercise} style={fullButton}>
+          {editingId ? "Save Exercise" : "Add Exercise"}
         </button>
+        {editingId && (
+          <button type="button" onClick={clearForm} style={cancelBtn}>
+            Cancel Edit
+          </button>
+        )}
       </section>
 
       <section style={list}>
@@ -178,9 +212,14 @@ export default function Plan() {
                 </p>
               </div>
 
-              <button type="button" onClick={() => handleDelete(lift.id)} style={removeBtn}>
-                Remove
-              </button>
+              <div style={actions}>
+                <button type="button" onClick={() => startEdit(lift)} style={editBtn}>
+                  Edit
+                </button>
+                <button type="button" onClick={() => handleDelete(lift.id)} style={removeBtn}>
+                  Remove
+                </button>
+              </div>
             </article>
             );
           })
@@ -278,6 +317,12 @@ const fullButton = {
   width: "100%",
 };
 
+const cancelBtn = {
+  color: "#aaa",
+  borderColor: "#333",
+  background: "#0b0b0b",
+};
+
 const list = {
   display: "grid",
   gap: 10,
@@ -302,6 +347,19 @@ const liftCard = {
   alignItems: "center",
   justifyContent: "space-between",
   gap: 14,
+};
+
+const actions = {
+  display: "flex",
+  gap: 8,
+  flexWrap: "wrap",
+  justifyContent: "flex-end",
+};
+
+const editBtn = {
+  color: ACCENT,
+  borderColor: "rgba(50, 207, 255, 0.45)",
+  background: "rgba(50, 207, 255, 0.12)",
 };
 
 const liftName = {

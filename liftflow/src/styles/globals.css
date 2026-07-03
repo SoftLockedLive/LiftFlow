@@ -23,7 +23,7 @@ a {
 }
 
 ::selection {
-  background: rgba(219, 255, 42, 0.28);
+  background: rgba(50, 207, 255, 0.28);
 }
 
 h1,
@@ -59,9 +59,9 @@ button:active {
 }
 
 button.primary {
-  background: #e4ff2f;
+  background: #32cfff;
   color: black;
-  border-color: #e4ff2f;
+  border-color: #32cfff;
 }
 
 input, select {
@@ -75,8 +75,8 @@ input, select {
 }
 
 input:focus, select:focus {
-  border-color: #e4ff2f;
-  box-shadow: 0 0 0 3px rgba(228, 255, 47, 0.12);
+  border-color: #32cfff;
+  box-shadow: 0 0 0 3px rgba(50, 207, 255, 0.12);
   outline: none;
 }
 
@@ -171,6 +171,11 @@ input:focus, select:focus {
   grid-template-columns: 150px 1fr;
 }
 
+.notes-level-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
 @media (max-width: 720px) {
   html, body {
     font-size: 14px;
@@ -236,6 +241,10 @@ input:focus, select:focus {
 
   .protein-quick-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .notes-level-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .protein-day-row {

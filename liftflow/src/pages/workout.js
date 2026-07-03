@@ -128,7 +128,7 @@ export default function Workout() {
                 {lift.coachNote && <p style={coachNote}>Coach: {lift.coachNote}</p>}
 
                 <div style={setList}>
-                  {Array.from({ length: lift.sets }).map((_, i) => (
+                  {Array.from({ length: getSetRowCount(lift.sets) }).map((_, i) => (
                     <div key={i} className="field-row" style={setRow}>
                       <input
                         type="number"
@@ -156,6 +156,16 @@ export default function Workout() {
       </button>
     </div>
   );
+}
+
+function getSetRowCount(sets) {
+  const numbers = String(sets || "")
+    .split("-")
+    .map((value) => Number(value.trim()))
+    .filter((value) => Number.isFinite(value) && value > 0);
+
+  if (numbers.length === 0) return 0;
+  return Math.max(...numbers);
 }
 
 const wrap = {
