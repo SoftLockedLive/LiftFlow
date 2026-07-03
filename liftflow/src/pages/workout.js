@@ -6,6 +6,10 @@ import { getTodayName } from "../lib/today";
 import { saveWorkout } from "../lib/workoutStorage";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const ACCENT = "#32cfff";
+const DAY_ACCENTS = {
+  Wednesday: "#e4ff2f",
+};
 
 export default function Workout() {
   const [plan, setPlan] = useState({});
@@ -87,7 +91,9 @@ export default function Workout() {
             onClick={() => chooseDay(day)}
             style={{
               ...dayBtn,
-              ...(selectedDay === day ? activeDay : {}),
+              borderColor: getDayAccent(day, selectedDay === day ? 0.78 : 0.28),
+              color: selectedDay === day ? "#050505" : getDayAccent(day),
+              background: selectedDay === day ? getDayAccent(day) : getDayAccent(day, 0.08),
             }}
           >
             {day.slice(0, 3)}
@@ -168,6 +174,13 @@ function getSetRowCount(sets) {
   return Math.max(...numbers);
 }
 
+function getDayAccent(day, alpha) {
+  const color = DAY_ACCENTS[day] || ACCENT;
+
+  if (alpha === undefined) return color;
+  return tint(color, alpha);
+}
+
 const wrap = {
   maxWidth: 760,
   margin: "0 auto",
@@ -218,12 +231,6 @@ const dayBtn = {
   borderColor: "#242424",
   background: "#070707",
   color: "#666",
-};
-
-const activeDay = {
-  borderColor: "#32cfff",
-  color: "#050505",
-  background: "#f7f7f2",
 };
 
 const empty = {

@@ -6,7 +6,7 @@ import { getTodayName } from "../lib/today";
 import { getWorkouts } from "../lib/workoutStorage";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-const ACCENTS = ["#32cfff", "#ff6b2c", "#32cfff", "#be72ff", "#ff9b34", "#32df76", "#f7f7f2"];
+const ACCENTS = ["#32cfff", "#ff6b2c", "#e4ff2f", "#be72ff", "#ff9b34", "#32df76", "#f7f7f2"];
 
 export default function Home() {
   const router = useRouter();

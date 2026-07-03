@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/router";
 import { getPRs } from "../lib/engine";
 import { getProfile, saveProfile } from "../lib/profile";
@@ -91,7 +92,17 @@ export default function Layout({ children }) {
     <div style={shell}>
       <header className="app-hero" style={hero}>
         <div>
-          <h1 style={brand}>LiftFlow</h1>
+          <div style={brandLockup}>
+            <Image
+              src="/icons/icon-192.png"
+              alt=""
+              width={46}
+              height={46}
+              priority
+              style={logoMark}
+            />
+            <h1 style={brand}>LiftFlow</h1>
+          </div>
           <p style={subhead}>{goalLabel} training · {bodyweight}</p>
         </div>
 
@@ -289,6 +300,20 @@ const shell = {
 };
 
 const hero = {
+};
+
+const brandLockup = {
+  display: "flex",
+  alignItems: "center",
+  gap: 10,
+};
+
+const logoMark = {
+  width: 42,
+  height: 42,
+  borderRadius: 10,
+  objectFit: "cover",
+  boxShadow: "0 0 22px rgba(50, 207, 255, 0.18)",
 };
 
 const brand = {
