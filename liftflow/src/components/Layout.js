@@ -6,7 +6,7 @@ import { getProteinLog, getProteinSummary, getProteinTarget } from "../lib/prote
 import { getWorkouts } from "../lib/workoutStorage";
 
 const ACCENTS = {
-  lime: "#32cfff",
+  lime: "#e4ff2f",
   yellow: "#e4ff2f",
   orange: "#ff6b2c",
   cyan: "#32cfff",
@@ -82,7 +82,7 @@ export default function Layout({ children }) {
   ];
 
   const liftCards = [
-    { label: "Bench", value: bench, accent: ACCENTS.lime },
+  { label: "Bench", value: bench, accent: ACCENTS.lime },
     { label: "Squat", value: squat, accent: ACCENTS.orange },
     { label: "Dead", value: deadlift, accent: ACCENTS.cyan },
   ];

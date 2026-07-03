@@ -59,7 +59,6 @@ export default function Notes() {
               onClick={() => setLevel(item.id)}
               style={{
                 ...levelButton,
-                ...(item.id === "great" || item.id === "good" ? levelButtonLarge : {}),
                 color: item.color,
                 borderColor: level === item.id ? item.color : tint(item.color, 0.28),
                 background: level === item.id ? tint(item.color, 0.16) : "#0b0b0b",
@@ -215,10 +214,6 @@ const levelButton = {
   gap: 4,
   padding: "10px 6px",
   borderRadius: 14,
-};
-
-const levelButtonLarge = {
-  gridColumn: "span 3",
 };
 
 const emoji = {
