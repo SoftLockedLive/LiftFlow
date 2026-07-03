@@ -10,12 +10,16 @@ export default function Workout() {
   const [session, setSession] = useState({});
 
   useEffect(() => {
-    const today = getTodayName();
+    const timer = window.setTimeout(() => {
+      const today = getTodayName();
 
-    // 🔥 central orchestration layer
-    const todaysWorkout = buildTodaysWorkout(today);
+      // central orchestration layer
+      const todaysWorkout = buildTodaysWorkout(today);
 
-    setProgram(todaysWorkout);
+      setProgram(todaysWorkout);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, []);
 
   function updateSet(exerciseId, setIndex, field, value) {
@@ -63,7 +67,7 @@ export default function Workout() {
         margin: "0 auto",
       }}
     >
-      <h1>Today's Workout</h1>
+      <h1>Today&apos;s Workout</h1>
 
       {program.length === 0 ? (
         <Card>

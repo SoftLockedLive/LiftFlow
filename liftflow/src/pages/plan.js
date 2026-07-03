@@ -1,32 +1,58 @@
 import { useEffect, useState } from "react";
-import PageShell from "../components/PageShell";
 import { getPlan, savePlan } from "../lib/plan";
+
+const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const ACCENT = "#e4ff2f";
 
 export default function Plan() {
   const [plan, setPlan] = useState({});
   const [selectedDay, setSelectedDay] = useState("Monday");
-
+  const [dayName, setDayName] = useState("");
   const [exercise, setExercise] = useState("");
   const [sets, setSets] = useState("");
   const [reps, setReps] = useState("");
 
-  // ---------------- LOAD ----------------
   useEffect(() => {
-    setPlan(getPlan());
+    const timer = window.setTimeout(() => {
+      const savedPlan = getPlan();
+      setPlan(savedPlan);
+      setDayName(savedPlan.__meta?.Monday?.name || "");
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, []);
 
-  // ---------------- ADD EXERCISE ----------------
+  function selectDay(day) {
+    setSelectedDay(day);
+    setDayName(plan.__meta?.[day]?.name || "");
+  }
+
+  function saveDayName(value) {
+    setDayName(value);
+
+    const updated = {
+      ...plan,
+      __meta: {
+        ...(plan.__meta || {}),
+        [selectedDay]: {
+          ...(plan.__meta?.[selectedDay] || {}),
+          name: value,
+        },
+      },
+    };
+
+    setPlan(updated);
+    savePlan(updated);
+  }
+
   function handleAdd() {
     if (!exercise || !sets || !reps) return;
 
     const updated = { ...plan };
-
-    if (!updated[selectedDay]) {
-      updated[selectedDay] = [];
-    }
+    const dayPlan = Array.isArray(updated[selectedDay]) ? updated[selectedDay] : [];
 
     updated[selectedDay] = [
-      ...updated[selectedDay],
+      ...dayPlan,
       {
         id: crypto.randomUUID(),
         exercise,
@@ -37,46 +63,38 @@ export default function Plan() {
 
     setPlan(updated);
     savePlan(updated);
-
     setExercise("");
     setSets("");
     setReps("");
   }
 
-  // ---------------- DELETE EXERCISE ----------------
   function handleDelete(id) {
     const updated = { ...plan };
-
-    updated[selectedDay] = updated[selectedDay].filter(
-      (lift) => lift.id !== id
-    );
+    const dayPlan = Array.isArray(updated[selectedDay]) ? updated[selectedDay] : [];
+    updated[selectedDay] = dayPlan.filter((lift) => lift.id !== id);
 
     setPlan(updated);
     savePlan(updated);
   }
 
-  const days = [
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-    "Sunday",
-  ];
-
-  const todayPlan = plan[selectedDay] || [];
+  const todayPlan = Array.isArray(plan[selectedDay]) ? plan[selectedDay] : [];
 
   return (
-    <PageShell>
-      <h2 style={{ marginBottom: 12 }}>Plan</h2>
+    <div style={wrap}>
+      <header style={header}>
+        <div>
+          <p style={eyebrow}>Program Builder</p>
+          <h1 style={title}>Your Split</h1>
+        </div>
+        <span style={count}>{todayPlan.length} lifts</span>
+      </header>
 
-      {/* DAY SELECTOR */}
       <div style={dayRow}>
-        {days.map((day) => (
+        {DAYS.map((day) => (
           <button
             key={day}
-            onClick={() => setSelectedDay(day)}
+            type="button"
+            onClick={() => selectDay(day)}
             style={{
               ...dayBtn,
               ...(selectedDay === day ? activeDay : {}),
@@ -87,135 +105,197 @@ export default function Plan() {
         ))}
       </div>
 
-      {/* ADD FORM */}
-      <div style={card}>
-        <h3>Add Exercise</h3>
+      <section style={card}>
+        <label style={label}>Day Focus</label>
+        <input
+          placeholder="Upper A, Push, Legs, Zone 2..."
+          value={dayName}
+          onChange={(event) => saveDayName(event.target.value)}
+        />
+      </section>
 
+      <section style={card}>
+        <h2 style={cardTitle}>Add Exercise</h2>
         <input
           placeholder="Exercise"
           value={exercise}
-          onChange={(e) => setExercise(e.target.value)}
-          style={input}
+          onChange={(event) => setExercise(event.target.value)}
         />
 
-        <div style={{ display: "flex", gap: 10 }}>
+        <div style={fieldRow}>
           <input
             placeholder="Sets"
             type="number"
             value={sets}
-            onChange={(e) => setSets(e.target.value)}
-            style={input}
+            onChange={(event) => setSets(event.target.value)}
           />
-
           <input
             placeholder="Reps"
             type="number"
             value={reps}
-            onChange={(e) => setReps(e.target.value)}
-            style={input}
+            onChange={(event) => setReps(event.target.value)}
           />
         </div>
 
-        <button onClick={handleAdd} style={primaryBtn}>
-          Add
+        <button type="button" className="primary" onClick={handleAdd} style={fullButton}>
+          Add Exercise
         </button>
-      </div>
+      </section>
 
-      {/* LIST */}
-      <div style={{ marginTop: 16 }}>
+      <section style={list}>
         {todayPlan.length === 0 ? (
-          <div style={card}>
-            No workouts for {selectedDay}
-          </div>
+          <div style={empty}>No exercises for {selectedDay} yet.</div>
         ) : (
           todayPlan.map((lift) => (
-            <div key={lift.id} style={card}>
-              <div style={row}>
-                <div>
-                  <b>{lift.exercise}</b>
-                  <div style={{ fontSize: 12, opacity: 0.7 }}>
-                    {lift.sets} × {lift.reps}
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => handleDelete(lift.id)}
-                  style={deleteBtn}
-                >
-                  remove
-                </button>
+            <article key={lift.id} style={liftCard}>
+              <div>
+                <h3 style={liftName}>{lift.exercise}</h3>
+                <p style={liftMeta}>
+                  {lift.sets} sets x {lift.reps} reps
+                </p>
               </div>
-            </div>
+
+              <button type="button" onClick={() => handleDelete(lift.id)} style={removeBtn}>
+                Remove
+              </button>
+            </article>
           ))
         )}
-      </div>
-    </PageShell>
+      </section>
+    </div>
   );
 }
 
-/* ================= STYLES ================= */
+const wrap = {
+  maxWidth: 760,
+  margin: "0 auto",
+};
+
+const header = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: 16,
+  marginBottom: 18,
+};
+
+const eyebrow = {
+  margin: 0,
+  color: ACCENT,
+  fontSize: 14,
+  fontWeight: 850,
+  textTransform: "uppercase",
+};
+
+const title = {
+  margin: "6px 0 0",
+  fontSize: 34,
+  lineHeight: 1,
+};
+
+const count = {
+  border: "1px solid rgba(228, 255, 47, 0.35)",
+  borderRadius: 999,
+  padding: "8px 12px",
+  color: ACCENT,
+  background: "rgba(228, 255, 47, 0.08)",
+  fontWeight: 850,
+};
 
 const dayRow = {
   display: "flex",
   overflowX: "auto",
   gap: 8,
-  marginBottom: 16, // 🔥 increase spacing
-  paddingBottom: 6, // 🔥 prevents visual collision
+  marginBottom: 14,
+  paddingBottom: 6,
 };
 
 const dayBtn = {
-  padding: "6px 10px",
-  borderRadius: 999,
-  border: "1px solid #1f2937",
-  background: "#111827",
-  color: "white",
-  fontSize: 12,
-  minWidth: 48
+  minWidth: 56,
+  padding: "9px 12px",
+  borderColor: "#242424",
+  background: "#070707",
+  color: "#666",
 };
 
 const activeDay = {
-  borderColor: "#00e5ff",
-  color: "#00e5ff",
+  borderColor: ACCENT,
+  color: "#050505",
+  background: "#f7f7f2",
 };
 
 const card = {
-  background: "#111827",
-  border: "1px solid #1f2937",
-  borderRadius: 12,
-  padding: 12,
-  marginBottom: 10,
+  border: "1px solid #242424",
+  borderRadius: 16,
+  background: "#101010",
+  padding: 16,
+  marginBottom: 14,
+  display: "grid",
+  gap: 12,
 };
 
-const input = {
+const label = {
+  color: "#777",
+  fontWeight: 850,
+  textTransform: "uppercase",
+  fontSize: 13,
+};
+
+const cardTitle = {
+  margin: 0,
+  fontSize: 22,
+};
+
+const fieldRow = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gap: 10,
+};
+
+const fullButton = {
   width: "100%",
-  padding: 10,
-  marginTop: 8,
-  borderRadius: 8,
-  border: "1px solid #333",
-  background: "#0f172a",
-  color: "white",
 };
 
-const primaryBtn = {
-  marginTop: 10,
-  width: "100%",
-  padding: 10,
-  borderRadius: 8,
-  background: "#00e5ff",
-  border: "none",
-  fontWeight: 600,
+const list = {
+  display: "grid",
+  gap: 10,
 };
 
-const deleteBtn = {
-  background: "#ef4444",
-  border: "none",
-  color: "white",
-  padding: "6px 10px",
-  borderRadius: 8,
+const empty = {
+  border: "1px solid #222",
+  borderRadius: 16,
+  background: "#0f0f0f",
+  padding: 22,
+  color: "#555",
+  textAlign: "center",
+  fontWeight: 850,
 };
 
-const row = {
+const liftCard = {
+  border: "1px solid #242424",
+  borderRadius: 14,
+  background: "#0f0f0f",
+  padding: 14,
   display: "flex",
-  justifyContent: "space-between",
   alignItems: "center",
+  justifyContent: "space-between",
+  gap: 14,
+};
+
+const liftName = {
+  margin: 0,
+  color: ACCENT,
+  fontSize: 20,
+};
+
+const liftMeta = {
+  margin: "6px 0 0",
+  color: "#777",
+  fontWeight: 750,
+};
+
+const removeBtn = {
+  color: "#ff6b2c",
+  borderColor: "rgba(255, 107, 44, 0.45)",
+  background: "rgba(255, 107, 44, 0.12)",
 };

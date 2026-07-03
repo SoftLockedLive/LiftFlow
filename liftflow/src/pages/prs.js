@@ -7,8 +7,12 @@ export default function PRs() {
   const [prs, setPrs] = useState({});
 
   useEffect(() => {
-    const workouts = getWorkouts();
-    setPrs(getPRs(workouts));
+    const timer = window.setTimeout(() => {
+      const workouts = getWorkouts();
+      setPrs(getPRs(workouts));
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, []);
 
   return (

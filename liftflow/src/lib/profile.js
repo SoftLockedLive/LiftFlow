@@ -5,6 +5,10 @@ const DEFAULT_PROFILE = {
   name: "",
   age: "",
   sex: "male",
+  bodyweight: "",
+  goal: "strength",
+  experience: "beginner",
+  units: "lbs",
 
   // Body
   height: "",
