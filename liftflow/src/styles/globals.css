@@ -192,7 +192,7 @@ input:focus, select:focus {
   }
 
   .app-metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     padding: 10px 14px 8px;
     gap: 10px;
   }
@@ -250,7 +250,7 @@ input:focus, select:focus {
 
 @media (max-width: 430px) {
   .app-metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 
   .profile-stats {
