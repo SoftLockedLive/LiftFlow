@@ -8,7 +8,13 @@ import { saveWorkout } from "../lib/workoutStorage";
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const ACCENT = "#32cfff";
 const DAY_ACCENTS = {
+  Monday: "#32cfff",
+  Tuesday: "#ff6b2c",
   Wednesday: "#e4ff2f",
+  Thursday: "#be72ff",
+  Friday: "#ff9b34",
+  Saturday: "#32df76",
+  Sunday: "#f7f7f2",
 };
 
 export default function Workout() {
