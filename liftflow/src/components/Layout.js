@@ -293,7 +293,7 @@ const hero = {
 
 const brand = {
   margin: 0,
-  color: ACCENTS.lime,
+  color: ACCENTS.cyan,
   fontSize: "clamp(34px, 7vw, 48px)",
   lineHeight: 1,
   fontWeight: 900,
