@@ -1,7 +1,16 @@
 import { useEffect, useState } from "react";
+import ConfirmDialog from "../components/ConfirmDialog";
+import { deleteCustomExercise, getCustomExercises, upsertCustomExercise } from "../lib/customExercises";
 import { getMuscleGroup, MUSCLE_GROUPS, tint } from "../lib/muscleGroups";
 import { getPlan, savePlan } from "../lib/plan";
-import { PROGRAM_TEMPLATES, buildPlanFromTemplate } from "../lib/programTemplates";
+import {
+  DAY_TEMPLATES,
+  DEFAULT_EXERCISES,
+  PROGRAM_TEMPLATES,
+  RECOVERY_TEMPLATES,
+  buildDayFromTemplate,
+  buildPlanFromTemplate,
+} from "../lib/programTemplates";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const ACCENT = "#32cfff";
@@ -25,12 +34,16 @@ export default function Plan() {
   const [stretches, setStretches] = useState("");
   const [muscleGroup, setMuscleGroup] = useState("chest");
   const [editingId, setEditingId] = useState(null);
+  const [customExercises, setCustomExercises] = useState([]);
+  const [editingCustomId, setEditingCustomId] = useState(null);
+  const [confirmAction, setConfirmAction] = useState(null);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
       const savedPlan = getPlan();
       setPlan(savedPlan);
       setDayName(savedPlan.__meta?.Monday?.name || "");
+      setCustomExercises(getCustomExercises());
     }, 0);
 
     return () => window.clearTimeout(timer);
@@ -98,13 +111,67 @@ export default function Plan() {
     clearForm();
   }
 
+  function addExerciseToDay(lift) {
+    const updated = { ...plan };
+    const dayPlan = Array.isArray(updated[selectedDay]) ? updated[selectedDay] : [];
+    updated[selectedDay] = [
+      ...dayPlan,
+      {
+        id: crypto.randomUUID(),
+        exercise: lift.exercise,
+        muscleGroup: lift.muscleGroup || "other",
+        sets: lift.sets || "3",
+        reps: lift.reps || "8-12",
+        stretches: lift.stretches || "",
+      },
+    ];
+    updated.__meta = {
+      ...(updated.__meta || {}),
+      [selectedDay]: {
+        ...(updated.__meta?.[selectedDay] || {}),
+        type: "training",
+        recovery: null,
+      },
+    };
+
+    setPlan(updated);
+    savePlan(updated);
+  }
+
+  function saveCustomExercise() {
+    if (!exercise.trim()) return;
+
+    const updated = upsertCustomExercise({
+      id: editingCustomId,
+      exercise,
+      muscleGroup,
+      sets,
+      reps,
+      stretches,
+    });
+
+    setCustomExercises(updated);
+    clearForm();
+    setEditingCustomId(null);
+  }
+
   function clearForm() {
     setEditingId(null);
+    setEditingCustomId(null);
     setExercise("");
     setSets("");
     setReps("");
     setStretches("");
     setMuscleGroup("chest");
+  }
+
+  function startCustomEdit(lift) {
+    setEditingCustomId(lift.id);
+    setExercise(lift.exercise || "");
+    setSets(String(lift.sets || ""));
+    setReps(String(lift.reps || ""));
+    setStretches(lift.stretches || "");
+    setMuscleGroup(lift.muscleGroup || "other");
   }
 
   function startEdit(lift) {
@@ -125,7 +192,7 @@ export default function Plan() {
     savePlan(updated);
   }
 
-  function applyTemplate(templateId) {
+  function applyTemplateNow(templateId) {
     const templatePlan = buildPlanFromTemplate(templateId);
     setPlan(templatePlan);
     savePlan(templatePlan);
@@ -134,7 +201,75 @@ export default function Plan() {
     clearForm();
   }
 
+  function requestApplyTemplate(templateId) {
+    setConfirmAction({
+      title: "Replace Current Split?",
+      message: "Your current workout split will be replaced with this template. This may remove your existing split configuration.",
+      confirmLabel: "Replace Split",
+      danger: true,
+      onConfirm: () => applyTemplateNow(templateId),
+    });
+  }
+
+  function applyDayTemplateNow(templateId, recoveryTemplate = false) {
+    const template = buildDayFromTemplate(templateId, recoveryTemplate);
+    if (!template) return;
+
+    const updated = {
+      ...plan,
+      __meta: {
+        ...(plan.__meta || {}),
+        [selectedDay]: template.meta,
+      },
+      [selectedDay]: template.lifts,
+    };
+
+    setPlan(updated);
+    savePlan(updated);
+    setDayName(template.meta.name || "");
+    clearForm();
+  }
+
+  function requestApplyDayTemplate(templateId, recoveryTemplate = false) {
+    const hasExisting = todayPlan.length > 0 || plan.__meta?.[selectedDay]?.recovery;
+
+    if (!hasExisting) {
+      applyDayTemplateNow(templateId, recoveryTemplate);
+      return;
+    }
+
+    setConfirmAction({
+      title: "Replace This Day?",
+      message: `${selectedDay} already has saved work. Applying this template will replace the exercises or recovery details for this day.`,
+      confirmLabel: "Replace Day",
+      danger: true,
+      onConfirm: () => applyDayTemplateNow(templateId, recoveryTemplate),
+    });
+  }
+
+  function confirmDeleteExercise(id) {
+    setConfirmAction({
+      title: "Remove Exercise?",
+      message: "This exercise will be removed from the selected workout day.",
+      confirmLabel: "Remove",
+      danger: true,
+      onConfirm: () => handleDelete(id),
+    });
+  }
+
+  function confirmDeleteCustom(id) {
+    setConfirmAction({
+      title: "Delete Custom Exercise?",
+      message: "This saved custom exercise will be removed from your exercise library.",
+      confirmLabel: "Delete",
+      danger: true,
+      onConfirm: () => setCustomExercises(deleteCustomExercise(id)),
+    });
+  }
+
   const todayPlan = Array.isArray(plan[selectedDay]) ? plan[selectedDay] : [];
+  const selectedMeta = plan.__meta?.[selectedDay] || {};
+  const recovery = selectedMeta.recovery;
 
   return (
     <div style={wrap}>
@@ -176,10 +311,29 @@ export default function Plan() {
             <article key={template.id} style={templateCard}>
               <h3 style={templateName}>{template.name}</h3>
               <p style={templateSummary}>{template.summary}</p>
-              <button type="button" onClick={() => applyTemplate(template.id)} style={templateButton}>
+              <button type="button" onClick={() => requestApplyTemplate(template.id)} style={templateButton}>
                 Use Template
               </button>
             </article>
+          ))}
+        </div>
+      </section>
+
+      <section style={templateSection}>
+        <p style={label}>Workout Day Templates</p>
+        <div style={chipGrid}>
+          {DAY_TEMPLATES.map((template) => (
+            <button key={template.id} type="button" onClick={() => requestApplyDayTemplate(template.id)} style={smallTemplateBtn}>
+              {template.name}
+            </button>
+          ))}
+        </div>
+        <p style={{ ...label, marginTop: 14 }}>Recovery Templates</p>
+        <div style={chipGrid}>
+          {RECOVERY_TEMPLATES.map((template) => (
+            <button key={template.id} type="button" onClick={() => requestApplyDayTemplate(template.id, true)} style={recoveryTemplateBtn}>
+              {template.name}
+            </button>
           ))}
         </div>
       </section>
@@ -194,7 +348,7 @@ export default function Plan() {
       </section>
 
       <section style={card}>
-        <h2 style={cardTitle}>{editingId ? "Edit Exercise" : "Add Exercise"}</h2>
+        <h2 style={cardTitle}>{editingId ? "Edit Day Exercise" : editingCustomId ? "Edit Custom Exercise" : "Create Custom Exercise"}</h2>
         <input
           placeholder="Exercise"
           value={exercise}
@@ -236,6 +390,11 @@ export default function Plan() {
         <button type="button" className="primary" onClick={handleSaveExercise} style={fullButton}>
           {editingId ? "Save Exercise" : "Add Exercise"}
         </button>
+        {!editingId && (
+          <button type="button" onClick={saveCustomExercise} style={templateButton}>
+            {editingCustomId ? "Save Custom Exercise" : "Save to Custom Exercises"}
+          </button>
+        )}
         {editingId && (
           <button type="button" onClick={clearForm} style={cancelBtn}>
             Cancel Edit
@@ -243,8 +402,68 @@ export default function Plan() {
         )}
       </section>
 
+      <section style={templateSection}>
+        <p style={label}>Default Exercises</p>
+        <div style={libraryList}>
+          {DEFAULT_EXERCISES.map((lift) => {
+            const group = getMuscleGroup(lift.muscleGroup);
+            return (
+              <div key={`${lift.exercise}-${lift.muscleGroup}`} style={libraryItem}>
+                <div>
+                  <strong style={{ color: group.color }}>{lift.exercise}</strong>
+                  <p style={liftMeta}>{group.label} · {lift.sets} sets x {lift.reps} reps</p>
+                </div>
+                <button type="button" onClick={() => addExerciseToDay(lift)} style={editBtn}>
+                  Add
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <section style={templateSection}>
+        <p style={label}>Custom Exercises</p>
+        {customExercises.length === 0 ? (
+          <div style={empty}>No custom exercises saved yet.</div>
+        ) : (
+          <div style={libraryList}>
+            {customExercises.map((lift) => {
+              const group = getMuscleGroup(lift.muscleGroup);
+              return (
+                <div key={lift.id} style={libraryItem}>
+                  <div>
+                    <strong style={{ color: group.color }}>{lift.exercise}</strong>
+                    <p style={liftMeta}>{group.label} · {lift.sets} sets x {lift.reps} reps</p>
+                  </div>
+                  <div style={actions}>
+                    <button type="button" onClick={() => addExerciseToDay(lift)} style={editBtn}>
+                      Add
+                    </button>
+                    <button type="button" onClick={() => startCustomEdit(lift)} style={editBtn}>
+                      Edit
+                    </button>
+                    <button type="button" onClick={() => confirmDeleteCustom(lift.id)} style={removeBtn}>
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
       <section style={list}>
-        {todayPlan.length === 0 ? (
+        {recovery ? (
+          <article style={{ ...liftCard, borderColor: "rgba(50, 223, 118, 0.42)", background: "rgba(50, 223, 118, 0.08)" }}>
+            <div>
+              <h3 style={{ ...liftName, color: "#32df76" }}>{selectedMeta.name || "Recovery"}</h3>
+              <p style={liftMeta}>{recovery.activity} · {recovery.duration} · {recovery.intensity}</p>
+              {recovery.notes && <p style={stretchPreview}>{recovery.notes}</p>}
+            </div>
+          </article>
+        ) : todayPlan.length === 0 ? (
           <div style={empty}>No exercises for {selectedDay} yet.</div>
         ) : (
           todayPlan.map((lift) => {
@@ -271,7 +490,7 @@ export default function Plan() {
                 <button type="button" onClick={() => startEdit(lift)} style={editBtn}>
                   Edit
                 </button>
-                <button type="button" onClick={() => handleDelete(lift.id)} style={removeBtn}>
+                <button type="button" onClick={() => confirmDeleteExercise(lift.id)} style={removeBtn}>
                   Remove
                 </button>
               </div>
@@ -280,6 +499,19 @@ export default function Plan() {
           })
         )}
       </section>
+
+      <ConfirmDialog
+        open={Boolean(confirmAction)}
+        title={confirmAction?.title}
+        message={confirmAction?.message}
+        confirmLabel={confirmAction?.confirmLabel}
+        danger={confirmAction?.danger}
+        onCancel={() => setConfirmAction(null)}
+        onConfirm={() => {
+          confirmAction?.onConfirm();
+          setConfirmAction(null);
+        }}
+      />
     </div>
   );
 }
@@ -375,6 +607,24 @@ const templateGrid = {
   gap: 10,
 };
 
+const chipGrid = {
+  display: "flex",
+  gap: 8,
+  flexWrap: "wrap",
+};
+
+const smallTemplateBtn = {
+  color: "#32cfff",
+  borderColor: "rgba(50, 207, 255, 0.35)",
+  background: "rgba(50, 207, 255, 0.08)",
+};
+
+const recoveryTemplateBtn = {
+  color: "#32df76",
+  borderColor: "rgba(50, 223, 118, 0.35)",
+  background: "rgba(50, 223, 118, 0.08)",
+};
+
 const templateCard = {
   border: "1px solid #242424",
   borderRadius: 14,
@@ -444,6 +694,22 @@ const cancelBtn = {
 const list = {
   display: "grid",
   gap: 10,
+};
+
+const libraryList = {
+  display: "grid",
+  gap: 8,
+};
+
+const libraryItem = {
+  border: "1px solid #202020",
+  borderRadius: 12,
+  background: "#0b0b0b",
+  padding: 12,
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 12,
 };
 
 const empty = {

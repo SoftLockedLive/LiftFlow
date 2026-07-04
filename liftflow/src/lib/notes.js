@@ -39,6 +39,14 @@ export function deleteNote(id) {
   return updated;
 }
 
+export function updateNote(id, patch) {
+  const updated = getNotes().map((note) =>
+    note.id === id ? { ...note, ...patch, updatedAt: Date.now() } : note
+  );
+  saveNotes(updated);
+  return updated;
+}
+
 export function getNoteLevel(levelId) {
   return NOTE_LEVELS.find((level) => level.id === levelId) || NOTE_LEVELS[1];
 }

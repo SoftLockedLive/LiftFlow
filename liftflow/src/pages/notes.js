@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { addNote, deleteNote, getNoteLevel, getNotes, NOTE_LEVELS } from "../lib/notes";
+import ConfirmDialog from "../components/ConfirmDialog";
+import { addNote, deleteNote, getNoteLevel, getNotes, NOTE_LEVELS, updateNote } from "../lib/notes";
 import { tint } from "../lib/muscleGroups";
 import { getPlan } from "../lib/plan";
 
@@ -14,6 +15,8 @@ export default function Notes() {
   const [lift, setLift] = useState("");
   const [customLift, setCustomLift] = useState("");
   const [text, setText] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -27,17 +30,26 @@ export default function Notes() {
     const subject = lift === "custom" ? customLift.trim() : lift.trim();
     if (!text.trim() && !subject) return;
 
-    setNotes(
-      addNote({
-        level,
-        lift: subject,
-        text: text.trim(),
-      })
-    );
+    const note = {
+      level,
+      lift: subject,
+      text: text.trim(),
+    };
+
+    setNotes(editingId ? updateNote(editingId, note) : addNote(note));
+    setEditingId(null);
     setLift("");
     setCustomLift("");
     setText("");
     setLevel("good");
+  }
+
+  function startEdit(note) {
+    setEditingId(note.id);
+    setLift(note.lift || "");
+    setCustomLift("");
+    setText(note.text || "");
+    setLevel(note.level || "good");
   }
 
   return (
@@ -100,8 +112,18 @@ export default function Notes() {
           style={textarea}
         />
         <button type="button" className="primary" onClick={saveNote} style={saveButton}>
-          Save Note
+          {editingId ? "Save Changes" : "Save Note"}
         </button>
+        {editingId && (
+          <button type="button" onClick={() => {
+            setEditingId(null);
+            setLift("");
+            setText("");
+            setLevel("good");
+          }} style={cancelBtn}>
+            Cancel Edit
+          </button>
+        )}
       </section>
 
       <section style={list}>
@@ -128,9 +150,14 @@ export default function Notes() {
                     </h2>
                     <p style={dateText}>{formatDate(note.date)} · {noteLevel.label}</p>
                   </div>
-                  <button type="button" onClick={() => setNotes(deleteNote(note.id))} style={deleteBtn}>
-                    Delete
-                  </button>
+                  <div style={noteActions}>
+                    <button type="button" onClick={() => startEdit(note)} style={editBtn}>
+                      Edit
+                    </button>
+                    <button type="button" onClick={() => setConfirmDeleteId(note.id)} style={deleteBtn}>
+                      Delete
+                    </button>
+                  </div>
                 </div>
                 {note.text && <p style={noteText}>{note.text}</p>}
               </article>
@@ -138,6 +165,19 @@ export default function Notes() {
           })
         )}
       </section>
+
+      <ConfirmDialog
+        open={Boolean(confirmDeleteId)}
+        title="Delete Note?"
+        message="This note will be permanently removed from your training notes."
+        confirmLabel="Delete Note"
+        danger
+        onCancel={() => setConfirmDeleteId(null)}
+        onConfirm={() => {
+          setNotes(deleteNote(confirmDeleteId));
+          setConfirmDeleteId(null);
+        }}
+      />
     </div>
   );
 }
@@ -232,6 +272,12 @@ const saveButton = {
   width: "100%",
 };
 
+const cancelBtn = {
+  color: "#aaa",
+  borderColor: "#333",
+  background: "#0b0b0b",
+};
+
 const fieldWrap = {
   display: "grid",
   gap: 6,
@@ -270,6 +316,19 @@ const noteTop = {
   justifyContent: "space-between",
   alignItems: "flex-start",
   gap: 12,
+};
+
+const noteActions = {
+  display: "flex",
+  gap: 8,
+  flexWrap: "wrap",
+  justifyContent: "flex-end",
+};
+
+const editBtn = {
+  color: ACCENT,
+  borderColor: "rgba(50, 207, 255, 0.45)",
+  background: "rgba(50, 207, 255, 0.12)",
 };
 
 const noteTitle = {

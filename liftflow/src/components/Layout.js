@@ -45,7 +45,11 @@ export default function Layout({ children }) {
     };
 
     const timer = window.setTimeout(loadDashboard, 0);
-    return () => window.clearTimeout(timer);
+    window.addEventListener("liftflow-profile-updated", loadDashboard);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("liftflow-profile-updated", loadDashboard);
+    };
   }, []);
 
   useEffect(() => {
@@ -114,7 +118,11 @@ export default function Layout({ children }) {
             <span style={mutedLabel}>Best lifts</span>
           </div>
           <button style={profileButton} onClick={() => setProfileOpen(true)}>
-            {initials}
+            {profile.photo ? (
+              <span style={{ ...avatarImage, backgroundImage: `url(${profile.photo})` }} />
+            ) : (
+              initials
+            )}
           </button>
         </div>
       </header>
@@ -244,6 +252,7 @@ export default function Layout({ children }) {
                     ...profile,
                     weight: profile.weight || profile.bodyweight,
                   });
+                  window.dispatchEvent(new Event("liftflow-profile-updated"));
                   setProfileOpen(false);
                 }}
               >
@@ -343,6 +352,15 @@ const profileButton = {
   borderColor: "#262626",
   color: "#777",
   background: "#0e0e0e",
+  overflow: "hidden",
+};
+
+const avatarImage = {
+  width: "100%",
+  height: "100%",
+  display: "block",
+  backgroundSize: "cover",
+  backgroundPosition: "center",
 };
 
 const clubGrid = {

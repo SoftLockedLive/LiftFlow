@@ -1,10 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { deleteLiftFromWorkout, getWorkouts } from "../lib/workoutStorage";
+import ConfirmDialog from "../components/ConfirmDialog";
+import { deleteLiftFromWorkout, deleteWorkout, getWorkouts, updateLiftInWorkout } from "../lib/workoutStorage";
 import { buildExerciseHistory, calculateLiftVolume, getWorkoutItems } from "../lib/workoutAnalytics";
 
 export default function History() {
   const [workouts, setWorkouts] = useState([]);
   const [selectedExercise, setSelectedExercise] = useState("");
+  const [editingLift, setEditingLift] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  const [confirmDeleteSession, setConfirmDeleteSession] = useState(null);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -33,6 +37,33 @@ export default function History() {
 
   function handleDeleteLift(sessionId, liftIndex) {
     setWorkouts(deleteLiftFromWorkout(sessionId, liftIndex));
+  }
+
+  function startEditLift(sessionId, liftIndex, lift) {
+    setEditingLift({
+      sessionId,
+      liftIndex,
+      exercise: lift.exercise || "",
+      setsText: (lift.sets || []).map((set) => `${set.weight || 0}x${set.reps || 0}`).join(", "),
+    });
+  }
+
+  function saveEditedLift() {
+    if (!editingLift) return;
+    const sets = editingLift.setsText
+      .split(",")
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .map((part) => {
+        const [weight, reps] = part.toLowerCase().split("x");
+        return { weight: Number(weight || 0), reps: Number(reps || 0) };
+      });
+
+    setWorkouts(updateLiftInWorkout(editingLift.sessionId, editingLift.liftIndex, {
+      exercise: editingLift.exercise,
+      sets,
+    }));
+    setEditingLift(null);
   }
 
   return (
@@ -110,6 +141,9 @@ export default function History() {
                     {session.sets} sets · {session.volume.toLocaleString()} lb volume
                   </p>
                 </div>
+                <button type="button" onClick={() => setConfirmDeleteSession(session.id)} style={deleteBtn}>
+                  Delete Workout
+                </button>
               </div>
 
               <div style={liftList}>
@@ -129,7 +163,14 @@ export default function History() {
                       <span style={liftVolume}>{calculateLiftVolume(lift).toLocaleString()} lb</span>
                       <button
                         type="button"
-                        onClick={() => handleDeleteLift(session.id, index)}
+                        onClick={() => startEditLift(session.id, index, lift)}
+                        style={editBtn}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDelete({ sessionId: session.id, liftIndex: index })}
                         style={deleteBtn}
                       >
                         Delete
@@ -142,6 +183,61 @@ export default function History() {
           ))}
         </section>
       )}
+
+      {editingLift && (
+        <section style={editPanel}>
+          <h2 style={sectionTitle}>Edit History Lift</h2>
+          <label style={fieldWrap}>
+            <span style={fieldLabel}>Exercise</span>
+            <input
+              value={editingLift.exercise}
+              onChange={(event) => setEditingLift({ ...editingLift, exercise: event.target.value })}
+            />
+          </label>
+          <label style={fieldWrap}>
+            <span style={fieldLabel}>Sets</span>
+            <input
+              value={editingLift.setsText}
+              placeholder="225x5, 225x4, 205x8"
+              onChange={(event) => setEditingLift({ ...editingLift, setsText: event.target.value })}
+            />
+          </label>
+          <div style={editActions}>
+            <button type="button" onClick={() => setEditingLift(null)} style={cancelBtn}>
+              Cancel
+            </button>
+            <button type="button" className="primary" onClick={saveEditedLift}>
+              Save Lift
+            </button>
+          </div>
+        </section>
+      )}
+
+      <ConfirmDialog
+        open={Boolean(confirmDelete)}
+        title="Delete History Lift?"
+        message="This lift will be removed from the logged workout. If it is the only lift in that workout, the workout entry will be removed too."
+        confirmLabel="Delete Lift"
+        danger
+        onCancel={() => setConfirmDelete(null)}
+        onConfirm={() => {
+          handleDeleteLift(confirmDelete.sessionId, confirmDelete.liftIndex);
+          setConfirmDelete(null);
+        }}
+      />
+
+      <ConfirmDialog
+        open={Boolean(confirmDeleteSession)}
+        title="Delete Workout?"
+        message="This full workout history entry will be permanently removed."
+        confirmLabel="Delete Workout"
+        danger
+        onCancel={() => setConfirmDeleteSession(null)}
+        onConfirm={() => {
+          setWorkouts(deleteWorkout(confirmDeleteSession));
+          setConfirmDeleteSession(null);
+        }}
+      />
     </div>
   );
 }
@@ -267,6 +363,35 @@ const exerciseEntry = {
   padding: 12,
 };
 
+const editPanel = {
+  border: "1px solid rgba(50, 207, 255, 0.35)",
+  borderRadius: 16,
+  background: "#101010",
+  padding: 16,
+  marginTop: 16,
+  display: "grid",
+  gap: 10,
+};
+
+const fieldWrap = {
+  display: "grid",
+  gap: 6,
+};
+
+const fieldLabel = {
+  color: "#777",
+  fontSize: 12,
+  fontWeight: 850,
+  textTransform: "uppercase",
+};
+
+const editActions = {
+  display: "flex",
+  justifyContent: "flex-end",
+  gap: 10,
+  flexWrap: "wrap",
+};
+
 const statCard = {
   border: "1px solid rgba(50, 207, 255, 0.3)",
   borderRadius: 16,
@@ -369,6 +494,20 @@ const liftActions = {
   gap: 10,
   flexWrap: "wrap",
   justifyContent: "flex-end",
+};
+
+const editBtn = {
+  color: "#32cfff",
+  borderColor: "rgba(50, 207, 255, 0.45)",
+  background: "rgba(50, 207, 255, 0.12)",
+  padding: "7px 11px",
+  fontSize: 13,
+};
+
+const cancelBtn = {
+  color: "#aaa",
+  borderColor: "#333",
+  background: "#0b0b0b",
 };
 
 const deleteBtn = {

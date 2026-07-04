@@ -126,6 +126,7 @@ export default function Workout() {
   }
 
   const focusName = plan.__meta?.[selectedDay]?.name || selectedDay;
+  const recovery = plan.__meta?.[selectedDay]?.recovery;
 
   return (
     <div style={wrap}>
@@ -155,7 +156,14 @@ export default function Workout() {
         ))}
       </div>
 
-      {program.length === 0 ? (
+      {recovery ? (
+        <section style={recoveryCard}>
+          <p style={eyebrow}>Recovery Day</p>
+          <h2 style={recoveryTitle}>{focusName}</h2>
+          <p style={recoveryMeta}>{recovery.activity} · {recovery.duration} · {recovery.intensity}</p>
+          {recovery.notes && <p style={recoveryNotes}>{recovery.notes}</p>}
+        </section>
+      ) : program.length === 0 ? (
         <section style={empty}>No workout planned for {selectedDay}.</section>
       ) : (
         <section style={list}>
@@ -244,9 +252,11 @@ export default function Workout() {
         </section>
       )}
 
-      <button type="button" className="primary" onClick={finishWorkout} style={finishBtn}>
-        Finish Workout
-      </button>
+      {!recovery && program.length > 0 && (
+        <button type="button" className="primary" onClick={finishWorkout} style={finishBtn}>
+          Finish Workout
+        </button>
+      )}
 
       {summary && (
         <section style={summaryPanel}>
@@ -402,6 +412,31 @@ const empty = {
   color: "#555",
   textAlign: "center",
   fontWeight: 850,
+};
+
+const recoveryCard = {
+  border: "1px solid rgba(50, 223, 118, 0.35)",
+  borderRadius: 16,
+  background: "rgba(50, 223, 118, 0.08)",
+  padding: 18,
+};
+
+const recoveryTitle = {
+  margin: "6px 0 8px",
+  color: "#32df76",
+  fontSize: 26,
+};
+
+const recoveryMeta = {
+  margin: 0,
+  color: "#d7d7d2",
+  fontWeight: 800,
+};
+
+const recoveryNotes = {
+  margin: "10px 0 0",
+  color: "#8a8a8a",
+  lineHeight: 1.45,
 };
 
 const list = {

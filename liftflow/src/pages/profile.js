@@ -29,7 +29,37 @@ export default function Profile() {
 
     setProfile(normalized);
     saveProfile(normalized);
+    window.dispatchEvent(new Event("liftflow-profile-updated"));
     alert("Profile saved!");
+  }
+
+  function handlePhoto(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const image = new Image();
+      image.onload = () => {
+        const canvas = document.createElement("canvas");
+        const size = 256;
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        const scale = Math.max(size / image.width, size / image.height);
+        const width = image.width * scale;
+        const height = image.height * scale;
+        const x = (size - width) / 2;
+        const y = (size - height) / 2;
+
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, size, size);
+        ctx.drawImage(image, x, y, width, height);
+        update("photo", canvas.toDataURL("image/jpeg", 0.78));
+      };
+      image.src = reader.result;
+    };
+    reader.readAsDataURL(file);
   }
 
   const total = calculateTotal(profile);
@@ -56,6 +86,15 @@ export default function Profile() {
 
       <section className="profile-grid" style={grid}>
         <Panel title="Personal">
+          <div style={photoRow}>
+            <div style={photoPreview}>
+              {profile.photo ? <span style={{ ...photoImage, backgroundImage: `url(${profile.photo})` }} /> : getInitials(profile.name)}
+            </div>
+            <label style={uploadButton}>
+              Choose Photo
+              <input type="file" accept="image/*" onChange={handlePhoto} style={hiddenFile} />
+            </label>
+          </div>
           <Field
             label="Full name"
             value={profile.name || ""}
@@ -201,6 +240,13 @@ export default function Profile() {
   );
 }
 
+function getInitials(name) {
+  const parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+  if (parts.length === 1) return parts[0][0].toUpperCase();
+  return "ME";
+}
+
 function Stat({ label, value }) {
   return (
     <div style={statCard}>
@@ -330,4 +376,47 @@ const fieldLabel = {
   fontSize: 12,
   fontWeight: 850,
   textTransform: "uppercase",
+};
+
+const photoRow = {
+  display: "flex",
+  alignItems: "center",
+  gap: 12,
+  flexWrap: "wrap",
+};
+
+const photoPreview = {
+  width: 74,
+  height: 74,
+  borderRadius: "50%",
+  border: "1px solid rgba(190, 114, 255, 0.45)",
+  background: "#0b0b0b",
+  color: "#be72ff",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontWeight: 900,
+  overflow: "hidden",
+};
+
+const photoImage = {
+  width: "100%",
+  height: "100%",
+  display: "block",
+  backgroundSize: "cover",
+  backgroundPosition: "center",
+};
+
+const uploadButton = {
+  border: "1px solid rgba(190, 114, 255, 0.45)",
+  borderRadius: 999,
+  padding: "10px 14px",
+  color: "#be72ff",
+  background: "rgba(190, 114, 255, 0.1)",
+  fontWeight: 850,
+  cursor: "pointer",
+};
+
+const hiddenFile = {
+  display: "none",
 };

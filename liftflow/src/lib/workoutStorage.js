@@ -53,3 +53,35 @@ export function deleteLiftFromWorkout(workoutId, liftIndex) {
 
   return saveWorkouts(updated);
 }
+
+export function updateLiftInWorkout(workoutId, liftIndex, nextLift) {
+  const workouts = getWorkouts();
+  const updated = workouts.map((workout, index) => {
+    const id = workout?.id || `${workout?.date || "session"}-${index}`;
+    if (id !== workoutId) return workout;
+
+    if (Array.isArray(workout)) {
+      return workout.map((lift, currentIndex) =>
+        currentIndex === liftIndex ? { ...lift, ...nextLift } : lift
+      );
+    }
+
+    return {
+      ...workout,
+      workout: (workout.workout || []).map((lift, currentIndex) =>
+        currentIndex === liftIndex ? { ...lift, ...nextLift } : lift
+      ),
+    };
+  });
+
+  return saveWorkouts(updated);
+}
+
+export function deleteWorkout(workoutId) {
+  const updated = getWorkouts().filter((workout, index) => {
+    const id = workout?.id || `${workout?.date || "session"}-${index}`;
+    return id !== workoutId;
+  });
+
+  return saveWorkouts(updated);
+}

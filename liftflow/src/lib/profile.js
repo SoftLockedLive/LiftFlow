@@ -9,6 +9,7 @@ const DEFAULT_PROFILE = {
   goal: "strength",
   experience: "beginner",
   units: "lbs",
+  photo: "",
 
   // Body
   height: "",

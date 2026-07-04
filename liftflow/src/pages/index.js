@@ -29,10 +29,12 @@ export default function Home() {
       DAYS.map((day, index) => {
         const lifts = Array.isArray(plan[day]) ? plan[day] : [];
         const name = plan.__meta?.[day]?.name?.trim() || "";
+        const recovery = plan.__meta?.[day]?.recovery || null;
         return {
           day,
           lifts,
           name,
+          recovery,
           accent: ACCENTS[index],
           isToday: day === today,
         };
@@ -51,7 +53,9 @@ export default function Home() {
           <p style={eyebrow}>Today&apos;s Flow</p>
           <h2 style={focusTitle}>{today}</h2>
           <p style={focusCopy}>
-            {todaysLifts.length > 0
+            {week.find((day) => day.isToday)?.recovery
+              ? "Recovery planned today. Keep it easy and move with intent."
+              : todaysLifts.length > 0
               ? `${todaysLifts.length} exercises planned. Start the session and log the work.`
               : "No workout planned today. Build your split or take the recovery win."}
           </p>
@@ -60,10 +64,10 @@ export default function Home() {
         <button
           type="button"
           className="primary"
-          onClick={() => router.push(todaysLifts.length > 0 ? "/workout" : "/plan")}
+          onClick={() => router.push(todaysLifts.length > 0 || week.find((day) => day.isToday)?.recovery ? "/workout" : "/plan")}
           style={focusButton}
         >
-          {todaysLifts.length > 0 ? "Start" : "Program"}
+          {todaysLifts.length > 0 || week.find((day) => day.isToday)?.recovery ? "Open" : "Program"}
         </button>
       </section>
 
@@ -85,8 +89,8 @@ export default function Home() {
               style={{
                 ...dayCard,
                 ...(item.day === "Sunday" ? sundayCard : {}),
-                borderColor: item.isToday ? item.accent : tint(item.accent, 0.34),
-                background: item.isToday ? tint(item.accent, 0.1) : "#101010",
+                borderColor: item.recovery ? "rgba(50, 223, 118, 0.38)" : item.isToday ? item.accent : tint(item.accent, 0.34),
+                background: item.recovery ? "rgba(50, 223, 118, 0.08)" : item.isToday ? tint(item.accent, 0.1) : "#101010",
               }}
             >
               <div style={dayTopline}>
@@ -94,11 +98,13 @@ export default function Home() {
                 {item.isToday && <span style={{ ...todayBadge, color: item.accent }}>Today</span>}
               </div>
 
-              <h3 style={{ ...dayTitle, color: item.lifts.length > 0 ? item.accent : "#555" }}>
+              <h3 style={{ ...dayTitle, color: item.recovery ? "#32df76" : item.lifts.length > 0 ? item.accent : "#555" }}>
                 {getDayTitle(item)}
               </h3>
 
-              {item.lifts.length > 0 ? (
+              {item.recovery ? (
+                <p style={restCopy}>{item.recovery.activity} · {item.recovery.duration}</p>
+              ) : item.lifts.length > 0 ? (
                 <div style={liftPreview}>
                   {item.lifts.slice(0, 3).map((lift) => (
                     <MuscleChip key={lift.id || lift.exercise} lift={lift} />
@@ -113,15 +119,15 @@ export default function Home() {
 
               <button
                 type="button"
-                onClick={() => router.push(item.lifts.length > 0 ? "/workout" : "/plan")}
+                onClick={() => router.push(item.lifts.length > 0 || item.recovery ? "/workout" : "/plan")}
                 style={{
                   ...openButton,
-                  color: item.accent,
-                  background: tint(item.accent, 0.16),
-                  borderColor: tint(item.accent, 0.48),
+                  color: item.recovery ? "#32df76" : item.accent,
+                  background: item.recovery ? "rgba(50, 223, 118, 0.16)" : tint(item.accent, 0.16),
+                  borderColor: item.recovery ? "rgba(50, 223, 118, 0.48)" : tint(item.accent, 0.48),
                 }}
               >
-                {item.lifts.length > 0 ? "Open" : "Add"}
+                {item.lifts.length > 0 || item.recovery ? "Open" : "Add"}
               </button>
             </article>
           ))}
@@ -171,6 +177,7 @@ function MuscleChip({ lift }) {
 
 function getDayTitle(day) {
   if (day.name) return day.name;
+  if (day.recovery) return "Recovery";
   if (day.lifts.length === 0) return "Recovery";
   if (day.lifts.length === 1) return day.lifts[0].exercise;
   return `${day.lifts.length} Exercises`;
