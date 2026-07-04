@@ -1,23 +1,23 @@
 export function getWorkoutItems(workout) {
-  if (Array.isArray(workout)) return workout;
-  if (Array.isArray(workout?.workout)) return workout.workout;
+  if (Array.isArray(workout)) return workout.filter(Boolean);
+  if (Array.isArray(workout?.workout)) return workout.workout.filter(Boolean);
   return [];
 }
 
 export function calculateLiftVolume(lift) {
-  return (lift.sets || []).reduce(
+  return (lift?.sets || []).reduce(
     (sum, set) => sum + Number(set.weight || 0) * Number(set.reps || 0),
     0
   );
 }
 
 export function calculateSessionSummary(lifts) {
-  const safeLifts = Array.isArray(lifts) ? lifts : [];
-  const sets = safeLifts.reduce((count, lift) => count + (lift.sets || []).length, 0);
+  const safeLifts = Array.isArray(lifts) ? lifts.filter(Boolean) : [];
+  const sets = safeLifts.reduce((count, lift) => count + (lift?.sets || []).length, 0);
   const volume = safeLifts.reduce((sum, lift) => sum + calculateLiftVolume(lift), 0);
   const topSet = safeLifts
     .flatMap((lift) =>
-      (lift.sets || []).map((set) => ({
+      (lift?.sets || []).map((set) => ({
         exercise: lift.exercise,
         weight: Number(set.weight || 0),
         reps: Number(set.reps || 0),
@@ -33,6 +33,7 @@ export function detectPRs(workouts, completedLifts) {
 
   (workouts || []).forEach((session) => {
     getWorkoutItems(session).forEach((lift) => {
+      if (!lift?.exercise) return;
       (lift.sets || []).forEach((set) => {
         const weight = Number(set.weight || 0);
         if (weight > (existing[lift.exercise] || 0)) existing[lift.exercise] = weight;
@@ -41,7 +42,7 @@ export function detectPRs(workouts, completedLifts) {
   });
 
   return (completedLifts || []).flatMap((lift) =>
-    (lift.sets || [])
+    (lift?.sets || [])
       .filter((set) => Number(set.weight || 0) > (existing[lift.exercise] || 0))
       .map((set) => ({
         exercise: lift.exercise,
@@ -58,6 +59,8 @@ export function buildExerciseHistory(workouts) {
   (workouts || []).forEach((session, sessionIndex) => {
     const date = session?.date || null;
     getWorkoutItems(session).forEach((lift) => {
+      if (!lift?.exercise) return;
+
       if (!history[lift.exercise]) {
         history[lift.exercise] = {
           exercise: lift.exercise,
@@ -112,6 +115,8 @@ export function buildProgressData(workouts) {
 
   sessions.forEach((session) => {
     session.lifts.forEach((lift) => {
+      if (!lift?.exercise) return;
+
       const group = lift.muscleGroup || "other";
       muscleVolume[group] = (muscleVolume[group] || 0) + calculateLiftVolume(lift);
       (lift.sets || []).forEach((set) => {

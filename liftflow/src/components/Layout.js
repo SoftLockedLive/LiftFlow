@@ -100,13 +100,13 @@ export default function Layout({ children }) {
   return (
     <div style={shell}>
       <header className="app-hero" style={hero}>
-        <div>
+        <div style={heroTitleBlock}>
           <div style={brandLockup}>
             <Image
               src="/icons/icon-192.png"
               alt=""
-              width={46}
-              height={46}
+              width={40}
+              height={40}
               priority
               style={logoMark}
             />
@@ -116,10 +116,6 @@ export default function Layout({ children }) {
         </div>
 
         <div className="app-hero-right" style={heroRight}>
-          <div style={totalBadge}>
-            <span style={mutedLabel}>Big 3</span>
-            <strong style={totalValue}>{hasTotal ? `${total} ${units}` : "--"}</strong>
-          </div>
           <button style={profileButton} onClick={() => setProfileOpen(true)}>
             {profile.photo ? (
               <span style={{ ...avatarImage, backgroundImage: `url(${profile.photo})` }} />
@@ -131,6 +127,11 @@ export default function Layout({ children }) {
       </header>
 
       <section className="app-metrics" style={clubGrid} aria-label="Club total and PRs">
+        <div style={totalStrip}>
+          <span style={totalStripLabel}>Big 3 Total</span>
+          <strong style={totalStripValue}>{hasTotal ? `${total} ${units}` : "--"}</strong>
+        </div>
+
         {liftCards.map((lift) => (
           <div key={lift.label} style={{ ...metricCard, borderColor: tint(lift.accent, 0.35) }}>
             <span style={metricLabel}>{lift.label}</span>
@@ -347,15 +348,19 @@ const shell = {
 
 const hero = {};
 
+const heroTitleBlock = {
+  minWidth: 0,
+};
+
 const brandLockup = {
   display: "flex",
   alignItems: "center",
-  gap: 10,
+  gap: 9,
 };
 
 const logoMark = {
-  width: 42,
-  height: 42,
+  width: 38,
+  height: 38,
   borderRadius: 10,
   objectFit: "cover",
   boxShadow: "0 0 22px rgba(50, 207, 255, 0.18)",
@@ -364,16 +369,17 @@ const logoMark = {
 const brand = {
   margin: 0,
   color: ACCENTS.cyan,
-  fontSize: "clamp(30px, 6vw, 44px)",
+  fontSize: "clamp(28px, 5vw, 42px)",
   lineHeight: 1,
   fontWeight: 900,
 };
 
 const subhead = {
-  margin: "6px 0 0 52px",
+  margin: "5px 0 0",
   color: "#626262",
-  fontSize: 14,
+  fontSize: 13,
   fontWeight: 750,
+  whiteSpace: "nowrap",
 };
 
 const heroRight = {};
@@ -399,28 +405,28 @@ const avatarImage = {
 
 const clubGrid = {};
 
-const totalBadge = {
+const totalStrip = {
+  gridColumn: "1 / -1",
   display: "flex",
-  flexDirection: "column",
-  alignItems: "flex-end",
-  justifyContent: "center",
-  minHeight: 42,
-  gap: 3,
-  border: "1px solid rgba(228, 255, 47, 0.28)",
-  borderRadius: 12,
-  background: "rgba(228, 255, 47, 0.07)",
-  padding: "8px 10px",
+  alignItems: "center",
+  justifyContent: "space-between",
+  minHeight: 44,
+  border: "1px solid rgba(50, 207, 255, 0.18)",
+  borderRadius: 14,
+  background: "linear-gradient(135deg, rgba(50, 207, 255, 0.12), rgba(228, 255, 47, 0.04))",
+  padding: "9px 12px",
 };
 
-const mutedLabel = {
-  color: "#555",
-  fontSize: 11,
-  fontWeight: 800,
+const totalStripLabel = {
+  color: "#727272",
+  fontSize: 12,
+  fontWeight: 850,
+  textTransform: "uppercase",
 };
 
-const totalValue = {
+const totalStripValue = {
   color: ACCENTS.yellow,
-  fontSize: 18,
+  fontSize: 20,
   lineHeight: 1,
 };
 
