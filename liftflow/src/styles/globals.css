@@ -118,7 +118,7 @@ input:focus, select:focus {
 }
 
 .app-page {
-  padding: 26px 24px 120px;
+  padding: 24px 24px calc(120px + env(safe-area-inset-bottom));
 }
 
 .home-focus,
@@ -186,7 +186,7 @@ input:focus, select:focus {
   }
 
   .app-hero {
-    padding: 18px 14px 8px;
+    padding: 16px 14px 8px;
     gap: 12px;
     align-items: center;
   }
@@ -198,8 +198,8 @@ input:focus, select:focus {
 
   .app-metrics {
     grid-template-columns: repeat(6, minmax(0, 1fr));
-    padding: 10px 14px 8px;
-    gap: 10px;
+    padding: 10px 14px 6px;
+    gap: 8px;
   }
 
   .app-tabs {
@@ -208,7 +208,7 @@ input:focus, select:focus {
   }
 
   .app-page {
-    padding: 16px 14px 112px;
+    padding: 14px 14px calc(126px + env(safe-area-inset-bottom));
   }
 
   h1 {
@@ -231,7 +231,15 @@ input:focus, select:focus {
   }
 
   .home-week-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x proximity;
+    padding-bottom: 4px;
+  }
+
+  .home-week-grid > article {
+    flex: 0 0 min(76vw, 280px);
+    scroll-snap-align: start;
   }
 
   .history-stats,
@@ -258,24 +266,28 @@ input:focus, select:focus {
     position: fixed;
     left: 10px;
     right: 10px;
-    bottom: 10px;
+    bottom: calc(8px + env(safe-area-inset-bottom));
     z-index: 80;
-    padding: 8px;
+    padding: 7px;
     border: 1px solid #1e1e1e;
-    border-radius: 16px;
+    border-radius: 14px;
     background: rgba(5, 5, 5, 0.96);
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
   }
 
   .app-tabs button {
-    padding: 8px 12px;
-    font-size: 12px !important;
+    padding: 7px 10px;
+    font-size: 11px !important;
   }
 }
 
 @media (max-width: 430px) {
   .app-metrics {
     grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .app-hero-right {
+    gap: 7px;
   }
 
   .profile-stats {

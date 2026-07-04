@@ -43,7 +43,8 @@ export default function Home() {
   );
 
   const todaysLifts = week.find((day) => day.isToday)?.lifts || [];
-  const plannedDays = week.filter((day) => day.lifts.length > 0).length;
+  const todayItem = week.find((day) => day.isToday);
+  const plannedDays = week.filter((day) => day.lifts.length > 0 || day.recovery).length;
   const recentSets = useMemo(() => flattenRecentSets(workouts).slice(0, 5), [workouts]);
 
   return (
@@ -53,21 +54,21 @@ export default function Home() {
           <p style={eyebrow}>Today&apos;s Flow</p>
           <h2 style={focusTitle}>{today}</h2>
           <p style={focusCopy}>
-            {week.find((day) => day.isToday)?.recovery
-              ? "Recovery planned today. Keep it easy and move with intent."
+            {todayItem?.recovery
+              ? `${todayItem.recovery.activity} · ${todayItem.recovery.duration}`
               : todaysLifts.length > 0
-              ? `${todaysLifts.length} exercises planned. Start the session and log the work.`
-              : "No workout planned today. Build your split or take the recovery win."}
+              ? `${getDayTitle(todayItem)} · ${todaysLifts.slice(0, 2).map((lift) => lift.exercise).join(", ")}`
+              : "No workout planned. Recovery day."}
           </p>
         </div>
 
         <button
           type="button"
           className="primary"
-          onClick={() => router.push(todaysLifts.length > 0 || week.find((day) => day.isToday)?.recovery ? "/workout" : "/plan")}
+          onClick={() => router.push(todaysLifts.length > 0 || todayItem?.recovery ? "/workout" : "/plan")}
           style={focusButton}
         >
-          {todaysLifts.length > 0 || week.find((day) => day.isToday)?.recovery ? "Open" : "Program"}
+          {todaysLifts.length > 0 || todayItem?.recovery ? "View" : "Program"}
         </button>
       </section>
 
@@ -217,45 +218,45 @@ function tint(hex, alpha) {
 }
 
 const focusCard = {
-  minHeight: 112,
-  border: "1px solid rgba(50, 207, 255, 0.35)",
-  borderRadius: 16,
+  minHeight: 88,
+  border: "1px solid rgba(50, 207, 255, 0.22)",
+  borderRadius: 14,
   background: "#101010",
-  padding: "18px 20px",
+  padding: "14px 16px",
   alignItems: "center",
   justifyContent: "space-between",
-  gap: 18,
+  gap: 12,
 };
 
 const eyebrow = {
   margin: 0,
   color: "#32cfff",
-  fontSize: 14,
+  fontSize: 12,
   fontWeight: 850,
   textTransform: "uppercase",
 };
 
 const focusTitle = {
-  margin: "6px 0 6px",
+  margin: "5px 0 5px",
   color: "#f7f7f2",
-  fontSize: 26,
+  fontSize: 22,
   lineHeight: 1,
 };
 
 const focusCopy = {
   margin: 0,
   color: "#747474",
-  fontSize: 15,
+  fontSize: 14,
   lineHeight: 1.4,
   fontWeight: 700,
 };
 
 const focusButton = {
-  minWidth: 112,
+  minWidth: 92,
 };
 
 const section = {
-  marginTop: 22,
+  marginTop: 18,
 };
 
 const sectionHeader = {
@@ -268,7 +269,7 @@ const sectionHeader = {
 const sectionTitle = {
   margin: 0,
   color: "#f7f7f2",
-  fontSize: 22,
+  fontSize: 20,
   lineHeight: 1,
 };
 
@@ -290,19 +291,16 @@ const weekGrid = {
 };
 
 const dayCard = {
-  minHeight: 142,
+  minHeight: 132,
   border: "1px solid",
-  borderRadius: 16,
-  padding: 13,
+  borderRadius: 14,
+  padding: 12,
   display: "flex",
   flexDirection: "column",
   alignItems: "flex-start",
 };
 
-const sundayCard = {
-  gridColumn: "1 / -1",
-  minHeight: 118,
-};
+const sundayCard = {};
 
 const dayTopline = {
   width: "100%",
@@ -315,7 +313,7 @@ const dayTopline = {
 const dayMeta = {
   margin: 0,
   color: "#707070",
-  fontSize: 16,
+  fontSize: 13,
   fontWeight: 850,
 };
 
@@ -326,8 +324,8 @@ const todayBadge = {
 };
 
 const dayTitle = {
-  margin: "12px 0 10px",
-  fontSize: 20,
+  margin: "9px 0 8px",
+  fontSize: 17,
   lineHeight: 1.1,
 };
 
@@ -344,7 +342,7 @@ const liftChip = {
   padding: "5px 9px",
   color: "#aaa",
   background: "#0a0a0a",
-  fontSize: 12,
+  fontSize: 11,
   fontWeight: 750,
 };
 
@@ -358,16 +356,16 @@ const openButton = {
   marginTop: "auto",
   minWidth: 82,
   padding: "8px 16px",
-  fontSize: 14,
+  fontSize: 13,
 };
 
 const emptyState = {
-  minHeight: 120,
+  minHeight: 96,
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
   color: "#2f2f2f",
-  fontSize: 20,
+  fontSize: 16,
   fontWeight: 850,
   textAlign: "center",
 };

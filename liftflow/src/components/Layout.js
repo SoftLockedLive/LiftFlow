@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/router";
 import { getPRs } from "../lib/engine";
+import { getManualPRs } from "../lib/manualPRs";
 import { getProfile, saveProfile } from "../lib/profile";
 import { getProteinLog, getProteinSummary, getProteinTarget } from "../lib/protein";
 import { getWorkouts } from "../lib/workoutStorage";
+import { getWorkoutItems } from "../lib/workoutAnalytics";
 
 const ACCENTS = {
   lime: "#e4ff2f",
@@ -26,6 +28,7 @@ export default function Layout({ children }) {
     units: "lbs",
   });
   const [prs, setPrs] = useState({});
+  const [bestSets, setBestSets] = useState({});
   const [proteinSummary, setProteinSummary] = useState({
     today: 0,
     target: 160,
@@ -39,6 +42,7 @@ export default function Layout({ children }) {
     const loadDashboard = () => {
       const workouts = getWorkouts();
       setPrs(getPRs(workouts));
+      setBestSets(getBigThreeBestSets(workouts, getManualPRs()));
       setProteinSummary(getProteinSummary(getProteinLog(), getProteinTarget()));
       setHydrated(true);
       setProfile(getProfile());
@@ -56,9 +60,9 @@ export default function Layout({ children }) {
     document.body.style.overflow = profileOpen ? "hidden" : "auto";
   }, [profileOpen]);
 
-  const bench = Math.max(Number(profile.benchPR || 0), Number(prs["Bench Press"] || 0));
-  const squat = Math.max(Number(profile.squatPR || 0), Number(prs.Squat || 0));
-  const deadlift = Math.max(Number(profile.deadliftPR || 0), Number(prs.Deadlift || 0));
+  const bench = Math.max(Number(profile.benchPR || 0), Number(prs["Bench Press"] || 0), Number(bestSets.bench?.weight || 0));
+  const squat = Math.max(Number(profile.squatPR || 0), Number(prs.Squat || 0), Number(bestSets.squat?.weight || 0));
+  const deadlift = Math.max(Number(profile.deadliftPR || 0), Number(prs.Deadlift || 0), Number(bestSets.deadlift?.weight || 0));
   const total = bench + squat + deadlift;
   const hasTotal = hydrated && total > 0;
   const units = profile.units || "lbs";
@@ -88,9 +92,9 @@ export default function Layout({ children }) {
   ];
 
   const liftCards = [
-  { label: "Bench", value: bench, accent: ACCENTS.lime },
-    { label: "Squat", value: squat, accent: ACCENTS.orange },
-    { label: "Dead", value: deadlift, accent: ACCENTS.cyan },
+    { label: "Bench", value: bench, reps: bestSets.bench?.reps, accent: ACCENTS.lime },
+    { label: "Squat", value: squat, reps: bestSets.squat?.reps, accent: ACCENTS.orange },
+    { label: "Dead", value: deadlift, reps: bestSets.deadlift?.reps, accent: ACCENTS.cyan },
   ];
 
   return (
@@ -112,10 +116,9 @@ export default function Layout({ children }) {
         </div>
 
         <div className="app-hero-right" style={heroRight}>
-          <div style={clubTotal}>
-            <span style={mutedLabel}>Big 3 total</span>
-            <strong style={totalValue}>{hasTotal ? `${total}${units}` : "--"}</strong>
-            <span style={mutedLabel}>Best lifts</span>
+          <div style={totalBadge}>
+            <span style={mutedLabel}>Big 3</span>
+            <strong style={totalValue}>{hasTotal ? `${total} ${units}` : "--"}</strong>
           </div>
           <button style={profileButton} onClick={() => setProfileOpen(true)}>
             {profile.photo ? (
@@ -132,9 +135,9 @@ export default function Layout({ children }) {
           <div key={lift.label} style={{ ...metricCard, borderColor: tint(lift.accent, 0.35) }}>
             <span style={metricLabel}>{lift.label}</span>
             <strong style={{ ...metricValue, color: lift.value ? lift.accent : "#3e3e3e" }}>
-              {lift.value ? `${lift.value}${units}` : "--"}
+              {lift.value ? `${lift.value} ${units}` : "--"}
             </strong>
-            <span style={metricHint}>{lift.value ? "tracked" : "not logged"}</span>
+            <span style={metricHint}>{lift.value && lift.reps ? `x ${lift.reps} reps` : lift.value ? "tracked" : "not logged"}</span>
           </div>
         ))}
 
@@ -285,6 +288,39 @@ function getInitials(name) {
   return "ME";
 }
 
+function getBigThreeBestSets(workouts, manualPrs) {
+  const targets = {
+    "Bench Press": "bench",
+    Squat: "squat",
+    Deadlift: "deadlift",
+  };
+  const best = {};
+
+  (workouts || []).forEach((session) => {
+    getWorkoutItems(session).forEach((lift) => {
+      const key = targets[lift.exercise];
+      if (!key) return;
+
+      (lift.sets || []).forEach((set) => {
+        const weight = Number(set.weight || 0);
+        if (weight > Number(best[key]?.weight || 0)) {
+          best[key] = { weight, reps: Number(set.reps || 0) || "" };
+        }
+      });
+    });
+  });
+
+  (manualPrs || []).forEach((pr) => {
+    const key = targets[pr.exercise];
+    const weight = Number(pr.weight || 0);
+    if (key && weight > Number(best[key]?.weight || 0)) {
+      best[key] = { weight, reps: pr.reps || "" };
+    }
+  });
+
+  return best;
+}
+
 function calculateDotsScore({ total, bodyweight, sex, units }) {
   if (!total || !bodyweight) return null;
 
@@ -309,8 +345,7 @@ const shell = {
   color: "#f7f7f2",
 };
 
-const hero = {
-};
+const hero = {};
 
 const brandLockup = {
   display: "flex",
@@ -329,20 +364,19 @@ const logoMark = {
 const brand = {
   margin: 0,
   color: ACCENTS.cyan,
-  fontSize: "clamp(34px, 7vw, 48px)",
+  fontSize: "clamp(30px, 6vw, 44px)",
   lineHeight: 1,
   fontWeight: 900,
 };
 
 const subhead = {
-  margin: "8px 0 0",
+  margin: "6px 0 0 52px",
   color: "#626262",
-  fontSize: 15,
+  fontSize: 14,
   fontWeight: 750,
 };
 
-const heroRight = {
-};
+const heroRight = {};
 
 const profileButton = {
   width: 42,
@@ -363,68 +397,71 @@ const avatarImage = {
   backgroundPosition: "center",
 };
 
-const clubGrid = {
-};
+const clubGrid = {};
 
-const clubTotal = {
+const totalBadge = {
   display: "flex",
   flexDirection: "column",
   alignItems: "flex-end",
   justifyContent: "center",
-  minHeight: 46,
-  gap: 4,
+  minHeight: 42,
+  gap: 3,
+  border: "1px solid rgba(228, 255, 47, 0.28)",
+  borderRadius: 12,
+  background: "rgba(228, 255, 47, 0.07)",
+  padding: "8px 10px",
 };
 
 const mutedLabel = {
   color: "#555",
-  fontSize: 14,
+  fontSize: 11,
   fontWeight: 800,
 };
 
 const totalValue = {
   color: ACCENTS.yellow,
-  fontSize: 24,
+  fontSize: 18,
   lineHeight: 1,
 };
 
 const metricCard = {
   gridColumn: "span 2",
-  minHeight: 94,
-  background: "#101010",
+  minHeight: 82,
+  background: "#111",
   border: "1px solid",
-  borderRadius: 16,
+  borderRadius: 14,
   display: "flex",
   flexDirection: "column",
   alignItems: "center",
   justifyContent: "center",
-  gap: 8,
+  gap: 6,
 };
 
 const metricLabel = {
   color: "#5f5f5f",
-  fontSize: 14,
+  fontSize: 12,
   fontWeight: 800,
   textTransform: "uppercase",
 };
 
 const metricValue = {
-  fontSize: 18,
+  fontSize: 21,
   lineHeight: 1,
 };
 
 const metricHint = {
   color: "#454545",
-  fontSize: 14,
+  fontSize: 12,
   fontWeight: 800,
 };
 
 const wideCard = {
   gridColumn: "span 3",
-  minHeight: 82,
+  minHeight: 72,
   padding: 12,
   background: "#101010",
   border: "1px solid",
-  borderRadius: 16,
+  borderRadius: 14,
   display: "flex",
   flexDirection: "column",
   gap: 10,

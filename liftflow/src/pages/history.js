@@ -152,8 +152,8 @@ export default function History() {
                     <div>
                       <strong style={liftName}>{lift.exercise}</strong>
                       <p style={setLine}>
-                        {lift.sets.length > 0
-                          ? lift.sets
+                        {(lift.sets || []).length > 0
+                          ? (lift.sets || [])
                               .map((set) => `${set.weight || 0}x${set.reps || 0}`)
                               .join("  ")
                           : "No sets logged"}
