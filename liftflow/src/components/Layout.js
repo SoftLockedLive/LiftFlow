@@ -78,6 +78,7 @@ export default function Layout({ children }) {
     { name: "Protein", path: "/protein" },
     { name: "Notes", path: "/notes" },
     { name: "History", path: "/history" },
+    { name: "Progress", path: "/progress" },
     { name: "PRs", path: "/prs" },
     { name: "Profile", path: "/profile" },
   ];

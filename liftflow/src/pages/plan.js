@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getMuscleGroup, MUSCLE_GROUPS, tint } from "../lib/muscleGroups";
 import { getPlan, savePlan } from "../lib/plan";
+import { PROGRAM_TEMPLATES, buildPlanFromTemplate } from "../lib/programTemplates";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const ACCENT = "#32cfff";
@@ -124,6 +125,15 @@ export default function Plan() {
     savePlan(updated);
   }
 
+  function applyTemplate(templateId) {
+    const templatePlan = buildPlanFromTemplate(templateId);
+    setPlan(templatePlan);
+    savePlan(templatePlan);
+    setSelectedDay("Monday");
+    setDayName(templatePlan.__meta?.Monday?.name || "");
+    clearForm();
+  }
+
   const todayPlan = Array.isArray(plan[selectedDay]) ? plan[selectedDay] : [];
 
   return (
@@ -153,6 +163,26 @@ export default function Plan() {
           </button>
         ))}
       </div>
+
+      <section style={templateSection}>
+        <div style={templateHeader}>
+          <div>
+            <p style={label}>Templates</p>
+            <h2 style={cardTitle}>Start Faster</h2>
+          </div>
+        </div>
+        <div style={templateGrid}>
+          {PROGRAM_TEMPLATES.map((template) => (
+            <article key={template.id} style={templateCard}>
+              <h3 style={templateName}>{template.name}</h3>
+              <p style={templateSummary}>{template.summary}</p>
+              <button type="button" onClick={() => applyTemplate(template.id)} style={templateButton}>
+                Use Template
+              </button>
+            </article>
+          ))}
+        </div>
+      </section>
 
       <section style={card}>
         <label style={label}>Day Focus</label>
@@ -321,6 +351,55 @@ const card = {
   marginBottom: 14,
   display: "grid",
   gap: 12,
+};
+
+const templateSection = {
+  border: "1px solid #242424",
+  borderRadius: 16,
+  background: "#101010",
+  padding: 16,
+  marginBottom: 14,
+};
+
+const templateHeader = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 12,
+  marginBottom: 12,
+};
+
+const templateGrid = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+  gap: 10,
+};
+
+const templateCard = {
+  border: "1px solid #242424",
+  borderRadius: 14,
+  background: "#0b0b0b",
+  padding: 12,
+};
+
+const templateName = {
+  margin: 0,
+  color: "#32cfff",
+  fontSize: 18,
+};
+
+const templateSummary = {
+  margin: "8px 0 12px",
+  color: "#777",
+  lineHeight: 1.35,
+  fontSize: 13,
+};
+
+const templateButton = {
+  width: "100%",
+  color: "#e4ff2f",
+  borderColor: "rgba(228, 255, 47, 0.4)",
+  background: "rgba(228, 255, 47, 0.08)",
 };
 
 const label = {

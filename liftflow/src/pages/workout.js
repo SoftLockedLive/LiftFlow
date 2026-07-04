@@ -3,7 +3,8 @@ import { getMuscleGroup, tint } from "../lib/muscleGroups";
 import { getPlan } from "../lib/plan";
 import { buildTodaysWorkout } from "../lib/trainingEngine";
 import { getTodayName } from "../lib/today";
-import { saveWorkout } from "../lib/workoutStorage";
+import { getWorkouts, saveWorkout } from "../lib/workoutStorage";
+import { calculateSessionSummary, detectPRs } from "../lib/workoutAnalytics";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const ACCENT = "#32cfff";
@@ -25,6 +26,19 @@ export default function Workout() {
   const [program, setProgram] = useState([]);
   const [session, setSession] = useState({});
   const [drafts, setDrafts] = useState({});
+  const [restSeconds, setRestSeconds] = useState(0);
+  const [restPreset, setRestPreset] = useState(90);
+  const [summary, setSummary] = useState(null);
+
+  useEffect(() => {
+    if (restSeconds <= 0) return undefined;
+
+    const timer = window.setInterval(() => {
+      setRestSeconds((seconds) => Math.max(0, seconds - 1));
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [restSeconds]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -76,6 +90,7 @@ export default function Workout() {
   }
 
   function finishWorkout() {
+    const previousWorkouts = getWorkouts();
     const completedWorkout = program.map((lift) => ({
       exercise: lift.exercise,
       muscleGroup: lift.muscleGroup || "other",
@@ -84,10 +99,14 @@ export default function Workout() {
       suggestedWeight: lift.suggestedWeight || null,
       stretches: lift.stretches || "",
     }));
+    const workoutSummary = calculateSessionSummary(completedWorkout);
+    const prs = detectPRs(previousWorkouts, completedWorkout);
 
     saveWorkout(completedWorkout, {
       day: selectedDay,
       focus: plan.__meta?.[selectedDay]?.name || selectedDay,
+      summary: workoutSummary,
+      prs,
     });
 
     const updatedDrafts = { ...drafts };
@@ -95,7 +114,12 @@ export default function Workout() {
     setDrafts(updatedDrafts);
     saveWorkoutDrafts(updatedDrafts);
 
-    alert("Workout saved!");
+    setSummary({
+      focus: plan.__meta?.[selectedDay]?.name || selectedDay,
+      day: selectedDay,
+      ...workoutSummary,
+      prs,
+    });
     setPlan(getPlan());
     setProgram(buildTodaysWorkout(selectedDay));
     setSession({});
@@ -135,6 +159,34 @@ export default function Workout() {
         <section style={empty}>No workout planned for {selectedDay}.</section>
       ) : (
         <section style={list}>
+          <div style={timerCard}>
+            <div>
+              <span style={timerLabel}>Rest Timer</span>
+              <strong style={timerValue}>{formatRestTime(restSeconds)}</strong>
+            </div>
+            <div style={timerActions}>
+              {[60, 90, 120].map((seconds) => (
+                <button
+                  key={seconds}
+                  type="button"
+                  onClick={() => setRestPreset(seconds)}
+                  style={{
+                    ...timerChip,
+                    ...(restPreset === seconds ? activeTimerChip : {}),
+                  }}
+                >
+                  {seconds}s
+                </button>
+              ))}
+              <button type="button" className="primary" onClick={() => setRestSeconds(restPreset)} style={timerStart}>
+                Start
+              </button>
+              <button type="button" onClick={() => setRestSeconds(0)} style={timerChip}>
+                Reset
+              </button>
+            </div>
+          </div>
+
           {program.map((lift) => {
             const group = getMuscleGroup(lift.muscleGroup);
 
@@ -195,6 +247,49 @@ export default function Workout() {
       <button type="button" className="primary" onClick={finishWorkout} style={finishBtn}>
         Finish Workout
       </button>
+
+      {summary && (
+        <section style={summaryPanel}>
+          <div style={summaryTop}>
+            <div>
+              <p style={eyebrow}>Workout Complete</p>
+              <h2 style={summaryTitle}>{summary.focus}</h2>
+            </div>
+            <button type="button" onClick={() => setSummary(null)} style={closeSummary}>
+              Close
+            </button>
+          </div>
+
+          <div className="history-stats" style={summaryStats}>
+            <SummaryStat label="Sets" value={summary.sets} />
+            <SummaryStat label="Volume" value={`${summary.volume.toLocaleString()} lb`} />
+            <SummaryStat
+              label="Top Set"
+              value={summary.topSet ? `${summary.topSet.weight}x${summary.topSet.reps}` : "--"}
+            />
+          </div>
+
+          {summary.prs.length > 0 && (
+            <div style={prBox}>
+              <strong style={prTitle}>New PRs</strong>
+              {summary.prs.map((pr) => (
+                <p key={`${pr.exercise}-${pr.weight}-${pr.reps}`} style={prLine}>
+                  {pr.exercise}: {pr.weight} lb x {pr.reps}
+                </p>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+    </div>
+  );
+}
+
+function SummaryStat({ label, value }) {
+  return (
+    <div style={summaryStat}>
+      <span style={summaryLabel}>{label}</span>
+      <strong style={summaryValue}>{value}</strong>
     </div>
   );
 }
@@ -239,6 +334,12 @@ function getDayAccent(day, alpha) {
 
   if (alpha === undefined) return color;
   return tint(color, alpha);
+}
+
+function formatRestTime(seconds) {
+  const minutes = Math.floor(seconds / 60);
+  const remaining = String(seconds % 60).padStart(2, "0");
+  return `${minutes}:${remaining}`;
 }
 
 const wrap = {
@@ -306,6 +407,56 @@ const empty = {
 const list = {
   display: "grid",
   gap: 14,
+};
+
+const timerCard = {
+  border: "1px solid rgba(50, 207, 255, 0.35)",
+  borderRadius: 16,
+  background: "#101010",
+  padding: 14,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 14,
+  flexWrap: "wrap",
+};
+
+const timerLabel = {
+  display: "block",
+  color: "#666",
+  fontSize: 12,
+  fontWeight: 850,
+  textTransform: "uppercase",
+};
+
+const timerValue = {
+  display: "block",
+  marginTop: 4,
+  color: "#32cfff",
+  fontSize: 30,
+  lineHeight: 1,
+};
+
+const timerActions = {
+  display: "flex",
+  alignItems: "center",
+  gap: 8,
+  flexWrap: "wrap",
+};
+
+const timerChip = {
+  padding: "8px 11px",
+  color: "#8a8a8a",
+};
+
+const activeTimerChip = {
+  color: "#050505",
+  background: "#f7f7f2",
+  borderColor: "#f7f7f2",
+};
+
+const timerStart = {
+  padding: "8px 14px",
 };
 
 const liftCard = {
@@ -377,4 +528,75 @@ const finishBtn = {
   width: "100%",
   marginTop: 18,
   padding: 13,
+};
+
+const summaryPanel = {
+  border: "1px solid rgba(228, 255, 47, 0.35)",
+  borderRadius: 16,
+  background: "#101010",
+  padding: 16,
+  marginTop: 14,
+};
+
+const summaryTop = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 12,
+  alignItems: "flex-start",
+};
+
+const summaryTitle = {
+  margin: "6px 0 0",
+  fontSize: 24,
+};
+
+const closeSummary = {
+  color: "#aaa",
+  borderColor: "#333",
+  background: "#0b0b0b",
+};
+
+const summaryStats = {
+  gap: 10,
+  marginTop: 14,
+};
+
+const summaryStat = {
+  border: "1px solid #242424",
+  borderRadius: 14,
+  background: "#0b0b0b",
+  padding: 12,
+};
+
+const summaryLabel = {
+  display: "block",
+  color: "#666",
+  fontSize: 12,
+  fontWeight: 850,
+  textTransform: "uppercase",
+};
+
+const summaryValue = {
+  display: "block",
+  marginTop: 6,
+  color: "#32cfff",
+  fontSize: 19,
+};
+
+const prBox = {
+  border: "1px solid rgba(228, 255, 47, 0.35)",
+  borderRadius: 14,
+  background: "rgba(228, 255, 47, 0.08)",
+  padding: 12,
+  marginTop: 12,
+};
+
+const prTitle = {
+  color: "#e4ff2f",
+};
+
+const prLine = {
+  margin: "6px 0 0",
+  color: "#f7f7f2",
+  fontWeight: 750,
 };
