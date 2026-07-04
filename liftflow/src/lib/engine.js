@@ -29,7 +29,7 @@ export function getExerciseTrends() {
         };
       }
 
-      lift.sets.forEach((set) => {
+      (lift.sets || []).forEach((set) => {
         if (!set.weight) return;
 
         stats[lift.exercise].totalWeight += set.weight;
@@ -59,7 +59,7 @@ export function getPRs(workouts = getWorkouts()) {
         prs[name] = 0;
       }
 
-      exercise.sets.forEach((set) => {
+      (exercise.sets || []).forEach((set) => {
         const weight = set.weight || 0;
 
         if (weight > prs[name]) {
@@ -83,7 +83,7 @@ export function calculateWorkoutVolume(workout) {
   const lifts = normalizeWorkout(workout);
 
   return lifts.reduce((total, exercise) => {
-    const exerciseVolume = exercise.sets.reduce((sum, set) => {
+    const exerciseVolume = (exercise.sets || []).reduce((sum, set) => {
       return sum + calculateSetVolume(set);
     }, 0);
 

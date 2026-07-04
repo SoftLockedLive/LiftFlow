@@ -93,6 +93,8 @@ export default function Workout() {
     saveWorkoutDrafts(updatedDrafts);
 
     alert("Workout saved!");
+    setPlan(getPlan());
+    setProgram(buildTodaysWorkout(selectedDay));
     setSession({});
   }
 
