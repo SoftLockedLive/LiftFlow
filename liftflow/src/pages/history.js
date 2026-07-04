@@ -221,6 +221,7 @@ export default function History() {
         danger
         onCancel={() => setConfirmDelete(null)}
         onConfirm={() => {
+          if (!confirmDelete) return;
           handleDeleteLift(confirmDelete.sessionId, confirmDelete.liftIndex);
           setConfirmDelete(null);
         }}
@@ -234,6 +235,7 @@ export default function History() {
         danger
         onCancel={() => setConfirmDeleteSession(null)}
         onConfirm={() => {
+          if (!confirmDeleteSession) return;
           setWorkouts(deleteWorkout(confirmDeleteSession));
           setConfirmDeleteSession(null);
         }}
