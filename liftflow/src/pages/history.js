@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { deleteLiftFromWorkout, deleteWorkout, getWorkouts, updateLiftInWorkout } from "../lib/workoutStorage";
-import { buildExerciseHistory, calculateLiftVolume, getWorkoutItems } from "../lib/workoutAnalytics";
+import { buildExerciseHistory, calculateLiftVolume, getLiftSets, getWorkoutItems } from "../lib/workoutAnalytics";
 
 export default function History() {
   const [workouts, setWorkouts] = useState([]);
@@ -44,7 +44,7 @@ export default function History() {
       sessionId,
       liftIndex,
       exercise: lift.exercise || "",
-      setsText: (lift.sets || []).map((set) => `${set.weight || 0}x${set.reps || 0}`).join(", "),
+      setsText: getLiftSets(lift).map((set) => `${set.weight || 0}x${set.reps || 0}`).join(", "),
     });
   }
 
@@ -114,8 +114,8 @@ export default function History() {
                     <div>
                       <strong style={liftName}>{formatShortDate(entry.date)}</strong>
                       <p style={setLine}>
-                        {entry.sets.length > 0
-                          ? entry.sets.map((set) => `${set.weight || 0}x${set.reps || 0}`).join("  ")
+                        {getLiftSets(entry).length > 0
+                          ? getLiftSets(entry).map((set) => `${set.weight || 0}x${set.reps || 0}`).join("  ")
                           : "No sets logged"}
                       </p>
                     </div>
@@ -152,8 +152,8 @@ export default function History() {
                     <div>
                       <strong style={liftName}>{lift.exercise}</strong>
                       <p style={setLine}>
-                        {(lift.sets || []).length > 0
-                          ? (lift.sets || [])
+                        {getLiftSets(lift).length > 0
+                          ? getLiftSets(lift)
                               .map((set) => `${set.weight || 0}x${set.reps || 0}`)
                               .join("  ")
                           : "No sets logged"}
@@ -256,7 +256,7 @@ function normalizeSessions(workouts) {
     .map((workout, index) => {
       const lifts = getWorkoutItems(workout);
       const date = workout?.date || lifts[0]?.date || null;
-      const sets = lifts.reduce((count, lift) => count + (lift.sets || []).length, 0);
+      const sets = lifts.reduce((count, lift) => count + getLiftSets(lift).length, 0);
       const volume = lifts.reduce((sum, lift) => sum + calculateLiftVolume(lift), 0);
 
       return {
@@ -272,21 +272,31 @@ function normalizeSessions(workouts) {
 }
 
 function formatDate(date) {
-  if (!date) return "Unknown date";
+  const parsedDate = parseDisplayDate(date);
+  if (!parsedDate) return "Unknown date";
+
   return new Intl.DateTimeFormat("en", {
     weekday: "short",
     month: "short",
     day: "numeric",
     year: "numeric",
-  }).format(new Date(date));
+  }).format(parsedDate);
 }
 
 function formatShortDate(date) {
-  if (!date) return "Unknown";
+  const parsedDate = parseDisplayDate(date);
+  if (!parsedDate) return "Unknown";
+
   return new Intl.DateTimeFormat("en", {
     month: "short",
     day: "numeric",
-  }).format(new Date(date));
+  }).format(parsedDate);
+}
+
+function parseDisplayDate(date) {
+  if (!date) return null;
+  const parsedDate = new Date(date);
+  return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
 }
 
 const wrap = {
