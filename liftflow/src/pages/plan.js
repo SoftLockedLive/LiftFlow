@@ -37,6 +37,7 @@ export default function Plan() {
   const [customExercises, setCustomExercises] = useState([]);
   const [editingCustomId, setEditingCustomId] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null);
+  const [builderPanel, setBuilderPanel] = useState("");
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -167,6 +168,7 @@ export default function Plan() {
 
   function startCustomEdit(lift) {
     setEditingCustomId(lift.id);
+    setBuilderPanel("editor");
     setExercise(lift.exercise || "");
     setSets(String(lift.sets || ""));
     setReps(String(lift.reps || ""));
@@ -176,6 +178,7 @@ export default function Plan() {
 
   function startEdit(lift) {
     setEditingId(lift.id);
+    setBuilderPanel("editor");
     setExercise(lift.exercise || "");
     setSets(String(lift.sets || ""));
     setReps(String(lift.reps || ""));
@@ -299,45 +302,6 @@ export default function Plan() {
         ))}
       </div>
 
-      <section style={templateSection}>
-        <div style={templateHeader}>
-          <div>
-            <p style={label}>Templates</p>
-            <h2 style={cardTitle}>Start Faster</h2>
-          </div>
-        </div>
-        <div style={templateGrid}>
-          {PROGRAM_TEMPLATES.map((template) => (
-            <article key={template.id} style={templateCard}>
-              <h3 style={templateName}>{template.name}</h3>
-              <p style={templateSummary}>{template.summary}</p>
-              <button type="button" onClick={() => requestApplyTemplate(template.id)} style={templateButton}>
-                Use Template
-              </button>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section style={templateSection}>
-        <p style={label}>Workout Day Templates</p>
-        <div style={chipGrid}>
-          {DAY_TEMPLATES.map((template) => (
-            <button key={template.id} type="button" onClick={() => requestApplyDayTemplate(template.id)} style={smallTemplateBtn}>
-              {template.name}
-            </button>
-          ))}
-        </div>
-        <p style={{ ...label, marginTop: 14 }}>Recovery Templates</p>
-        <div style={chipGrid}>
-          {RECOVERY_TEMPLATES.map((template) => (
-            <button key={template.id} type="button" onClick={() => requestApplyDayTemplate(template.id, true)} style={recoveryTemplateBtn}>
-              {template.name}
-            </button>
-          ))}
-        </div>
-      </section>
-
       <section style={card}>
         <label style={label}>Day Focus</label>
         <input
@@ -347,114 +311,17 @@ export default function Plan() {
         />
       </section>
 
-      <section style={card}>
-        <h2 style={cardTitle}>{editingId ? "Edit Day Exercise" : editingCustomId ? "Edit Custom Exercise" : "Create Custom Exercise"}</h2>
-        <input
-          placeholder="Exercise"
-          value={exercise}
-          onChange={(event) => setExercise(event.target.value)}
-        />
-
-        <div className="field-row" style={fieldRow}>
-          <input
-            placeholder="Sets, e.g. 3"
-            inputMode="numeric"
-            value={sets}
-            onChange={(event) => setSets(event.target.value)}
-          />
-          <input
-            placeholder="Reps or range, e.g. 8-12"
-            inputMode="numeric"
-            value={reps}
-            onChange={(event) => setReps(event.target.value)}
-          />
-        </div>
-
-        <label style={label}>Muscle Group</label>
-        <select value={muscleGroup} onChange={(event) => setMuscleGroup(event.target.value)}>
-          {MUSCLE_GROUPS.map((group) => (
-            <option key={group.id} value={group.id}>
-              {group.label}
-            </option>
-          ))}
-        </select>
-
-        <label style={label}>Stretches / warmup</label>
-        <textarea
-          placeholder="Band pull-aparts, hip flexor stretch, ramp-up sets..."
-          value={stretches}
-          onChange={(event) => setStretches(event.target.value)}
-          style={textarea}
-        />
-
-        <button type="button" className="primary" onClick={handleSaveExercise} style={fullButton}>
-          {editingId ? "Save Exercise" : "Add Exercise"}
-        </button>
-        {!editingId && (
-          <button type="button" onClick={saveCustomExercise} style={templateButton}>
-            {editingCustomId ? "Save Custom Exercise" : "Save to Custom Exercises"}
-          </button>
-        )}
-        {editingId && (
-          <button type="button" onClick={clearForm} style={cancelBtn}>
-            Cancel Edit
-          </button>
-        )}
-      </section>
-
-      <section style={templateSection}>
-        <p style={label}>Default Exercises</p>
-        <div style={libraryList}>
-          {DEFAULT_EXERCISES.map((lift) => {
-            const group = getMuscleGroup(lift.muscleGroup);
-            return (
-              <div key={`${lift.exercise}-${lift.muscleGroup}`} style={libraryItem}>
-                <div>
-                  <strong style={{ color: group.color }}>{lift.exercise}</strong>
-                  <p style={liftMeta}>{group.label} · {lift.sets} sets x {lift.reps} reps</p>
-                </div>
-                <button type="button" onClick={() => addExerciseToDay(lift)} style={editBtn}>
-                  Add
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      <section style={templateSection}>
-        <p style={label}>Custom Exercises</p>
-        {customExercises.length === 0 ? (
-          <div style={empty}>No custom exercises saved yet.</div>
-        ) : (
-          <div style={libraryList}>
-            {customExercises.map((lift) => {
-              const group = getMuscleGroup(lift.muscleGroup);
-              return (
-                <div key={lift.id} style={libraryItem}>
-                  <div>
-                    <strong style={{ color: group.color }}>{lift.exercise}</strong>
-                    <p style={liftMeta}>{group.label} · {lift.sets} sets x {lift.reps} reps</p>
-                  </div>
-                  <div style={actions}>
-                    <button type="button" onClick={() => addExerciseToDay(lift)} style={editBtn}>
-                      Add
-                    </button>
-                    <button type="button" onClick={() => startCustomEdit(lift)} style={editBtn}>
-                      Edit
-                    </button>
-                    <button type="button" onClick={() => confirmDeleteCustom(lift.id)} style={removeBtn}>
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
-
       <section style={list}>
+        <div style={currentHeader}>
+          <div>
+            <p style={label}>Current Day</p>
+            <h2 style={cardTitle}>{selectedMeta.name || selectedDay}</h2>
+          </div>
+          <button type="button" onClick={() => setBuilderPanel("editor")} style={editBtn}>
+            Add Lift
+          </button>
+        </div>
+
         {recovery ? (
           <article style={{ ...liftCard, borderColor: "rgba(50, 223, 118, 0.42)", background: "rgba(50, 223, 118, 0.08)" }}>
             <div>
@@ -499,6 +366,193 @@ export default function Plan() {
           })
         )}
       </section>
+
+      <section style={toolsSection}>
+        <button
+          type="button"
+          onClick={() => setBuilderPanel(builderPanel === "templates" ? "" : "templates")}
+          style={{ ...toolTab, ...(builderPanel === "templates" ? activeToolTab : {}) }}
+        >
+          Split Templates
+        </button>
+        <button
+          type="button"
+          onClick={() => setBuilderPanel(builderPanel === "days" ? "" : "days")}
+          style={{ ...toolTab, ...(builderPanel === "days" ? activeToolTab : {}) }}
+        >
+          Day Templates
+        </button>
+        <button
+          type="button"
+          onClick={() => setBuilderPanel(builderPanel === "library" ? "" : "library")}
+          style={{ ...toolTab, ...(builderPanel === "library" ? activeToolTab : {}) }}
+        >
+          Exercise Library
+        </button>
+        <button
+          type="button"
+          onClick={() => setBuilderPanel(builderPanel === "editor" ? "" : "editor")}
+          style={{ ...toolTab, ...(builderPanel === "editor" ? activeToolTab : {}) }}
+        >
+          Create / Edit
+        </button>
+      </section>
+
+      {builderPanel === "templates" && (
+        <section style={templateSection}>
+          <div style={templateHeader}>
+            <div>
+              <p style={label}>Templates</p>
+              <h2 style={cardTitle}>Start Faster</h2>
+            </div>
+          </div>
+          <div style={templateGrid}>
+            {PROGRAM_TEMPLATES.map((template) => (
+              <article key={template.id} style={templateCard}>
+                <h3 style={templateName}>{template.name}</h3>
+                <p style={templateSummary}>{template.summary}</p>
+                <button type="button" onClick={() => requestApplyTemplate(template.id)} style={templateButton}>
+                  Use Template
+                </button>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {builderPanel === "days" && (
+        <section style={templateSection}>
+          <p style={label}>Workout Day Templates</p>
+          <div style={chipGrid}>
+            {DAY_TEMPLATES.map((template) => (
+              <button key={template.id} type="button" onClick={() => requestApplyDayTemplate(template.id)} style={smallTemplateBtn}>
+                {template.name}
+              </button>
+            ))}
+          </div>
+          <p style={{ ...label, marginTop: 14 }}>Recovery Templates</p>
+          <div style={chipGrid}>
+            {RECOVERY_TEMPLATES.map((template) => (
+              <button key={template.id} type="button" onClick={() => requestApplyDayTemplate(template.id, true)} style={recoveryTemplateBtn}>
+                {template.name}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {builderPanel === "editor" && (
+        <section style={card}>
+          <h2 style={cardTitle}>{editingId ? "Edit Day Exercise" : editingCustomId ? "Edit Custom Exercise" : "Create Custom Exercise"}</h2>
+          <input
+            placeholder="Exercise"
+            value={exercise}
+            onChange={(event) => setExercise(event.target.value)}
+          />
+
+          <div className="field-row" style={fieldRow}>
+            <input
+              placeholder="Sets, e.g. 3"
+              inputMode="numeric"
+              value={sets}
+              onChange={(event) => setSets(event.target.value)}
+            />
+            <input
+              placeholder="Reps or range, e.g. 8-12"
+              inputMode="numeric"
+              value={reps}
+              onChange={(event) => setReps(event.target.value)}
+            />
+          </div>
+
+          <label style={label}>Muscle Group</label>
+          <select value={muscleGroup} onChange={(event) => setMuscleGroup(event.target.value)}>
+            {MUSCLE_GROUPS.map((group) => (
+              <option key={group.id} value={group.id}>
+                {group.label}
+              </option>
+            ))}
+          </select>
+
+          <label style={label}>Stretches / warmup</label>
+          <textarea
+            placeholder="Band pull-aparts, hip flexor stretch, ramp-up sets..."
+            value={stretches}
+            onChange={(event) => setStretches(event.target.value)}
+            style={textarea}
+          />
+
+          <button type="button" className="primary" onClick={handleSaveExercise} style={fullButton}>
+            {editingId ? "Save Exercise" : "Add Exercise"}
+          </button>
+          {!editingId && (
+            <button type="button" onClick={saveCustomExercise} style={templateButton}>
+              {editingCustomId ? "Save Custom Exercise" : "Save to Custom Exercises"}
+            </button>
+          )}
+          {(editingId || editingCustomId) && (
+            <button type="button" onClick={clearForm} style={cancelBtn}>
+              Cancel Edit
+            </button>
+          )}
+        </section>
+      )}
+
+      {builderPanel === "library" && (
+        <>
+          <section style={templateSection}>
+            <p style={label}>Default Exercises</p>
+            <div style={libraryList}>
+              {DEFAULT_EXERCISES.map((lift) => {
+                const group = getMuscleGroup(lift.muscleGroup);
+                return (
+                  <div key={`${lift.exercise}-${lift.muscleGroup}`} style={libraryItem}>
+                    <div>
+                      <strong style={{ color: group.color }}>{lift.exercise}</strong>
+                      <p style={liftMeta}>{group.label} · {lift.sets} sets x {lift.reps} reps</p>
+                    </div>
+                    <button type="button" onClick={() => addExerciseToDay(lift)} style={editBtn}>
+                      Add
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          <section style={templateSection}>
+            <p style={label}>Custom Exercises</p>
+            {customExercises.length === 0 ? (
+              <div style={empty}>No custom exercises saved yet.</div>
+            ) : (
+              <div style={libraryList}>
+                {customExercises.map((lift) => {
+                  const group = getMuscleGroup(lift.muscleGroup);
+                  return (
+                    <div key={lift.id} style={libraryItem}>
+                      <div>
+                        <strong style={{ color: group.color }}>{lift.exercise}</strong>
+                        <p style={liftMeta}>{group.label} · {lift.sets} sets x {lift.reps} reps</p>
+                      </div>
+                      <div style={actions}>
+                        <button type="button" onClick={() => addExerciseToDay(lift)} style={editBtn}>
+                          Add
+                        </button>
+                        <button type="button" onClick={() => startCustomEdit(lift)} style={editBtn}>
+                          Edit
+                        </button>
+                        <button type="button" onClick={() => confirmDeleteCustom(lift.id)} style={removeBtn}>
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        </>
+      )}
 
       <ConfirmDialog
         open={Boolean(confirmAction)}
@@ -694,6 +748,41 @@ const cancelBtn = {
 const list = {
   display: "grid",
   gap: 10,
+};
+
+const currentHeader = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 12,
+  marginTop: 2,
+};
+
+const toolsSection = {
+  border: "1px solid #242424",
+  borderRadius: 16,
+  background: "#101010",
+  padding: 10,
+  margin: "14px 0",
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
+  gap: 8,
+};
+
+const toolTab = {
+  width: "100%",
+  minHeight: 42,
+  padding: "9px 10px",
+  borderRadius: 12,
+  color: "#777",
+  background: "#0b0b0b",
+  borderColor: "#242424",
+};
+
+const activeToolTab = {
+  color: "#050505",
+  background: "#f7f7f2",
+  borderColor: "#f7f7f2",
 };
 
 const libraryList = {
