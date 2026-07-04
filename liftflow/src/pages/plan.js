@@ -21,6 +21,7 @@ export default function Plan() {
   const [exercise, setExercise] = useState("");
   const [sets, setSets] = useState("");
   const [reps, setReps] = useState("");
+  const [stretches, setStretches] = useState("");
   const [muscleGroup, setMuscleGroup] = useState("chest");
   const [editingId, setEditingId] = useState(null);
 
@@ -73,6 +74,7 @@ export default function Plan() {
               muscleGroup,
               sets,
               reps,
+              stretches,
             }
           : lift
       );
@@ -85,6 +87,7 @@ export default function Plan() {
         muscleGroup,
         sets,
         reps,
+        stretches,
         },
       ];
     }
@@ -99,6 +102,7 @@ export default function Plan() {
     setExercise("");
     setSets("");
     setReps("");
+    setStretches("");
     setMuscleGroup("chest");
   }
 
@@ -107,6 +111,7 @@ export default function Plan() {
     setExercise(lift.exercise || "");
     setSets(String(lift.sets || ""));
     setReps(String(lift.reps || ""));
+    setStretches(lift.stretches || "");
     setMuscleGroup(lift.muscleGroup || "other");
   }
 
@@ -168,14 +173,14 @@ export default function Plan() {
 
         <div className="field-row" style={fieldRow}>
           <input
-            placeholder="Sets or range, e.g. 3-5"
+            placeholder="Sets, e.g. 3"
             inputMode="numeric"
             value={sets}
             onChange={(event) => setSets(event.target.value)}
           />
           <input
-            placeholder="Reps"
-            type="number"
+            placeholder="Reps or range, e.g. 8-12"
+            inputMode="numeric"
             value={reps}
             onChange={(event) => setReps(event.target.value)}
           />
@@ -189,6 +194,14 @@ export default function Plan() {
             </option>
           ))}
         </select>
+
+        <label style={label}>Stretches / warmup</label>
+        <textarea
+          placeholder="Band pull-aparts, hip flexor stretch, ramp-up sets..."
+          value={stretches}
+          onChange={(event) => setStretches(event.target.value)}
+          style={textarea}
+        />
 
         <button type="button" className="primary" onClick={handleSaveExercise} style={fullButton}>
           {editingId ? "Save Exercise" : "Add Exercise"}
@@ -221,6 +234,7 @@ export default function Plan() {
                 <p style={liftMeta}>
                   {group.label} · {lift.sets} sets x {lift.reps} reps
                 </p>
+                {lift.stretches && <p style={stretchPreview}>{lift.stretches}</p>}
               </div>
 
               <div style={actions}>
@@ -275,11 +289,11 @@ const title = {
 };
 
 const count = {
-  border: "1px solid rgba(228, 255, 47, 0.35)",
+  border: "1px solid rgba(50, 207, 255, 0.35)",
   borderRadius: 999,
   padding: "8px 12px",
   color: ACCENT,
-  background: "rgba(228, 255, 47, 0.08)",
+  background: "rgba(50, 207, 255, 0.08)",
   fontWeight: 850,
 };
 
@@ -323,6 +337,19 @@ const cardTitle = {
 
 const fieldRow = {
   gap: 10,
+};
+
+const textarea = {
+  width: "100%",
+  minHeight: 82,
+  resize: "vertical",
+  borderRadius: 10,
+  border: "1px solid #2b2b2b",
+  background: "#0b0b0b",
+  color: "#f7f7f2",
+  padding: 10,
+  font: "inherit",
+  fontWeight: 700,
 };
 
 const fullButton = {
@@ -384,6 +411,13 @@ const liftMeta = {
   margin: "6px 0 0",
   color: "#777",
   fontWeight: 750,
+};
+
+const stretchPreview = {
+  margin: "8px 0 0",
+  color: "#999",
+  fontSize: 13,
+  lineHeight: 1.35,
 };
 
 const removeBtn = {

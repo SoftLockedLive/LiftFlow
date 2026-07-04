@@ -1,5 +1,11 @@
 import { getWorkouts } from "./workoutStorage";
 
+function getWorkoutItems(workout) {
+  if (Array.isArray(workout)) return workout;
+  if (Array.isArray(workout?.workout)) return workout.workout;
+  return [];
+}
+
 /**
  * Determines next recommended weight for an exercise
  */
@@ -11,10 +17,10 @@ export function getNextLoad(exerciseName, currentWeight = 0) {
   let completedSets = 0;
 
   workouts.forEach((workout) => {
-    workout.forEach((ex) => {
+    getWorkoutItems(workout).forEach((ex) => {
       if (ex.exercise !== exerciseName) return;
 
-      ex.sets.forEach((set) => {
+      (ex.sets || []).forEach((set) => {
         totalSets++;
 
         if (set.weight >= currentWeight && set.reps > 0) {
@@ -24,7 +30,9 @@ export function getNextLoad(exerciseName, currentWeight = 0) {
     });
   });
 
-  successRate = totalSets === 0 ? 1 : completedSets / totalSets;
+  if (!currentWeight || totalSets === 0) return null;
+
+  successRate = completedSets / totalSets;
 
   // 🔥 SIMPLE PROGRESSION RULES
   if (successRate >= 0.9) return currentWeight + 5;

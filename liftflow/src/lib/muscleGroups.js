@@ -1,6 +1,6 @@
 export const MUSCLE_GROUPS = [
   { id: "chest", label: "Chest", color: "#32cfff" },
-  { id: "back", label: "Back", color: "#32cfff" },
+  { id: "back", label: "Back", color: "#e4ff2f" },
   { id: "legs", label: "Legs", color: "#ff6b2c" },
   { id: "shoulders", label: "Shoulders", color: "#be72ff" },
   { id: "arms", label: "Arms", color: "#ff9b34" },

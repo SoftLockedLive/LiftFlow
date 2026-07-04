@@ -146,13 +146,7 @@ function buildSessionOptions(plan) {
   return DAYS.flatMap((day) => {
     const lifts = Array.isArray(plan[day]) ? plan[day] : [];
     const focus = plan.__meta?.[day]?.name?.trim() || day;
-    const dayOption = lifts.length > 0 ? [{ value: focus, label: `${focus} session` }] : [];
-    const liftOptions = lifts.map((lift) => ({
-      value: `${focus} - ${lift.exercise}`,
-      label: `${focus} - ${lift.exercise}`,
-    }));
-
-    return [...dayOption, ...liftOptions];
+    return lifts.length > 0 ? [{ value: focus, label: `${focus} session` }] : [];
   });
 }
 

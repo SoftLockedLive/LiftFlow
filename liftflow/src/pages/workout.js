@@ -16,21 +16,26 @@ const DAY_ACCENTS = {
   Saturday: "#32df76",
   Sunday: "#f7f7f2",
 };
+const DRAFT_KEY = "liftflow_workout_drafts";
 
 export default function Workout() {
   const [plan, setPlan] = useState({});
   const [selectedDay, setSelectedDay] = useState("Monday");
   const [program, setProgram] = useState([]);
   const [session, setSession] = useState({});
+  const [drafts, setDrafts] = useState({});
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
       const savedPlan = getPlan();
       const today = getTodayName();
+      const savedDrafts = getWorkoutDrafts();
 
       setPlan(savedPlan);
       setSelectedDay(today);
       setProgram(buildTodaysWorkout(today));
+      setDrafts(savedDrafts);
+      setSession(savedDrafts[today] || {});
     }, 0);
 
     return () => window.clearTimeout(timer);
@@ -39,7 +44,7 @@ export default function Workout() {
   function chooseDay(day) {
     setSelectedDay(day);
     setProgram(buildTodaysWorkout(day));
-    setSession({});
+    setSession(drafts[day] || {});
   }
 
   function updateSet(exerciseId, setIndex, field, value) {
@@ -55,6 +60,14 @@ export default function Workout() {
         [field]: Number(value),
       };
 
+      const updatedDrafts = {
+        ...drafts,
+        [selectedDay]: copy,
+      };
+
+      setDrafts(updatedDrafts);
+      saveWorkoutDrafts(updatedDrafts);
+
       return copy;
     });
   }
@@ -66,12 +79,18 @@ export default function Workout() {
       sets: session[lift.id] || [],
       date: Date.now(),
       suggestedWeight: lift.suggestedWeight || null,
+      stretches: lift.stretches || "",
     }));
 
     saveWorkout(completedWorkout, {
       day: selectedDay,
       focus: plan.__meta?.[selectedDay]?.name || selectedDay,
     });
+
+    const updatedDrafts = { ...drafts };
+    delete updatedDrafts[selectedDay];
+    setDrafts(updatedDrafts);
+    saveWorkoutDrafts(updatedDrafts);
 
     alert("Workout saved!");
     setSession({});
@@ -138,6 +157,12 @@ export default function Workout() {
                 </div>
 
                 {lift.coachNote && <p style={coachNote}>Coach: {lift.coachNote}</p>}
+                {lift.stretches && (
+                  <div style={stretchBox}>
+                    <span style={stretchLabel}>Stretches</span>
+                    <p style={stretchText}>{lift.stretches}</p>
+                  </div>
+                )}
 
                 <div style={setList}>
                   {Array.from({ length: getSetRowCount(lift.sets) }).map((_, i) => (
@@ -178,6 +203,21 @@ function getSetRowCount(sets) {
 
   if (numbers.length === 0) return 0;
   return Math.max(...numbers);
+}
+
+function getWorkoutDrafts() {
+  if (typeof window === "undefined") return {};
+
+  try {
+    return JSON.parse(localStorage.getItem(DRAFT_KEY) || "{}");
+  } catch {
+    return {};
+  }
+}
+
+function saveWorkoutDrafts(drafts) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(DRAFT_KEY, JSON.stringify(drafts));
 }
 
 function getDayAccent(day, alpha) {
@@ -258,6 +298,7 @@ const liftCard = {
   border: "1px solid",
   borderRadius: 16,
   padding: 16,
+  background: "#101010",
 };
 
 const liftHeader = {
@@ -289,6 +330,28 @@ const suggestion = {
 const coachNote = {
   color: "#888",
   fontSize: 13,
+};
+
+const stretchBox = {
+  border: "1px solid #242424",
+  borderRadius: 12,
+  background: "#0b0b0b",
+  padding: 12,
+  marginTop: 12,
+};
+
+const stretchLabel = {
+  display: "block",
+  color: "#e4ff2f",
+  fontSize: 12,
+  fontWeight: 850,
+  textTransform: "uppercase",
+};
+
+const stretchText = {
+  margin: "6px 0 0",
+  color: "#d7d7d2",
+  lineHeight: 1.4,
 };
 
 const setList = {
