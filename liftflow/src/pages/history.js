@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { getWorkouts } from "../lib/workoutStorage";
+import { deleteLiftFromWorkout, getWorkouts } from "../lib/workoutStorage";
 
 export default function History() {
   const [workouts, setWorkouts] = useState([]);
@@ -26,6 +26,10 @@ export default function History() {
       ),
     [sessions]
   );
+
+  function handleDeleteLift(sessionId, liftIndex) {
+    setWorkouts(deleteLiftFromWorkout(sessionId, liftIndex));
+  }
 
   return (
     <div style={wrap}>
@@ -70,7 +74,16 @@ export default function History() {
                           : "No sets logged"}
                       </p>
                     </div>
-                    <span style={liftVolume}>{calculateLiftVolume(lift).toLocaleString()} lb</span>
+                    <div style={liftActions}>
+                      <span style={liftVolume}>{calculateLiftVolume(lift).toLocaleString()} lb</span>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteLift(session.id, index)}
+                        style={deleteBtn}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -256,4 +269,20 @@ const liftVolume = {
   color: "#32cfff",
   fontWeight: 850,
   whiteSpace: "nowrap",
+};
+
+const liftActions = {
+  display: "flex",
+  alignItems: "center",
+  gap: 10,
+  flexWrap: "wrap",
+  justifyContent: "flex-end",
+};
+
+const deleteBtn = {
+  color: "#ff6b2c",
+  borderColor: "rgba(255, 107, 44, 0.45)",
+  background: "rgba(255, 107, 44, 0.12)",
+  padding: "7px 11px",
+  fontSize: 13,
 };

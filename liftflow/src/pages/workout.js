@@ -17,6 +17,7 @@ const DAY_ACCENTS = {
   Sunday: "#f7f7f2",
 };
 const DRAFT_KEY = "liftflow_workout_drafts";
+const LAST_DAY_KEY = "liftflow_last_workout_day";
 
 export default function Workout() {
   const [plan, setPlan] = useState({});
@@ -28,7 +29,8 @@ export default function Workout() {
   useEffect(() => {
     const timer = window.setTimeout(() => {
       const savedPlan = getPlan();
-      const today = getTodayName();
+      const savedDay = getLastWorkoutDay();
+      const today = DAYS.includes(savedDay) ? savedDay : getTodayName();
       const savedDrafts = getWorkoutDrafts();
 
       setPlan(savedPlan);
@@ -43,6 +45,7 @@ export default function Workout() {
 
   function chooseDay(day) {
     setSelectedDay(day);
+    saveLastWorkoutDay(day);
     setProgram(buildTodaysWorkout(day));
     setSession(drafts[day] || {});
   }
@@ -158,7 +161,6 @@ export default function Workout() {
                   )}
                 </div>
 
-                {lift.coachNote && <p style={coachNote}>Coach: {lift.coachNote}</p>}
                 {lift.stretches && (
                   <div style={stretchBox}>
                     <span style={stretchLabel}>Stretches</span>
@@ -220,6 +222,16 @@ function getWorkoutDrafts() {
 function saveWorkoutDrafts(drafts) {
   if (typeof window === "undefined") return;
   localStorage.setItem(DRAFT_KEY, JSON.stringify(drafts));
+}
+
+function getLastWorkoutDay() {
+  if (typeof window === "undefined") return "";
+  return localStorage.getItem(LAST_DAY_KEY) || "";
+}
+
+function saveLastWorkoutDay(day) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(LAST_DAY_KEY, day);
 }
 
 function getDayAccent(day, alpha) {
@@ -327,11 +339,6 @@ const suggestion = {
   padding: "6px 10px",
   fontWeight: 850,
   whiteSpace: "nowrap",
-};
-
-const coachNote = {
-  color: "#888",
-  fontSize: 13,
 };
 
 const stretchBox = {
