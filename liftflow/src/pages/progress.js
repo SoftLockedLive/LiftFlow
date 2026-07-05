@@ -22,20 +22,36 @@ export default function Progress() {
   const data = useMemo(() => buildProgressData(workouts), [workouts]);
   const goals = useMemo(() => buildGoals(profile, data.exerciseBest), [profile, data.exerciseBest]);
   const trend = useMemo(() => buildTrend(data.sessions), [data.sessions]);
+  const leadGoal = goals[0] || {
+    label: "Bench",
+    current: 0,
+    target: 315,
+    percent: 0,
+    remaining: 315,
+  };
 
   return (
     <div style={wrap}>
       <header style={header}>
         <div>
-          <p style={eyebrow}>Training Progress</p>
+          <p style={eyebrow}>Goals Dashboard</p>
           <h1 style={title}>Progress</h1>
         </div>
       </header>
 
-      <section className="history-stats" style={statsGrid}>
-        <Stat label="Workouts" value={data.sessions.length} />
-        <Stat label="Total Sets" value={data.totalSets} />
-        <Stat label="Total Volume" value={`${data.totalVolume.toLocaleString()} lb`} />
+      <section style={heroPanel}>
+        <div>
+          <p style={heroLabel}>Main Target</p>
+          <h2 style={heroTitle}>{leadGoal.label}</h2>
+          <p style={muted}>
+            {leadGoal.current} / {leadGoal.target} lb · {leadGoal.remaining > 0 ? `${leadGoal.remaining} lb left` : "Goal hit"}
+          </p>
+        </div>
+        <div style={heroTrend}>
+          <span style={heroLabel}>Trend</span>
+          <strong style={{ ...heroTrendValue, color: trend.color }}>{trend.label}</strong>
+          <span style={heroMini}>{data.sessions.length} workouts logged</span>
+        </div>
       </section>
 
       <section style={panel}>
@@ -77,15 +93,6 @@ export default function Progress() {
           </div>
         </section>
       </section>
-    </div>
-  );
-}
-
-function Stat({ label, value }) {
-  return (
-    <div style={statCard}>
-      <span style={smallLabel}>{label}</span>
-      <strong style={statValue}>{value}</strong>
     </div>
   );
 }
@@ -172,31 +179,51 @@ const title = {
   lineHeight: 1,
 };
 
-const statsGrid = {
-  gap: 12,
-  marginBottom: 16,
-};
-
-const statCard = {
+const heroPanel = {
   border: "1px solid rgba(50, 207, 255, 0.3)",
   borderRadius: 12,
-  background: "#101010",
+  background: "linear-gradient(135deg, rgba(50, 207, 255, 0.12), rgba(228, 255, 47, 0.05))",
   padding: 14,
+  marginBottom: 14,
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 14,
+  alignItems: "center",
 };
 
-const smallLabel = {
+const heroLabel = {
   display: "block",
-  color: "#666",
+  color: "#777",
   fontSize: 12,
   fontWeight: 850,
   textTransform: "uppercase",
 };
 
-const statValue = {
-  display: "block",
-  marginTop: 7,
+const heroTitle = {
+  margin: "5px 0 0",
   color: ACCENT,
-  fontSize: 22,
+  fontSize: 28,
+  lineHeight: 1,
+};
+
+const heroTrend = {
+  minWidth: 120,
+  textAlign: "right",
+};
+
+const heroTrendValue = {
+  display: "block",
+  marginTop: 5,
+  fontSize: 24,
+  lineHeight: 1,
+};
+
+const heroMini = {
+  display: "block",
+  marginTop: 6,
+  color: "#777",
+  fontSize: 12,
+  fontWeight: 750,
 };
 
 const panel = {
