@@ -5,7 +5,9 @@ import { buildExerciseHistory, calculateLiftVolume, getLiftSets, getWorkoutItems
 
 export default function History() {
   const [workouts, setWorkouts] = useState([]);
-  const [selectedExercise, setSelectedExercise] = useState("");
+  const [search, setSearch] = useState("");
+  const [openSessions, setOpenSessions] = useState({});
+  const [openLifts, setOpenLifts] = useState({});
   const [editingLift, setEditingLift] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [confirmDeleteSession, setConfirmDeleteSession] = useState(null);
@@ -21,7 +23,7 @@ export default function History() {
 
   const sessions = useMemo(() => normalizeSessions(workouts), [workouts]);
   const exerciseHistory = useMemo(() => buildExerciseHistory(workouts), [workouts]);
-  const activeExercise = exerciseHistory.find((item) => item.exercise === selectedExercise) || exerciseHistory[0];
+  const filteredSessions = useMemo(() => filterSessions(sessions, search), [sessions, search]);
   const totals = useMemo(
     () =>
       sessions.reduce(
@@ -37,6 +39,14 @@ export default function History() {
 
   function handleDeleteLift(sessionId, liftIndex) {
     setWorkouts(deleteLiftFromWorkout(sessionId, liftIndex));
+  }
+
+  function toggleSession(sessionId) {
+    setOpenSessions((prev) => ({ ...prev, [sessionId]: !prev[sessionId] }));
+  }
+
+  function toggleLift(liftId) {
+    setOpenLifts((prev) => ({ ...prev, [liftId]: !prev[liftId] }));
   }
 
   function startEditLift(sessionId, liftIndex, lift) {
@@ -85,102 +95,82 @@ export default function History() {
         <section style={exercisePanel}>
           <div style={sectionHeader}>
             <div>
-              <p style={eyebrow}>Exercise History</p>
-              <h2 style={sectionTitle}>{activeExercise?.exercise}</h2>
+              <p style={eyebrow}>Search Lifts</p>
+              <h2 style={sectionTitle}>Find Past Work</h2>
             </div>
-            <select
-              value={activeExercise?.exercise || ""}
-              onChange={(event) => setSelectedExercise(event.target.value)}
-              style={exerciseSelect}
-            >
-              {exerciseHistory.map((exercise) => (
-                <option key={exercise.exercise} value={exercise.exercise}>
-                  {exercise.exercise}
-                </option>
-              ))}
-            </select>
           </div>
-
-          {activeExercise && (
-            <>
-              <div className="history-stats" style={exerciseStats}>
-                <Stat label="Best" value={`${activeExercise.bestWeight} lb`} />
-                <Stat label="Sessions" value={activeExercise.sessions} />
-                <Stat label="Volume" value={`${activeExercise.volume.toLocaleString()} lb`} />
-              </div>
-              <div style={exerciseEntries}>
-                {activeExercise.entries.slice(0, 5).map((entry) => (
-                  <div key={entry.id} style={exerciseEntry}>
-                    <div>
-                      <strong style={liftName}>{formatShortDate(entry.date)}</strong>
-                      <p style={setLine}>
-                        {getLiftSets(entry).length > 0
-                          ? getLiftSets(entry).map((set) => `${set.weight || 0}x${set.reps || 0}`).join("  ")
-                          : "No sets logged"}
-                      </p>
-                    </div>
-                    <span style={liftVolume}>{entry.volume.toLocaleString()} lb</span>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
+          <input
+            placeholder="Search exercise or workout..."
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
         </section>
       )}
 
-      {sessions.length === 0 ? (
+      {filteredSessions.length === 0 ? (
         <section style={empty}>No workouts logged yet.</section>
       ) : (
         <section style={sessionList}>
-          {sessions.map((session) => (
+          {filteredSessions.map((session) => {
+            const sessionOpen = Boolean(openSessions[session.id]);
+
+            return (
             <article key={session.id} style={sessionCard}>
-              <div style={sessionHeader}>
+              <button type="button" onClick={() => toggleSession(session.id)} style={sessionHeader}>
                 <div>
-                  <h2 style={sessionTitle}>{formatDate(session.date)}</h2>
+                  <h2 style={sessionTitle}>{session.name} {sessionOpen ? "▲" : "▼"}</h2>
                   <p style={sessionMeta}>
-                    {session.sets} sets · {session.volume.toLocaleString()} lb volume
+                    {formatDate(session.date)} · {session.sets} sets · Total weight lifted: {session.volume.toLocaleString()} lb
                   </p>
                 </div>
-                <button type="button" onClick={() => setConfirmDeleteSession(session.id)} style={deleteBtn}>
-                  Delete Workout
-                </button>
-              </div>
+                <span style={liftVolume}>{session.volume.toLocaleString()} lb</span>
+              </button>
 
-              <div style={liftList}>
-                {session.lifts.map((lift, index) => (
-                  <div key={`${session.id}-${lift.exercise}-${index}`} className="phone-stack" style={liftRow}>
-                    <div>
-                      <strong style={liftName}>{lift.exercise}</strong>
-                      <p style={setLine}>
-                        {getLiftSets(lift).length > 0
-                          ? getLiftSets(lift)
-                              .map((set) => `${set.weight || 0}x${set.reps || 0}`)
-                              .join("  ")
-                          : "No sets logged"}
-                      </p>
-                    </div>
-                    <div style={liftActions}>
-                      <span style={liftVolume}>{calculateLiftVolume(lift).toLocaleString()} lb</span>
-                      <button
-                        type="button"
-                        onClick={() => startEditLift(session.id, index, lift)}
-                        style={editBtn}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setConfirmDelete({ sessionId: session.id, liftIndex: index })}
-                        style={deleteBtn}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              {sessionOpen && (
+                <div style={liftList}>
+                  {session.lifts.map(({ lift, index }) => {
+                    const liftId = `${session.id}-${index}`;
+                    const liftOpen = Boolean(openLifts[liftId]);
+                    const sets = getLiftSets(lift);
+
+                    return (
+                      <div key={liftId} style={liftRow}>
+                        <button type="button" onClick={() => toggleLift(liftId)} style={liftSummary}>
+                          <div>
+                            <strong style={liftName}>{lift.exercise} {liftOpen ? "▲" : "▼"}</strong>
+                            <p style={setLine}>Total {lift.exercise.toLowerCase()} volume: {calculateLiftVolume(lift).toLocaleString()} lb</p>
+                          </div>
+                          <span style={liftVolume}>{sets.length} sets</span>
+                        </button>
+
+                        {liftOpen && (
+                          <div style={setDetails}>
+                            {sets.length > 0 ? sets.map((set, setIndex) => (
+                              <p key={setIndex} style={setDetailLine}>
+                                {set.reps || "--"} reps × {set.weight || "--"} lb
+                              </p>
+                            )) : <p style={setDetailLine}>No sets logged</p>}
+                            <div style={liftActions}>
+                              <button type="button" onClick={() => startEditLift(session.id, index, lift)} style={editBtn}>
+                                Edit
+                              </button>
+                              <button type="button" onClick={() => setConfirmDelete({ sessionId: session.id, liftIndex: index })} style={deleteBtn}>
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  <button type="button" onClick={() => setConfirmDeleteSession(session.id)} style={deleteWorkoutBtn}>
+                    Delete Workout
+                  </button>
+                </div>
+              )}
             </article>
-          ))}
+            );
+          })}
         </section>
       )}
 
@@ -264,13 +254,28 @@ function normalizeSessions(workouts) {
       return {
         id: workout?.id || `${date || "session"}-${index}`,
         date,
-        lifts,
+        name: workout?.focus || workout?.day || formatDate(date),
+        lifts: lifts.map((lift, liftIndex) => ({ lift, index: liftIndex })),
         sets,
         volume,
       };
     })
     .filter((session) => session.lifts.length > 0)
     .reverse();
+}
+
+function filterSessions(sessions, search) {
+  const query = search.trim().toLowerCase();
+  if (!query) return sessions;
+
+  return sessions
+    .map((session) => ({
+      ...session,
+      lifts: session.lifts.filter(({ lift }) =>
+        `${session.name} ${lift.exercise}`.toLowerCase().includes(query)
+      ),
+    }))
+    .filter((session) => session.lifts.length > 0);
 }
 
 function formatDate(date) {
@@ -282,16 +287,6 @@ function formatDate(date) {
     month: "short",
     day: "numeric",
     year: "numeric",
-  }).format(parsedDate);
-}
-
-function formatShortDate(date) {
-  const parsedDate = parseDisplayDate(date);
-  if (!parsedDate) return "Unknown";
-
-  return new Intl.DateTimeFormat("en", {
-    month: "short",
-    day: "numeric",
   }).format(parsedDate);
 }
 
@@ -348,31 +343,6 @@ const exercisePanel = {
   background: "#101010",
   padding: 16,
   marginBottom: 16,
-};
-
-const exerciseSelect = {
-  maxWidth: 220,
-};
-
-const exerciseStats = {
-  gap: 10,
-  marginBottom: 12,
-};
-
-const exerciseEntries = {
-  display: "grid",
-  gap: 8,
-};
-
-const exerciseEntry = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: 12,
-  border: "1px solid #202020",
-  borderRadius: 12,
-  background: "#0b0b0b",
-  padding: 12,
 };
 
 const editPanel = {
@@ -443,17 +413,22 @@ const sessionList = {
 
 const sessionCard = {
   border: "1px solid #242424",
-  borderRadius: 16,
+  borderRadius: 12,
   background: "#101010",
-  padding: 16,
+  overflow: "hidden",
 };
 
 const sessionHeader = {
+  width: "100%",
   display: "flex",
   justifyContent: "space-between",
+  alignItems: "center",
   gap: 14,
-  paddingBottom: 12,
-  borderBottom: "1px solid #202020",
+  padding: 14,
+  border: 0,
+  borderRadius: 0,
+  background: "transparent",
+  textAlign: "left",
 };
 
 const sessionTitle = {
@@ -469,19 +444,28 @@ const sessionMeta = {
 
 const liftList = {
   display: "grid",
-  gap: 10,
-  marginTop: 12,
+  gap: 8,
+  padding: "0 12px 12px",
 };
 
 const liftRow = {
+  border: "1px solid #202020",
+  borderRadius: 10,
+  background: "#0b0b0b",
+  overflow: "hidden",
+};
+
+const liftSummary = {
+  width: "100%",
+  border: 0,
+  borderRadius: 0,
+  background: "transparent",
+  padding: "10px 12px",
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
   gap: 12,
-  border: "1px solid #202020",
-  borderRadius: 12,
-  background: "#0b0b0b",
-  padding: 12,
+  textAlign: "left",
 };
 
 const liftName = {
@@ -506,6 +490,19 @@ const liftActions = {
   gap: 10,
   flexWrap: "wrap",
   justifyContent: "flex-end",
+  marginTop: 8,
+};
+
+const setDetails = {
+  borderTop: "1px solid #1d1d1d",
+  padding: "8px 12px 10px",
+};
+
+const setDetailLine = {
+  margin: "4px 0",
+  color: "#bdbdb8",
+  fontSize: 13,
+  fontWeight: 750,
 };
 
 const editBtn = {
@@ -527,5 +524,14 @@ const deleteBtn = {
   borderColor: "rgba(255, 107, 44, 0.45)",
   background: "rgba(255, 107, 44, 0.12)",
   padding: "7px 11px",
+  fontSize: 13,
+};
+
+const deleteWorkoutBtn = {
+  width: "100%",
+  color: "#ff6b2c",
+  borderColor: "rgba(255, 107, 44, 0.35)",
+  background: "rgba(255, 107, 44, 0.08)",
+  padding: "8px 11px",
   fontSize: 13,
 };

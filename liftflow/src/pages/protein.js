@@ -9,7 +9,7 @@ import {
   setProteinForDay,
 } from "../lib/protein";
 
-const QUICK_AMOUNTS = [25, 35, 45, 60];
+const QUICK_AMOUNTS = [2.5, 5, 10, 25];
 const ACCENT = "#32df76";
 
 export default function Protein() {

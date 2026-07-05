@@ -1,11 +1,11 @@
 const KEY = "liftflow_notes";
 
 export const NOTE_LEVELS = [
+  { id: "rough", label: "Rough", emoji: "💀", color: "#ff6b2c", aliases: ["bad"] },
+  { id: "okay", label: "Okay", emoji: "😮‍💨", color: "#f7f7f2" },
+  { id: "solid", label: "Solid", emoji: "💪🏼", color: "#32cfff", aliases: ["good"] },
   { id: "great", label: "Great", emoji: "🔥", color: "#32df76" },
-  { id: "good", label: "Good", emoji: "💪", color: "#32cfff" },
-  { id: "okay", label: "Okay", emoji: "😐", color: "#f7f7f2" },
-  { id: "rough", label: "Rough", emoji: "😮‍💨", color: "#ff9b34" },
-  { id: "bad", label: "Bad", emoji: "💀", color: "#ff6b2c" },
+  { id: "pr", label: "PR Day", emoji: "⚡", color: "#e4ff2f" },
 ];
 
 export function getNotes() {
@@ -48,5 +48,5 @@ export function updateNote(id, patch) {
 }
 
 export function getNoteLevel(levelId) {
-  return NOTE_LEVELS.find((level) => level.id === levelId) || NOTE_LEVELS[1];
+  return NOTE_LEVELS.find((level) => level.id === levelId || level.aliases?.includes(levelId)) || NOTE_LEVELS[2];
 }

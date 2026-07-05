@@ -65,6 +65,12 @@ export default function Profile() {
   const total = calculateTotal(profile);
   const leanMass = calculateLeanMass(profile);
   const weightChange = Number(profile.weight || 0) - Number(profile.startWeight || 0);
+  const dotsScore = calculateDotsScore({
+    total,
+    bodyweight: Number(profile.bodyweight || profile.weight || 0),
+    sex: profile.sex,
+    units: profile.units || "lbs",
+  });
 
   return (
     <div style={wrap}>
@@ -80,6 +86,7 @@ export default function Profile() {
 
       <section className="profile-stats" style={statsGrid}>
         <Stat label="Big 3" value={`${total} lb`} />
+        <Stat label="DOTS" value={dotsScore || "--"} />
         <Stat label="Lean Mass" value={`${leanMass} lb`} />
         <Stat label="Change" value={`${weightChange > 0 ? "+" : ""}${weightChange} lb`} />
       </section>
@@ -254,6 +261,24 @@ function Stat({ label, value }) {
       <strong style={statValue}>{value}</strong>
     </div>
   );
+}
+
+function calculateDotsScore({ total, bodyweight, sex, units }) {
+  if (!total || !bodyweight) return null;
+
+  const totalKg = units === "kg" ? total : total * 0.45359237;
+  const bodyweightKg = units === "kg" ? bodyweight : bodyweight * 0.45359237;
+  const coefficients =
+    String(sex || "").toLowerCase() === "female"
+      ? [-0.0000010706, 0.0005158568, -0.1126655495, 13.6175032, -57.96288]
+      : [-0.000001093, 0.0007391293, -0.1918759221, 24.0900756, -307.75076];
+  const denominator = coefficients.reduce(
+    (sum, coefficient, index) => sum + coefficient * bodyweightKg ** (4 - index),
+    0
+  );
+
+  if (denominator <= 0) return null;
+  return Math.round((500 / denominator) * totalKg * 10) / 10;
 }
 
 function Panel({ title, children }) {

@@ -152,6 +152,10 @@ input:focus, select:focus {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.profile-stats {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .field-row,
 .protein-custom-row {
   display: grid;
@@ -242,9 +246,12 @@ input:focus, select:focus {
     scroll-snap-align: start;
   }
 
-  .history-stats,
-  .profile-stats {
+  .history-stats {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .profile-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .protein-quick-grid {
@@ -288,10 +295,6 @@ input:focus, select:focus {
 
   .app-hero-right {
     gap: 7px;
-  }
-
-  .profile-stats {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .field-row {

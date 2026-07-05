@@ -89,6 +89,29 @@ export default function Workout() {
     });
   }
 
+  function addSet(exerciseId) {
+    setSession((prev) => {
+      const nextSets = [...(prev[exerciseId] || []), {}];
+      const copy = { ...prev, [exerciseId]: nextSets };
+      const updatedDrafts = { ...drafts, [selectedDay]: copy };
+      setDrafts(updatedDrafts);
+      saveWorkoutDrafts(updatedDrafts);
+      return copy;
+    });
+  }
+
+  function removeSet(exerciseId, setIndex) {
+    setSession((prev) => {
+      const nextSets = [...(prev[exerciseId] || [])];
+      nextSets.splice(setIndex, 1);
+      const copy = { ...prev, [exerciseId]: nextSets };
+      const updatedDrafts = { ...drafts, [selectedDay]: copy };
+      setDrafts(updatedDrafts);
+      saveWorkoutDrafts(updatedDrafts);
+      return copy;
+    });
+  }
+
   function finishWorkout() {
     const previousWorkouts = getWorkouts();
     const completedWorkout = program.map((lift) => ({
@@ -197,6 +220,7 @@ export default function Workout() {
 
           {program.map((lift) => {
             const group = getMuscleGroup(lift.muscleGroup);
+            const rowCount = Math.max(getSetRowCount(lift.sets), session[lift.id]?.length || 0);
 
             return (
               <article
@@ -229,7 +253,7 @@ export default function Workout() {
                 )}
 
                 <div style={setList}>
-                  {Array.from({ length: getSetRowCount(lift.sets) }).map((_, i) => (
+                  {Array.from({ length: rowCount }).map((_, i) => (
                     <div key={i} className="field-row" style={setRow}>
                       <input
                         type="number"
@@ -243,9 +267,21 @@ export default function Workout() {
                         value={session[lift.id]?.[i]?.reps || ""}
                         onChange={(event) => updateSet(lift.id, i, "reps", event.target.value)}
                       />
+                      <button
+                        type="button"
+                        onClick={() => removeSet(lift.id, i)}
+                        style={removeSetBtn}
+                        aria-label={`Remove set ${i + 1}`}
+                      >
+                        -
+                      </button>
                     </div>
                   ))}
                 </div>
+
+                <button type="button" onClick={() => addSet(lift.id)} style={{ ...addSetBtn, color: group.color, borderColor: tint(group.color, 0.38), background: tint(group.color, 0.1) }}>
+                  Add Set
+                </button>
               </article>
             );
           })}
@@ -557,6 +593,22 @@ const setList = {
 
 const setRow = {
   gap: 10,
+  gridTemplateColumns: "1fr 1fr auto",
+};
+
+const addSetBtn = {
+  width: "100%",
+  marginTop: 12,
+  padding: "8px 12px",
+};
+
+const removeSetBtn = {
+  width: 38,
+  height: 38,
+  padding: 0,
+  borderColor: "rgba(255, 107, 44, 0.42)",
+  color: "#ff6b2c",
+  background: "rgba(255, 107, 44, 0.1)",
 };
 
 const finishBtn = {

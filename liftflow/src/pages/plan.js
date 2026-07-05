@@ -97,12 +97,12 @@ export default function Plan() {
       updated[selectedDay] = [
         ...dayPlan,
         {
-        id: crypto.randomUUID(),
-        exercise,
-        muscleGroup,
-        sets,
-        reps,
-        stretches,
+          id: crypto.randomUUID(),
+          exercise,
+          muscleGroup,
+          sets,
+          reps,
+          stretches,
         },
       ];
     }
@@ -747,7 +747,7 @@ const cancelBtn = {
 
 const list = {
   display: "grid",
-  gap: 10,
+  gap: 8,
 };
 
 const currentHeader = {
@@ -813,18 +813,18 @@ const empty = {
 
 const liftCard = {
   border: "1px solid #242424",
-  borderRadius: 14,
+  borderRadius: 10,
   background: "#0f0f0f",
-  padding: 14,
+  padding: "10px 12px",
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
-  gap: 14,
+  gap: 10,
 };
 
 const actions = {
   display: "flex",
-  gap: 8,
+  gap: 6,
   flexWrap: "wrap",
   justifyContent: "flex-end",
 };
@@ -833,24 +833,27 @@ const editBtn = {
   color: ACCENT,
   borderColor: "rgba(50, 207, 255, 0.45)",
   background: "rgba(50, 207, 255, 0.12)",
+  padding: "7px 10px",
+  fontSize: 12,
 };
 
 const liftName = {
   margin: 0,
   color: ACCENT,
-  fontSize: 20,
+  fontSize: 16,
 };
 
 const liftMeta = {
-  margin: "6px 0 0",
+  margin: "4px 0 0",
   color: "#777",
+  fontSize: 12,
   fontWeight: 750,
 };
 
 const stretchPreview = {
-  margin: "8px 0 0",
+  margin: "5px 0 0",
   color: "#999",
-  fontSize: 13,
+  fontSize: 12,
   lineHeight: 1.35,
 };
 
@@ -858,4 +861,6 @@ const removeBtn = {
   color: "#ff6b2c",
   borderColor: "rgba(255, 107, 44, 0.45)",
   background: "rgba(255, 107, 44, 0.12)",
+  padding: "7px 10px",
+  fontSize: 12,
 };

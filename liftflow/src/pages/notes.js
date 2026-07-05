@@ -11,7 +11,7 @@ const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
 export default function Notes() {
   const [notes, setNotes] = useState([]);
   const [options, setOptions] = useState([]);
-  const [level, setLevel] = useState("good");
+  const [level, setLevel] = useState("solid");
   const [lift, setLift] = useState("");
   const [customLift, setCustomLift] = useState("");
   const [text, setText] = useState("");
@@ -41,7 +41,7 @@ export default function Notes() {
     setLift("");
     setCustomLift("");
     setText("");
-    setLevel("good");
+    setLevel("solid");
   }
 
   function startEdit(note) {
@@ -119,7 +119,7 @@ export default function Notes() {
             setEditingId(null);
             setLift("");
             setText("");
-            setLevel("good");
+            setLevel("solid");
           }} style={cancelBtn}>
             Cancel Edit
           </button>
@@ -174,6 +174,7 @@ export default function Notes() {
         danger
         onCancel={() => setConfirmDeleteId(null)}
         onConfirm={() => {
+          if (!confirmDeleteId) return;
           setNotes(deleteNote(confirmDeleteId));
           setConfirmDeleteId(null);
         }}

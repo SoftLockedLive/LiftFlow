@@ -4,6 +4,7 @@ import { getMuscleGroup, tint as groupTint } from "../lib/muscleGroups";
 import { getPlan } from "../lib/plan";
 import { getTodayName } from "../lib/today";
 import { getWorkouts } from "../lib/workoutStorage";
+import { calculateLiftVolume, calculateSessionSummary, getLiftSets, getWorkoutItems } from "../lib/workoutAnalytics";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const ACCENTS = ["#32cfff", "#ff6b2c", "#e4ff2f", "#be72ff", "#ff9b34", "#32df76", "#f7f7f2"];
@@ -13,6 +14,7 @@ export default function Home() {
   const [workouts, setWorkouts] = useState([]);
   const [plan, setPlan] = useState({});
   const [today, setToday] = useState("Monday");
+  const [openRecent, setOpenRecent] = useState("");
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -45,7 +47,7 @@ export default function Home() {
   const todaysLifts = week.find((day) => day.isToday)?.lifts || [];
   const todayItem = week.find((day) => day.isToday);
   const plannedDays = week.filter((day) => day.lifts.length > 0 || day.recovery).length;
-  const recentSets = useMemo(() => flattenRecentSets(workouts).slice(0, 5), [workouts]);
+  const recentSessions = useMemo(() => buildRecentSessions(workouts).slice(0, 5), [workouts]);
 
   return (
     <div>
@@ -137,21 +139,41 @@ export default function Home() {
 
       <section style={section}>
         <h2 style={sectionTitle}>Recent Sets</h2>
-        {recentSets.length === 0 ? (
+        {recentSessions.length === 0 ? (
           <div style={emptyState}>No sets logged yet. Hit the gym!</div>
         ) : (
           <div style={recentList}>
-            {recentSets.map((set) => (
-              <article key={set.id} style={recentCard}>
-                <div>
-                  <h3 style={recentExercise}>{set.exercise}</h3>
-                  <p style={recentDate}>{set.date}</p>
-                </div>
-                <strong style={recentLoad}>
-                  {set.weight || "--"} lbs x {set.reps || "--"}
-                </strong>
-              </article>
-            ))}
+            {recentSessions.map((session) => {
+              const expanded = openRecent === session.id;
+
+              return (
+                <article key={session.id} style={recentCard}>
+                  <button type="button" onClick={() => setOpenRecent(expanded ? "" : session.id)} style={recentSummary}>
+                    <div>
+                      <h3 style={recentExercise}>{session.name}</h3>
+                      <p style={recentDate}>{session.date} · {session.sets} sets</p>
+                    </div>
+                    <strong style={recentLoad}>{session.volume.toLocaleString()} lb</strong>
+                  </button>
+
+                  {expanded && (
+                    <div style={recentDetails}>
+                      {session.lifts.map((lift, index) => (
+                        <div key={`${session.id}-${lift.exercise}-${index}`} style={recentLift}>
+                          <div>
+                            <strong style={recentLiftName}>{lift.exercise}</strong>
+                            <p style={recentDate}>
+                              {getLiftSets(lift).map((set) => `${set.reps || "--"} x ${set.weight || "--"} lb`).join(" · ") || "No sets logged"}
+                            </p>
+                          </div>
+                          <span style={recentLiftVolume}>{calculateLiftVolume(lift).toLocaleString()} lb</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </article>
+              );
+            })}
           </div>
         )}
       </section>
@@ -184,29 +206,34 @@ function getDayTitle(day) {
   return `${day.lifts.length} Exercises`;
 }
 
-function flattenRecentSets(workouts) {
+function buildRecentSessions(workouts) {
   return workouts
-    .flatMap((session) => {
-      const lifts = Array.isArray(session) ? session : session.workout || [];
-      return lifts.flatMap((lift, liftIndex) =>
-        (lift.sets || []).map((set, setIndex) => ({
-          id: `${session.id || session.date || liftIndex}-${lift.exercise}-${setIndex}`,
-          exercise: lift.exercise,
-          weight: set.weight,
-          reps: set.reps,
-          date: formatDate(session.date || lift.date),
-        }))
-      );
+    .map((session, index) => {
+      const lifts = getWorkoutItems(session);
+      const summary = calculateSessionSummary(lifts);
+      const date = session?.date || lifts[0]?.date || null;
+
+      return {
+        id: session?.id || `${date || "session"}-${index}`,
+        name: session?.focus || session?.day || lifts[0]?.exercise || "Workout",
+        date: formatDate(date),
+        lifts,
+        sets: summary.sets,
+        volume: summary.volume,
+      };
     })
+    .filter((session) => session.lifts.length > 0)
     .reverse();
 }
 
 function formatDate(date) {
   if (!date) return "Logged";
+  const parsed = new Date(date);
+  if (Number.isNaN(parsed.getTime())) return "Logged";
   return new Intl.DateTimeFormat("en", {
     month: "short",
     day: "numeric",
-  }).format(new Date(date));
+  }).format(parsed);
 }
 
 function tint(hex, alpha) {
@@ -379,11 +406,20 @@ const recentCard = {
   border: "1px solid #222",
   borderRadius: 14,
   background: "#0f0f0f",
-  padding: "14px 16px",
+  overflow: "hidden",
+};
+
+const recentSummary = {
+  width: "100%",
+  border: 0,
+  borderRadius: 0,
+  background: "transparent",
+  padding: "12px 14px",
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
   gap: 16,
+  textAlign: "left",
 };
 
 const recentExercise = {
@@ -399,5 +435,28 @@ const recentDate = {
 
 const recentLoad = {
   color: "#f7f7f2",
+  whiteSpace: "nowrap",
+};
+
+const recentDetails = {
+  borderTop: "1px solid #202020",
+  display: "grid",
+};
+
+const recentLift = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 12,
+  padding: "10px 14px",
+  borderBottom: "1px solid #171717",
+};
+
+const recentLiftName = {
+  color: "#d7d7d2",
+};
+
+const recentLiftVolume = {
+  color: "#32cfff",
+  fontWeight: 850,
   whiteSpace: "nowrap",
 };

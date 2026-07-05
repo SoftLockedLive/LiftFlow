@@ -4,9 +4,8 @@ import { useRouter } from "next/router";
 import { getPRs } from "../lib/engine";
 import { getManualPRs } from "../lib/manualPRs";
 import { getProfile, saveProfile } from "../lib/profile";
-import { getProteinLog, getProteinSummary, getProteinTarget } from "../lib/protein";
 import { getWorkouts } from "../lib/workoutStorage";
-import { getWorkoutItems } from "../lib/workoutAnalytics";
+import { getLiftSets, getWorkoutItems } from "../lib/workoutAnalytics";
 
 const ACCENTS = {
   lime: "#e4ff2f",
@@ -29,13 +28,6 @@ export default function Layout({ children }) {
   });
   const [prs, setPrs] = useState({});
   const [bestSets, setBestSets] = useState({});
-  const [proteinSummary, setProteinSummary] = useState({
-    today: 0,
-    target: 160,
-    remaining: 160,
-    percent: 0,
-    streak: 0,
-  });
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -43,7 +35,6 @@ export default function Layout({ children }) {
       const workouts = getWorkouts();
       setPrs(getPRs(workouts));
       setBestSets(getBigThreeBestSets(workouts, getManualPRs()));
-      setProteinSummary(getProteinSummary(getProteinLog(), getProteinTarget()));
       setHydrated(true);
       setProfile(getProfile());
     };
@@ -68,12 +59,6 @@ export default function Layout({ children }) {
   const units = profile.units || "lbs";
   const bodyweightValue = profile.bodyweight || profile.weight;
   const bodyweight = bodyweightValue ? `${bodyweightValue}${units}` : "Bodyweight --";
-  const dotsScore = calculateDotsScore({
-    total,
-    bodyweight: Number(bodyweightValue || 0),
-    sex: profile.sex,
-    units,
-  });
   const initials = getInitials(profile.name);
   const goalLabel = (profile.goal || "strength")
     .replace("_", " ")
@@ -81,8 +66,8 @@ export default function Layout({ children }) {
 
   const tabs = [
     { name: "Home", path: "/" },
-    { name: "Program", path: "/plan" },
     { name: "Workout", path: "/workout" },
+    { name: "Program", path: "/plan" },
     { name: "Protein", path: "/protein" },
     { name: "Notes", path: "/notes" },
     { name: "History", path: "/history" },
@@ -142,19 +127,6 @@ export default function Layout({ children }) {
           </div>
         ))}
 
-        <div style={{ ...wideCard, borderColor: tint(ACCENTS.orange, 0.32) }}>
-          <span style={metricLabel}>Dots Score</span>
-          <strong style={{ ...wideValue, color: dotsScore ? ACCENTS.orange : "#414141" }}>
-            {dotsScore || "--"}
-          </strong>
-        </div>
-
-        <div style={{ ...wideCard, borderColor: tint(ACCENTS.cyan, 0.32) }}>
-          <span style={metricLabel}>Protein Streak</span>
-          <strong style={{ ...wideValue, color: proteinSummary.streak ? ACCENTS.green : "#414141" }}>
-            {proteinSummary.streak ? `${proteinSummary.streak} days` : "--"}
-          </strong>
-        </div>
       </section>
 
       <nav style={tabWrapper} aria-label="Main navigation">
@@ -290,19 +262,14 @@ function getInitials(name) {
 }
 
 function getBigThreeBestSets(workouts, manualPrs) {
-  const targets = {
-    "Bench Press": "bench",
-    Squat: "squat",
-    Deadlift: "deadlift",
-  };
   const best = {};
 
   (workouts || []).forEach((session) => {
     getWorkoutItems(session).forEach((lift) => {
-      const key = targets[lift.exercise];
+      const key = getBigThreeKey(lift.exercise);
       if (!key) return;
 
-      (lift.sets || []).forEach((set) => {
+      getLiftSets(lift).forEach((set) => {
         const weight = Number(set.weight || 0);
         if (weight > Number(best[key]?.weight || 0)) {
           best[key] = { weight, reps: Number(set.reps || 0) || "" };
@@ -312,7 +279,7 @@ function getBigThreeBestSets(workouts, manualPrs) {
   });
 
   (manualPrs || []).forEach((pr) => {
-    const key = targets[pr.exercise];
+    const key = getBigThreeKey(pr.exercise);
     const weight = Number(pr.weight || 0);
     if (key && weight > Number(best[key]?.weight || 0)) {
       best[key] = { weight, reps: pr.reps || "" };
@@ -322,22 +289,12 @@ function getBigThreeBestSets(workouts, manualPrs) {
   return best;
 }
 
-function calculateDotsScore({ total, bodyweight, sex, units }) {
-  if (!total || !bodyweight) return null;
-
-  const totalKg = units === "kg" ? total : total * 0.45359237;
-  const bodyweightKg = units === "kg" ? bodyweight : bodyweight * 0.45359237;
-  const coefficients =
-    String(sex || "").toLowerCase() === "female"
-      ? [-0.0000010706, 0.0005158568, -0.1126655495, 13.6175032, -57.96288]
-      : [-0.000001093, 0.0007391293, -0.1918759221, 24.0900756, -307.75076];
-  const denominator = coefficients.reduce(
-    (sum, coefficient, index) => sum + coefficient * bodyweightKg ** (4 - index),
-    0
-  );
-
-  if (denominator <= 0) return null;
-  return Math.round((500 / denominator) * totalKg * 10) / 10;
+function getBigThreeKey(exercise) {
+  const name = String(exercise || "").toLowerCase();
+  if (name.includes("bench")) return "bench";
+  if (name.includes("squat")) return "squat";
+  if (name.includes("deadlift")) return "deadlift";
+  return "";
 }
 
 const shell = {
@@ -459,23 +416,6 @@ const metricHint = {
   color: "#454545",
   fontSize: 12,
   fontWeight: 800,
-};
-
-const wideCard = {
-  gridColumn: "span 3",
-  minHeight: 72,
-  padding: 12,
-  background: "#101010",
-  border: "1px solid",
-  borderRadius: 14,
-  display: "flex",
-  flexDirection: "column",
-  gap: 10,
-};
-
-const wideValue = {
-  color: "#414141",
-  fontSize: 22,
 };
 
 const tabWrapper = {

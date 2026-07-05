@@ -2,12 +2,15 @@ import { useEffect, useMemo, useState } from "react";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { deleteManualPR, getManualPRs, upsertManualPR } from "../lib/manualPRs";
 import { getWorkouts } from "../lib/workoutStorage";
-import { getWorkoutItems } from "../lib/workoutAnalytics";
+import { getLiftSets, getWorkoutItems } from "../lib/workoutAnalytics";
+import { MUSCLE_GROUPS, tint } from "../lib/muscleGroups";
 
 export default function PRs() {
   const [workouts, setWorkouts] = useState([]);
   const [manualPrs, setManualPrs] = useState([]);
   const [form, setForm] = useState({ id: "", exercise: "", weight: "", reps: "" });
+  const [search, setSearch] = useState("");
+  const [openGroups, setOpenGroups] = useState({});
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   useEffect(() => {
@@ -20,6 +23,7 @@ export default function PRs() {
   }, []);
 
   const prs = useMemo(() => mergePRs(workouts, manualPrs), [workouts, manualPrs]);
+  const groupedPrs = useMemo(() => groupPRs(prs, search), [prs, search]);
 
   function savePR() {
     if (!form.exercise || !form.weight) return;
@@ -72,30 +76,63 @@ export default function PRs() {
         </button>
       </section>
 
+      <input
+        placeholder="Search PRs..."
+        value={search}
+        onChange={(event) => setSearch(event.target.value)}
+        style={searchInput}
+      />
+
       <section style={list}>
         {prs.length === 0 ? (
           <div style={empty}>No PRs recorded yet.</div>
         ) : (
-          prs.map((pr) => (
-            <article key={pr.exercise} style={prCard}>
-              <div>
-                <h2 style={prName}>{pr.exercise}</h2>
-                <p style={prMeta}>
-                  {pr.weight} lb{pr.reps ? ` x ${pr.reps} reps` : ""}
-                </p>
-              </div>
-              <div style={actions}>
-                <button type="button" onClick={() => editPR(pr)} style={editBtn}>
-                  Edit
+          groupedPrs.map((group) => {
+            const expanded = openGroups[group.id] !== false;
+
+            return (
+              <section key={group.id} style={groupBlock}>
+                <button
+                  type="button"
+                  onClick={() => setOpenGroups((prev) => ({ ...prev, [group.id]: !expanded }))}
+                  style={{
+                    ...groupHeader,
+                    color: group.color,
+                    borderColor: tint(group.color, 0.28),
+                    background: tint(group.color, 0.07),
+                  }}
+                >
+                  <span>{group.label} {expanded ? "▲" : "▼"}</span>
+                  <strong>{group.items.length}</strong>
                 </button>
-                {pr.manualId && (
-                  <button type="button" onClick={() => setConfirmDeleteId(pr.manualId)} style={deleteBtn}>
-                    Delete
-                  </button>
+
+                {expanded && (
+                  <div style={groupList}>
+                    {group.items.map((pr) => (
+                      <article key={pr.exercise} style={prCard}>
+                        <div>
+                          <h2 style={{ ...prName, color: group.color }}>{pr.exercise}</h2>
+                          <p style={prMeta}>
+                            {pr.weight} lb{pr.reps ? ` x ${pr.reps} reps` : ""}
+                          </p>
+                        </div>
+                        <div style={actions}>
+                          <button type="button" onClick={() => editPR(pr)} style={editBtn}>
+                            Edit
+                          </button>
+                          {pr.manualId && (
+                            <button type="button" onClick={() => setConfirmDeleteId(pr.manualId)} style={deleteBtn}>
+                              Delete
+                            </button>
+                          )}
+                        </div>
+                      </article>
+                    ))}
+                  </div>
                 )}
-              </div>
-            </article>
-          ))
+              </section>
+            );
+          })
         )}
       </section>
 
@@ -107,6 +144,7 @@ export default function PRs() {
         danger
         onCancel={() => setConfirmDeleteId(null)}
         onConfirm={() => {
+          if (!confirmDeleteId) return;
           setManualPrs(deleteManualPR(confirmDeleteId));
           setConfirmDeleteId(null);
         }}
@@ -120,11 +158,11 @@ function mergePRs(workouts, manualPrs) {
 
   (workouts || []).forEach((session) => {
     getWorkoutItems(session).forEach((lift) => {
-      (lift.sets || []).forEach((set) => {
+      getLiftSets(lift).forEach((set) => {
         const weight = Number(set.weight || 0);
         const reps = set.reps === undefined ? "" : Number(set.reps || 0);
         if (!records[lift.exercise] || weight > records[lift.exercise].weight) {
-          records[lift.exercise] = { exercise: lift.exercise, weight, reps, source: "history" };
+          records[lift.exercise] = { exercise: lift.exercise, weight, reps, muscleGroup: lift.muscleGroup || inferMuscleGroup(lift.exercise), source: "history" };
         }
       });
     });
@@ -137,6 +175,7 @@ function mergePRs(workouts, manualPrs) {
         exercise: pr.exercise,
         weight,
         reps: pr.reps || "",
+        muscleGroup: pr.muscleGroup || records[pr.exercise]?.muscleGroup || inferMuscleGroup(pr.exercise),
         manualId: pr.id,
         source: "manual",
       };
@@ -144,6 +183,27 @@ function mergePRs(workouts, manualPrs) {
   });
 
   return Object.values(records).sort((a, b) => b.weight - a.weight);
+}
+
+function groupPRs(prs, search) {
+  const query = search.trim().toLowerCase();
+  const visible = query ? prs.filter((pr) => pr.exercise.toLowerCase().includes(query)) : prs;
+
+  return MUSCLE_GROUPS.map((group) => ({
+    ...group,
+    items: visible.filter((pr) => (pr.muscleGroup || "other") === group.id),
+  })).filter((group) => group.items.length > 0);
+}
+
+function inferMuscleGroup(exercise) {
+  const name = String(exercise || "").toLowerCase();
+  if (/bench|press|fly|chest|pec/.test(name)) return "chest";
+  if (/squat|leg|quad|hamstring|curl|calf|hack|lunge|split/.test(name)) return "legs";
+  if (/deadlift|row|pull|pulldown|lat/.test(name)) return "back";
+  if (/shoulder|overhead|lateral|delt|pec deck/.test(name)) return "shoulders";
+  if (/curl|tricep|bicep|hammer|extension|pushdown/.test(name)) return "arms";
+  if (/ab|crunch|plank|raise|wheel|core/.test(name)) return "core";
+  return "other";
 }
 
 const wrap = {
@@ -197,6 +257,31 @@ const list = {
   gap: 10,
 };
 
+const searchInput = {
+  marginBottom: 12,
+};
+
+const groupBlock = {
+  border: "1px solid #242424",
+  borderRadius: 12,
+  background: "#101010",
+  overflow: "hidden",
+};
+
+const groupHeader = {
+  width: "100%",
+  border: 0,
+  borderRadius: 0,
+  padding: "11px 12px",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+};
+
+const groupList = {
+  display: "grid",
+};
+
 const empty = {
   border: "1px solid #222",
   borderRadius: 16,
@@ -208,10 +293,11 @@ const empty = {
 };
 
 const prCard = {
-  border: "1px solid #242424",
-  borderRadius: 16,
-  background: "#101010",
-  padding: 14,
+  border: 0,
+  borderTop: "1px solid #202020",
+  borderRadius: 0,
+  background: "#0b0b0b",
+  padding: "10px 12px",
   display: "flex",
   justifyContent: "space-between",
   gap: 12,
@@ -221,7 +307,7 @@ const prCard = {
 const prName = {
   margin: 0,
   color: "#e4ff2f",
-  fontSize: 21,
+  fontSize: 17,
 };
 
 const prMeta = {
