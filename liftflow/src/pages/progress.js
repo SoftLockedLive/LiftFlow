@@ -132,8 +132,18 @@ export default function Progress() {
   function saveForm(event) {
     event?.preventDefault?.();
     const next = saveDailyCheckIn({
-      ...fromForm(form),
+      ...fromDailyForm(form),
       workoutDurationMinutes: form.workoutDurationMinutes || workoutDurationToday || "",
+    });
+    refreshCheckIns(next);
+    setDeletedEntry(null);
+  }
+
+  function saveMorningWeight(event) {
+    event?.preventDefault?.();
+    const next = saveDailyCheckIn({
+      date: form.date || getTodayKey(),
+      morningWeight: form.morningWeight,
     });
     refreshCheckIns(next);
     setDeletedEntry(null);
@@ -164,11 +174,6 @@ export default function Progress() {
     const restored = restoreDailyCheckIn(deletedEntry);
     setCheckIns(restored);
     setDeletedEntry(null);
-  }
-
-  function quickAdd(field, amount) {
-    const current = Number(form[field] || 0);
-    setForm({ ...form, [field]: String(Math.max(0, current + amount)) });
   }
 
   function saveTargets(nextTargets = targetDraft) {
@@ -237,7 +242,7 @@ export default function Progress() {
           saveTargets={saveTargets}
           updateForm={updateForm}
           saveForm={saveForm}
-          quickAdd={quickAdd}
+          saveMorningWeight={saveMorningWeight}
           workoutDurationToday={workoutDurationToday}
           weights={weights}
           currentAverage={currentAverage}
@@ -426,7 +431,7 @@ function BodySection({
   saveTargets,
   updateForm,
   saveForm,
-  quickAdd,
+  saveMorningWeight,
   workoutDurationToday,
   weights,
   currentAverage,
@@ -451,22 +456,37 @@ function BodySection({
   const averageProtein = averageDaily(checkIns, "protein", 7);
   const averageSleep = averageDaily(checkIns, "sleepHours", 7);
   const averageSteps = averageDaily(checkIns, "steps", 7);
+  const activeEntry = checkIns.find((entry) => entry.date === (form.date || getTodayKey())) || {};
 
   return (
     <>
+      <section style={panel}>
+        <div style={sectionHeaderRow}>
+          <div>
+            <p style={eyebrow}>Morning</p>
+            <h2 style={sectionTitle}>Bodyweight</h2>
+          </div>
+          <span style={saveHint}>Best after waking</span>
+        </div>
+        <form onSubmit={saveMorningWeight} style={morningGrid}>
+          <Field label="Date" type="date" value={form.date} onChange={(value) => updateForm("date", value)} />
+          <Field label={`Morning bodyweight (${targets.weightUnit || "lb"})`} type="number" value={form.morningWeight} onChange={(value) => updateForm("morningWeight", value)} step="0.1" />
+          <button type="submit" className="primary" style={saveButton}>
+            Save Weight
+          </button>
+        </form>
+      </section>
+
       <section id="daily-check-in" style={panel}>
         <div style={sectionHeaderRow}>
           <div>
-            <p style={eyebrow}>Daily</p>
-            <h2 style={sectionTitle}>{editingId ? "Update Check-In" : "Fast Check-In"}</h2>
+            <p style={eyebrow}>Evening</p>
+            <h2 style={sectionTitle}>{editingId ? "Update Check-In" : "Night Check-In"}</h2>
           </div>
-          <span style={saveHint}>One entry per date</span>
+          <span style={saveHint}>Recovery, activity, notes</span>
         </div>
         <form onSubmit={saveForm} style={formGrid}>
           <Field label="Date" type="date" value={form.date} onChange={(value) => updateForm("date", value)} />
-          <Field label={`Morning bodyweight (${targets.weightUnit || "lb"})`} type="number" value={form.morningWeight} onChange={(value) => updateForm("morningWeight", value)} step="0.1" />
-          <Field label="Calories" type="number" value={form.calories} onChange={(value) => updateForm("calories", value)} />
-          <Field label="Protein (g)" type="number" value={form.protein} onChange={(value) => updateForm("protein", value)} step="0.5" />
           <Field label="Steps" type="number" value={form.steps} onChange={(value) => updateForm("steps", value)} />
           <Field label="Sleep hours" type="number" value={form.sleepHours} onChange={(value) => updateForm("sleepHours", value)} step="0.25" />
           <Field label="Sleep score" type="number" value={form.sleepScore} onChange={(value) => updateForm("sleepScore", value)} />
@@ -486,11 +506,6 @@ function BodySection({
             <span style={fieldLabel}>Notes</span>
             <input value={form.notes} onChange={(event) => updateForm("notes", event.target.value)} placeholder="Optional" />
           </label>
-
-          <div style={quickAddPanel}>
-            <QuickAddGroup label="Calories" items={[100, 250, 500]} onAdd={(amount) => quickAdd("calories", amount)} />
-            <QuickAddGroup label="Protein" items={[2.5, 5, 10, 25]} suffix="g" onAdd={(amount) => quickAdd("protein", amount)} />
-          </div>
 
           <div style={stickyActions}>
             <button type="submit" className="primary" style={saveButton}>
@@ -565,8 +580,8 @@ function BodySection({
 
       <section style={grid}>
         <SummaryPanel title="Nutrition Adherence" eyebrowText="Nutrition">
-          <ProgressBar label="Calories" value={Number(form.calories || 0)} target={Number(targets.calorieTarget || 0)} />
-          <ProgressBar label="Protein" value={Number(form.protein || 0)} target={Number(targets.proteinTarget || 0)} suffix="g" />
+          <ProgressBar label="Calories" value={Number(activeEntry.calories || 0)} target={Number(targets.calorieTarget || 0)} />
+          <ProgressBar label="Protein" value={Number(activeEntry.protein || 0)} target={Number(targets.proteinTarget || 0)} suffix="g" />
           <MetricRow label="7-day average calories" value={averageCalories ? `${averageCalories}` : "--"} />
           <MetricRow label="7-day average protein" value={averageProtein ? `${averageProtein}g` : "--"} />
           <MetricRow label="Protein target days" value={`${proteinAdherence.hits} / ${proteinAdherence.days || 7}`} />
@@ -675,21 +690,6 @@ function ScaleField({ label, value, onChange }) {
   );
 }
 
-function QuickAddGroup({ label, items, suffix = "", onAdd }) {
-  return (
-    <div>
-      <span style={fieldLabel}>{label}</span>
-      <div style={quickGrid}>
-        {items.map((item) => (
-          <button key={item} type="button" onClick={() => onAdd(item)} style={quickButton}>
-            +{item}{suffix}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function ProgressBar({ label, value, target, suffix = "" }) {
   const percent = target > 0 ? Math.min(100, Math.round((value / target) * 100)) : 0;
   const remaining = Math.max(0, target - value);
@@ -769,12 +769,9 @@ function toForm(entry = {}) {
   };
 }
 
-function fromForm(form) {
+function fromDailyForm(form) {
   const next = { date: form.date || getTodayKey(), notes: form.notes || "" };
   [
-    "morningWeight",
-    "calories",
-    "protein",
     "steps",
     "sleepHours",
     "sleepScore",
@@ -879,15 +876,13 @@ const emptyState = { color: "#666", border: "1px dashed #2a2a2a", borderRadius: 
 const pillRow = { display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 };
 const miniPill = { border: "1px solid #242424", borderRadius: 999, padding: "7px 10px", color: "#aaa", background: "#0b0b0b", fontSize: 12, fontWeight: 850 };
 const formGrid = { display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 };
+const morningGrid = { display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: 10, alignItems: "end" };
 const field = { display: "grid", gap: 6, minWidth: 0 };
 const fieldLabel = { color: "#777", fontSize: 12, fontWeight: 850, textTransform: "uppercase" };
 const scaleRow = { display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 6 };
 const scaleButton = { padding: "9px 0", borderRadius: 8, background: "#0b0b0b", color: "#777" };
 const scaleButtonActive = { background: ACCENT, borderColor: ACCENT, color: "#050505" };
 const saveHint = { color: "#777", fontSize: 12, fontWeight: 850 };
-const quickAddPanel = { gridColumn: "1 / -1", display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10, borderTop: "1px solid #1d1d1d", paddingTop: 10 };
-const quickGrid = { display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 8, marginTop: 6 };
-const quickButton = { padding: "8px 10px", borderRadius: 8, color: ACCENT, borderColor: "rgba(50, 207, 255, 0.35)", background: "rgba(50, 207, 255, 0.08)" };
 const stickyActions = { gridColumn: "1 / -1", position: "sticky", bottom: 78, zIndex: 10, display: "flex", justifyContent: "flex-end", paddingTop: 4 };
 const saveButton = { minWidth: 150 };
 const rangeTabs = { display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" };

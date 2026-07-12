@@ -68,7 +68,7 @@ export default function Layout({ children }) {
     { name: "Home", path: "/" },
     { name: "Workout", path: "/workout" },
     { name: "Program", path: "/plan" },
-    { name: "Protein", path: "/protein" },
+    { name: "Nutrition", path: "/protein" },
     { name: "Notes", path: "/notes" },
     { name: "History", path: "/history" },
     { name: "Progress", path: "/progress" },

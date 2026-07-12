@@ -185,7 +185,8 @@ export function compareWeeks(checkIns, field) {
 }
 
 export function buildRecoverySummary(checkIns, targets) {
-  const latest = (checkIns || [])[checkIns.length - 1];
+  const recoveryEntries = (checkIns || []).filter(hasRecoveryData);
+  const latest = recoveryEntries[recoveryEntries.length - 1];
   if (!latest) {
     return {
       label: "Needs check-in",
@@ -194,9 +195,9 @@ export function buildRecoverySummary(checkIns, targets) {
     };
   }
 
-  const sleepAverage = averageDaily(checkIns, "sleepHours", 7);
-  const sorenessAverage = averageDaily(checkIns, "soreness", 7);
-  const stressAverage = averageDaily(checkIns, "stress", 7);
+  const sleepAverage = averageDaily(recoveryEntries, "sleepHours", 7);
+  const sorenessAverage = averageDaily(recoveryEntries, "soreness", 7);
+  const stressAverage = averageDaily(recoveryEntries, "stress", 7);
   const factors = [];
 
   if (isFiniteNumber(latest.sleepHours) && latest.sleepHours < Math.min(targets.sleepGoalHours, sleepAverage || targets.sleepGoalHours) - 0.5) {
@@ -301,6 +302,21 @@ function syncProteinForCheckIn(entry) {
     ...getProteinLog(),
     [entry.date]: Number(entry.protein || 0),
   });
+}
+
+function hasRecoveryData(entry) {
+  return [
+    "sleepHours",
+    "sleepScore",
+    "restingHeartRate",
+    "energy",
+    "hunger",
+    "soreness",
+    "stress",
+    "activeMinutes",
+    "workoutDurationMinutes",
+    "notes",
+  ].some((field) => entry[field] !== undefined && entry[field] !== "");
 }
 
 function parseJson(value, fallback) {
