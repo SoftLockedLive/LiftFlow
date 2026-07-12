@@ -21,7 +21,42 @@ import {
   saveDailyCheckIn,
   saveProgressTargets,
 } from "../lib/progressTracking";
+import {
+  DEFAULT_MEASUREMENT_TYPES,
+  DEFAULT_TRACKED_LIFTS,
+  PHASE_TYPES,
+  applyCalorieRecommendation,
+  buildCalorieRecommendation,
+  buildPhaseCompletionSummary,
+  buildPhaseOverviewMessage,
+  buildPhaseProgress,
+  buildPhaseTargets,
+  buildRelativeStrength,
+  deleteBodyMeasurement,
+  deletePhase,
+  formatPhaseType,
+  generateWeeklyReview,
+  getActivePhase,
+  getBodyMeasurements,
+  getCalorieRecommendations,
+  getCalorieTargetHistory,
+  getMeasurementChanges,
+  getPhases,
+  getTrackedLifts,
+  getWeekStartDay,
+  getWeeklyReviews,
+  reorderPlannedPhase,
+  restorePhase,
+  saveBodyMeasurement,
+  saveCalorieRecommendation,
+  saveCalorieTargetHistory,
+  savePhase,
+  saveTrackedLifts,
+  saveWeekStartDay,
+  saveWeeklyReview,
+} from "../lib/progressPhase2";
 import { getTodayKey } from "../lib/protein";
+import { addNote } from "../lib/notes";
 import { getWorkouts } from "../lib/workoutStorage";
 import { buildProgressData } from "../lib/workoutAnalytics";
 
@@ -30,7 +65,7 @@ const YELLOW = "#e4ff2f";
 const GREEN = "#32df76";
 const ORANGE = "#ff9b34";
 const RED = "#ff6b2c";
-const SECTIONS = ["Overview", "Strength", "Body"];
+const SECTIONS = ["Overview", "Strength", "Body", "Phases"];
 const RANGE_OPTIONS = [
   { label: "7D", value: "7" },
   { label: "30D", value: "30" },
@@ -54,6 +89,24 @@ const EMPTY_FORM = {
   workoutDurationMinutes: "",
   notes: "",
 };
+const EMPTY_PHASE_FORM = {
+  id: "",
+  name: "",
+  type: "lean-bulk",
+  status: "planned",
+  startDate: "",
+  plannedEndDate: "",
+  actualEndDate: "",
+  startingWeight: "",
+  targetWeight: "",
+  endingWeight: "",
+  startingCalorieTarget: "",
+  currentCalorieTarget: "",
+  proteinTarget: "",
+  targetWeeklyWeightChangeMin: "",
+  targetWeeklyWeightChangeMax: "",
+  notes: "",
+};
 
 export default function Progress() {
   const [workouts, setWorkouts] = useState([]);
@@ -67,6 +120,20 @@ export default function Progress() {
   const [deletedEntry, setDeletedEntry] = useState(null);
   const [chartRange, setChartRange] = useState("30");
   const [targetDraft, setTargetDraft] = useState(null);
+  const [phases, setPhases] = useState([]);
+  const [phaseForm, setPhaseForm] = useState(EMPTY_PHASE_FORM);
+  const [expandedPhaseId, setExpandedPhaseId] = useState("");
+  const [pendingPhaseDelete, setPendingPhaseDelete] = useState(null);
+  const [deletedPhase, setDeletedPhase] = useState(null);
+  const [measurements, setMeasurements] = useState([]);
+  const [measurementForm, setMeasurementForm] = useState(createMeasurementForm());
+  const [pendingMeasurementDelete, setPendingMeasurementDelete] = useState(null);
+  const [deletedMeasurement, setDeletedMeasurement] = useState(null);
+  const [weeklyReviews, setWeeklyReviews] = useState([]);
+  const [weekStartDay, setWeekStartDay] = useState(1);
+  const [recommendations, setRecommendations] = useState([]);
+  const [targetHistory, setTargetHistory] = useState([]);
+  const [trackedLifts, setTrackedLifts] = useState(DEFAULT_TRACKED_LIFTS);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -82,6 +149,13 @@ export default function Progress() {
       setCheckIns(savedCheckIns);
       setForm(toForm(todayEntry || { date: today }));
       setEditingId(todayEntry?.id || "");
+      setPhases(getPhases());
+      setMeasurements(getBodyMeasurements());
+      setWeeklyReviews(getWeeklyReviews());
+      setWeekStartDay(getWeekStartDay());
+      setRecommendations(getCalorieRecommendations());
+      setTargetHistory(getCalorieTargetHistory());
+      setTrackedLifts(getTrackedLifts());
     }, 0);
 
     return () => window.clearTimeout(timer);
@@ -90,7 +164,8 @@ export default function Progress() {
   const strengthData = useMemo(() => buildProgressData(workouts), [workouts]);
   const goals = useMemo(() => buildGoals(profile, strengthData.exerciseBest), [profile, strengthData.exerciseBest]);
   const strengthTrend = useMemo(() => buildTrend(strengthData.sessions), [strengthData.sessions]);
-  const activeTargets = useMemo(() => targets || targetDraft || {}, [targets, targetDraft]);
+  const activePhase = useMemo(() => getActivePhase(phases), [phases]);
+  const activeTargets = useMemo(() => buildPhaseTargets(targets || targetDraft || {}, activePhase), [targets, targetDraft, activePhase]);
   const weights = useMemo(() => getWeightEntries(checkIns), [checkIns]);
   const currentAverage = useMemo(() => getCurrentRollingAverage(weights, 7), [weights]);
   const previousAverage = useMemo(() => getPreviousRollingAverage(weights, 7), [weights]);
@@ -107,6 +182,16 @@ export default function Progress() {
   );
   const stepsWeek = useMemo(() => compareWeeks(checkIns, "steps"), [checkIns]);
   const workoutDurationToday = useMemo(() => getWorkoutMinutesForDate(workouts, form.date || getTodayKey()), [workouts, form.date]);
+  const phaseProgress = useMemo(() => buildPhaseProgress(activePhase, checkIns), [activePhase, checkIns]);
+  const phaseMessage = useMemo(() => buildPhaseOverviewMessage(activePhase, checkIns), [activePhase, checkIns]);
+  const relativeStrength = useMemo(
+    () => buildRelativeStrength(workouts, checkIns, trackedLifts, activePhase),
+    [workouts, checkIns, trackedLifts, activePhase]
+  );
+  const calorieRecommendation = useMemo(
+    () => buildCalorieRecommendation(activePhase, checkIns, recommendations),
+    [activePhase, checkIns, recommendations]
+  );
 
   function refreshCheckIns(next) {
     setCheckIns(next);
@@ -182,6 +267,139 @@ export default function Progress() {
     setTargetDraft(saved);
   }
 
+  function editPhase(phase) {
+    setPhaseForm(toPhaseForm(phase));
+    setActiveSection("Phases");
+  }
+
+  function resetPhaseForm() {
+    setPhaseForm(toPhaseForm({
+      ...EMPTY_PHASE_FORM,
+      startDate: getTodayKey(),
+      plannedEndDate: addDateDays(getTodayKey(), 55),
+      startingWeight: currentAverage || latestEntry?.morningWeight || "",
+      startingCalorieTarget: activeTargets.calorieTarget || "",
+      currentCalorieTarget: activeTargets.calorieTarget || "",
+      proteinTarget: activeTargets.proteinTarget || "",
+    }));
+  }
+
+  function savePhaseForm(event) {
+    event?.preventDefault?.();
+    const previous = phases.find((phase) => phase.id === phaseForm.id);
+    const nextPhases = savePhase(fromPhaseForm(phaseForm));
+    const saved = nextPhases.find((phase) => phase.id === phaseForm.id) || nextPhases[nextPhases.length - 1];
+    if (saved && Number(previous?.currentCalorieTarget || 0) !== Number(saved.currentCalorieTarget || 0)) {
+      setTargetHistory(saveCalorieTargetHistory({
+        phaseId: saved.id,
+        previousTarget: previous?.currentCalorieTarget,
+        newTarget: saved.currentCalorieTarget,
+        source: previous ? "phase-update" : "phase-start",
+        reason: previous ? "Phase calorie target edited" : "Phase created",
+      }));
+    }
+    setPhases(nextPhases);
+    setPhaseForm(EMPTY_PHASE_FORM);
+  }
+
+  function changePhaseStatus(phase, status) {
+    const patch = { ...phase, status };
+    if (status === "active") {
+      patch.startDate = phase.startDate || getTodayKey();
+      patch.startingWeight = phase.startingWeight || currentAverage || latestEntry?.morningWeight || "";
+      patch.startingCalorieTarget = phase.startingCalorieTarget || phase.currentCalorieTarget || activeTargets.calorieTarget;
+      setTargetHistory(saveCalorieTargetHistory({
+        phaseId: phase.id,
+        newTarget: patch.currentCalorieTarget || activeTargets.calorieTarget,
+        source: "phase-start",
+        reason: "Phase started",
+      }));
+    }
+    if (status === "completed") {
+      patch.actualEndDate = getTodayKey();
+      patch.endingWeight = currentAverage || latestEntry?.morningWeight || "";
+    }
+    setPhases(savePhase(patch));
+  }
+
+  function confirmPhaseDelete() {
+    if (!pendingPhaseDelete) return;
+    const result = deletePhase(pendingPhaseDelete.id);
+    setPhases(result.phases);
+    setDeletedPhase(result.deleted);
+    setPendingPhaseDelete(null);
+  }
+
+  function undoPhaseDelete() {
+    if (!deletedPhase) return;
+    setPhases(restorePhase(deletedPhase));
+    setDeletedPhase(null);
+  }
+
+  function movePhase(id, direction) {
+    setPhases(reorderPlannedPhase(id, direction));
+  }
+
+  function saveMeasurementForm(event) {
+    event?.preventDefault?.();
+    const saved = saveBodyMeasurement(fromMeasurementForm(measurementForm, activePhase));
+    setMeasurements(saved);
+    setMeasurementForm(createMeasurementForm({ date: measurementForm.date, unit: measurementForm.unit }));
+  }
+
+  function confirmMeasurementDelete() {
+    if (!pendingMeasurementDelete) return;
+    const result = deleteBodyMeasurement(pendingMeasurementDelete.id);
+    setMeasurements(result.measurements);
+    setDeletedMeasurement(result.deleted);
+    setPendingMeasurementDelete(null);
+  }
+
+  function undoMeasurementDelete() {
+    if (!deletedMeasurement) return;
+    setMeasurements(saveBodyMeasurement(deletedMeasurement));
+    setDeletedMeasurement(null);
+  }
+
+  function generateReview() {
+    const review = generateWeeklyReview({ checkIns, workouts, phases, measurements, weekStartDay });
+    setWeeklyReviews(saveWeeklyReview(review));
+  }
+
+  function updateReviewNotes(review, notes) {
+    setWeeklyReviews(saveWeeklyReview({ ...review, userNotes: notes }));
+  }
+
+  function exportReviewToNotes(review) {
+    addNote({
+      level: "solid",
+      text: `Weekly Review ${review.weekStart} to ${review.weekEnd}\n\n${review.summary}\n\n${review.userNotes || ""}`,
+      tags: ["weekly-review", "progress"],
+    });
+  }
+
+  function applyRecommendation() {
+    if (!activePhase || !calorieRecommendation.adjustment) return;
+    const nextPhases = applyCalorieRecommendation(calorieRecommendation, activePhase);
+    setPhases(nextPhases);
+    setRecommendations(getCalorieRecommendations());
+    setTargetHistory(getCalorieTargetHistory());
+  }
+
+  function updateRecommendation(status) {
+    setRecommendations(saveCalorieRecommendation({ ...calorieRecommendation, status }));
+  }
+
+  function toggleTrackedLift(lift) {
+    const exists = trackedLifts.includes(lift);
+    setTrackedLifts(saveTrackedLifts(exists ? trackedLifts.filter((item) => item !== lift) : [...trackedLifts, lift]));
+  }
+
+  function updateWeekStart(nextDay) {
+    const saved = saveWeekStartDay(nextDay);
+    setWeekStartDay(saved);
+  }
+
   return (
     <div style={wrap}>
       <header style={header}>
@@ -220,6 +438,11 @@ export default function Progress() {
           insights={insights}
           proteinAdherence={proteinAdherence}
           stepsWeek={stepsWeek}
+          activePhase={activePhase}
+          phaseProgress={phaseProgress}
+          phaseMessage={phaseMessage}
+          onOpenPhases={() => setActiveSection("Phases")}
+          onGenerateReview={generateReview}
           onCheckIn={() => {
             setActiveSection("Body");
             window.setTimeout(() => document.getElementById("daily-check-in")?.scrollIntoView({ behavior: "smooth" }), 0);
@@ -228,7 +451,14 @@ export default function Progress() {
       )}
 
       {activeSection === "Strength" && (
-        <StrengthSection data={strengthData} goals={goals} trend={strengthTrend} />
+        <StrengthSection
+          data={strengthData}
+          goals={goals}
+          trend={strengthTrend}
+          relativeStrength={relativeStrength}
+          trackedLifts={trackedLifts}
+          toggleTrackedLift={toggleTrackedLift}
+        />
       )}
 
       {activeSection === "Body" && (
@@ -259,6 +489,48 @@ export default function Progress() {
           requestDelete={setPendingDelete}
           deletedEntry={deletedEntry}
           undoDelete={undoDelete}
+          measurements={measurements}
+          measurementForm={measurementForm}
+          setMeasurementForm={setMeasurementForm}
+          saveMeasurementForm={saveMeasurementForm}
+          requestMeasurementDelete={setPendingMeasurementDelete}
+          deletedMeasurement={deletedMeasurement}
+          undoMeasurementDelete={undoMeasurementDelete}
+          activePhase={activePhase}
+        />
+      )}
+
+      {activeSection === "Phases" && (
+        <PhasesSection
+          phases={phases}
+          activePhase={activePhase}
+          phaseProgress={phaseProgress}
+          phaseForm={phaseForm}
+          setPhaseForm={setPhaseForm}
+          resetPhaseForm={resetPhaseForm}
+          savePhaseForm={savePhaseForm}
+          editPhase={editPhase}
+          changePhaseStatus={changePhaseStatus}
+          requestPhaseDelete={setPendingPhaseDelete}
+          expandedPhaseId={expandedPhaseId}
+          setExpandedPhaseId={setExpandedPhaseId}
+          movePhase={movePhase}
+          deletedPhase={deletedPhase}
+          undoPhaseDelete={undoPhaseDelete}
+          weeklyReviews={weeklyReviews}
+          weekStartDay={weekStartDay}
+          updateWeekStart={updateWeekStart}
+          generateReview={generateReview}
+          updateReviewNotes={updateReviewNotes}
+          exportReviewToNotes={exportReviewToNotes}
+          recommendation={calorieRecommendation}
+          applyRecommendation={applyRecommendation}
+          updateRecommendation={updateRecommendation}
+          targetHistory={targetHistory}
+          measurements={measurements}
+          relativeStrength={relativeStrength}
+          checkIns={checkIns}
+          workouts={workouts}
         />
       )}
 
@@ -270,6 +542,24 @@ export default function Progress() {
         danger
         onCancel={() => setPendingDelete(null)}
         onConfirm={confirmDelete}
+      />
+      <ConfirmDialog
+        open={Boolean(pendingPhaseDelete)}
+        title="Delete phase?"
+        message={`Delete ${pendingPhaseDelete?.name || "this phase"}? You can undo it after deletion.`}
+        confirmLabel="Delete"
+        danger
+        onCancel={() => setPendingPhaseDelete(null)}
+        onConfirm={confirmPhaseDelete}
+      />
+      <ConfirmDialog
+        open={Boolean(pendingMeasurementDelete)}
+        title="Delete measurement?"
+        message={`Delete the ${pendingMeasurementDelete?.date || ""} measurement entry? You can undo it after deletion.`}
+        confirmLabel="Delete"
+        danger
+        onCancel={() => setPendingMeasurementDelete(null)}
+        onConfirm={confirmMeasurementDelete}
       />
     </div>
   );
@@ -287,6 +577,11 @@ function OverviewSection({
   insights,
   proteinAdherence,
   stepsWeek,
+  activePhase,
+  phaseProgress,
+  phaseMessage,
+  onOpenPhases,
+  onGenerateReview,
   onCheckIn,
 }) {
   const caloriesToday = Number(todayEntry?.calories || 0);
@@ -325,6 +620,32 @@ function OverviewSection({
         </div>
       </section>
 
+      <section style={panel}>
+        <div style={sectionHeaderRow}>
+          <div>
+            <p style={eyebrow}>Current Phase</p>
+            <h2 style={sectionTitle}>{activePhase?.name || "No Active Phase"}</h2>
+          </div>
+          <button type="button" onClick={onOpenPhases} style={ghostButton}>
+            Phases
+          </button>
+        </div>
+        {activePhase ? (
+          <div style={metricRows}>
+            <MetricRow label="Phase type" value={formatPhaseType(activePhase.type)} accent={YELLOW} />
+            <MetricRow label="Current trend" value={phaseProgress?.weeklyRate === null ? "Need more data" : `${phaseProgress?.weeklyRate > 0 ? "+" : ""}${phaseProgress?.weeklyRate} ${targets.weightUnit || "lb"}/wk`} />
+            <MetricRow label="Target trend" value={phaseProgress?.targetWeeklyRate || "--"} />
+            <MetricRow label="Calorie target" value={activePhase.currentCalorieTarget || targets.calorieTarget || "--"} accent={ACCENT} />
+            <MetricRow label="Protein target" value={`${activePhase.proteinTarget || targets.proteinTarget || "--"}g`} accent={GREEN} />
+            <MetricRow label="Estimated completion" value={phaseProgress?.projectedEndDate || activePhase.plannedEndDate || "--"} />
+            <MetricRow label="Status" value={activePhase.status} />
+          </div>
+        ) : (
+          <EmptyState copy="Create your first phase to connect nutrition targets with bodyweight trends." />
+        )}
+        <p style={muted}>{phaseMessage}</p>
+      </section>
+
       <section style={grid}>
         <section style={panel}>
           <p style={eyebrow}>Insights</p>
@@ -346,12 +667,26 @@ function OverviewSection({
             <span style={miniPill}>{weights.length} weigh-ins</span>
           </div>
         </section>
+
+        <section style={panel}>
+          <p style={eyebrow}>Weekly</p>
+          <h2 style={sectionTitle}>Review</h2>
+          <p style={muted}>Generate this week’s review from logged weight, nutrition, workouts, recovery, and measurements.</p>
+          <div style={pillRow}>
+            <button type="button" className="primary" onClick={onGenerateReview} style={compactPrimary}>
+              Generate Review
+            </button>
+            <button type="button" onClick={onOpenPhases} style={ghostButton}>
+              Open Reviews
+            </button>
+          </div>
+        </section>
       </section>
     </>
   );
 }
 
-function StrengthSection({ data, goals, trend }) {
+function StrengthSection({ data, goals, trend, relativeStrength, trackedLifts, toggleTrackedLift }) {
   const leadGoal = goals[0] || {
     label: "Bench",
     current: 0,
@@ -417,6 +752,44 @@ function StrengthSection({ data, goals, trend }) {
           </div>
         </section>
       </section>
+
+      <section style={panel}>
+        <div style={sectionHeaderRow}>
+          <div>
+            <p style={eyebrow}>Relative Strength</p>
+            <h2 style={sectionTitle}>Strength-To-Bodyweight</h2>
+          </div>
+        </div>
+        <div style={pillRow}>
+          {DEFAULT_TRACKED_LIFTS.map((lift) => (
+            <button
+              key={lift}
+              type="button"
+              onClick={() => toggleTrackedLift(lift)}
+              style={{ ...smallButton, ...(trackedLifts.includes(lift) ? activeSmallButton : {}) }}
+            >
+              {lift}
+            </button>
+          ))}
+        </div>
+        <div style={compactList}>
+          {relativeStrength.map((item) => (
+            <div key={item.lift} style={historyRow}>
+              <div>
+                <strong>{item.lift}</strong>
+                <p style={mutedSmall}>
+                  {item.currentBest ? `${item.currentBest.weight} lb x ${item.currentBest.reps} · e1RM ${item.currentEstimated1rm?.estimated1rm || "--"} lb` : "Complete more workouts to calculate relative-strength trends."}
+                </p>
+              </div>
+              <div style={ratioStack}>
+                <strong>{item.bestRatio?.e1rmRatio ? `${item.bestRatio.e1rmRatio}x` : "--"}</strong>
+                <span style={mutedSmall}>best ratio</span>
+                <span style={mutedSmall}>phase {item.phaseRatioChange === null ? "--" : `${item.phaseRatioChange > 0 ? "+" : ""}${item.phaseRatioChange}x`}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
     </>
   );
 }
@@ -448,6 +821,14 @@ function BodySection({
   requestDelete,
   deletedEntry,
   undoDelete,
+  measurements,
+  measurementForm,
+  setMeasurementForm,
+  saveMeasurementForm,
+  requestMeasurementDelete,
+  deletedMeasurement,
+  undoMeasurementDelete,
+  activePhase,
 }) {
   const latestWeight = weights[weights.length - 1]?.value;
   const startWeight = weights[0]?.value;
@@ -457,6 +838,7 @@ function BodySection({
   const averageSleep = averageDaily(checkIns, "sleepHours", 7);
   const averageSteps = averageDaily(checkIns, "steps", 7);
   const activeEntry = checkIns.find((entry) => entry.date === (form.date || getTodayKey())) || {};
+  const waistTrend = getMeasurementChanges(measurements, activePhase, "Waist");
 
   return (
     <>
@@ -605,6 +987,73 @@ function BodySection({
       <section style={panel}>
         <div style={sectionHeaderRow}>
           <div>
+            <p style={eyebrow}>Measurements</p>
+            <h2 style={sectionTitle}>Body Measurements</h2>
+          </div>
+          {deletedMeasurement && (
+            <button type="button" onClick={undoMeasurementDelete} style={ghostButton}>
+              Undo Delete
+            </button>
+          )}
+        </div>
+        <div style={metricRows}>
+          <MetricRow label="Latest waist" value={waistTrend.latest ? `${waistTrend.latest} ${measurementForm.unit}` : "--"} accent={YELLOW} />
+          <MetricRow label="Change from previous" value={waistTrend.previousChange === null ? "--" : `${waistTrend.previousChange > 0 ? "+" : ""}${waistTrend.previousChange} ${measurementForm.unit}`} />
+          <MetricRow label="Change this month" value={waistTrend.monthChange === null ? "--" : `${waistTrend.monthChange > 0 ? "+" : ""}${waistTrend.monthChange} ${measurementForm.unit}`} />
+          <MetricRow label="Change in phase" value={waistTrend.phaseChange === null ? "--" : `${waistTrend.phaseChange > 0 ? "+" : ""}${waistTrend.phaseChange} ${measurementForm.unit}`} />
+        </div>
+        <form onSubmit={saveMeasurementForm} style={measurementGrid}>
+          <Field label="Date" type="date" value={measurementForm.date} onChange={(value) => setMeasurementForm({ ...measurementForm, date: value })} />
+          <Field label="Unit" as="select" value={measurementForm.unit} onChange={(value) => setMeasurementForm({ ...measurementForm, unit: value })}>
+            <option value="in">Inches</option>
+            <option value="cm">Centimeters</option>
+          </Field>
+          {DEFAULT_MEASUREMENT_TYPES.map((type) => (
+            <Field
+              key={type}
+              label={type}
+              type="number"
+              step="0.1"
+              value={measurementForm.measurements[type] || ""}
+              onChange={(value) =>
+                setMeasurementForm({
+                  ...measurementForm,
+                  measurements: { ...measurementForm.measurements, [type]: value },
+                })
+              }
+            />
+          ))}
+          <label style={{ ...field, gridColumn: "1 / -1" }}>
+            <span style={fieldLabel}>Notes</span>
+            <input value={measurementForm.notes} onChange={(event) => setMeasurementForm({ ...measurementForm, notes: event.target.value })} placeholder="Optional" />
+          </label>
+          <div style={stickyActions}>
+            <button type="submit" className="primary" style={saveButton}>
+              Save Measurements
+            </button>
+          </div>
+        </form>
+        <div style={compactList}>
+          {measurements.slice(-5).reverse().map((entry) => (
+            <div key={entry.id} style={historyRow}>
+              <div>
+                <strong>{entry.date}</strong>
+                <p style={mutedSmall}>
+                  {Object.entries(entry.measurements).slice(0, 4).map(([name, value]) => `${name}: ${value}${entry.unit}`).join(" · ")}
+                </p>
+              </div>
+              <button type="button" onClick={() => requestMeasurementDelete(entry)} style={dangerGhost}>
+                Delete
+              </button>
+            </div>
+          ))}
+          {measurements.length === 0 && <EmptyState copy="Add waist measurements to monitor changes during your bulk or cut." />}
+        </div>
+      </section>
+
+      <section style={panel}>
+        <div style={sectionHeaderRow}>
+          <div>
             <p style={eyebrow}>History</p>
             <h2 style={sectionTitle}>Recent Check-Ins</h2>
           </div>
@@ -633,6 +1082,251 @@ function BodySection({
           {checkIns.length === 0 && <EmptyState copy="Complete today’s check-in to view recovery insights." />}
         </div>
       </section>
+    </>
+  );
+}
+
+function PhasesSection({
+  phases,
+  activePhase,
+  phaseProgress,
+  phaseForm,
+  setPhaseForm,
+  resetPhaseForm,
+  savePhaseForm,
+  editPhase,
+  changePhaseStatus,
+  requestPhaseDelete,
+  expandedPhaseId,
+  setExpandedPhaseId,
+  movePhase,
+  deletedPhase,
+  undoPhaseDelete,
+  weeklyReviews,
+  weekStartDay,
+  updateWeekStart,
+  generateReview,
+  updateReviewNotes,
+  exportReviewToNotes,
+  recommendation,
+  applyRecommendation,
+  updateRecommendation,
+  targetHistory,
+  measurements,
+  relativeStrength,
+  checkIns,
+  workouts,
+}) {
+  const completionSummary = activePhase
+    ? buildPhaseCompletionSummary(activePhase, checkIns, workouts, measurements, relativeStrength)
+    : null;
+
+  return (
+    <>
+      <section style={grid}>
+        <section style={panel}>
+          <div style={sectionHeaderRow}>
+            <div>
+              <p style={eyebrow}>Current</p>
+              <h2 style={sectionTitle}>{activePhase?.name || "No Active Phase"}</h2>
+            </div>
+            <button type="button" onClick={resetPhaseForm} className="primary" style={compactPrimary}>
+              New Phase
+            </button>
+          </div>
+          {activePhase ? (
+            <div style={metricRows}>
+              <MetricRow label="Type" value={formatPhaseType(activePhase.type)} accent={YELLOW} />
+              <MetricRow label="Dates" value={`${activePhase.startDate} to ${activePhase.plannedEndDate || "--"}`} />
+              <MetricRow label="Current 7-day weight" value={phaseProgress?.currentWeight ? `${phaseProgress.currentWeight} lb` : "--"} />
+              <MetricRow label="Starting weight" value={phaseProgress?.startingWeight ? `${phaseProgress.startingWeight} lb` : "--"} />
+              <MetricRow label="Target weight" value={phaseProgress?.targetWeight ? `${phaseProgress.targetWeight} lb` : "Maintenance range"} />
+              <MetricRow label="Weight changed" value={phaseProgress?.weightChange === null ? "--" : `${phaseProgress.weightChange > 0 ? "+" : ""}${phaseProgress.weightChange} lb`} />
+              <MetricRow label="Target progress" value={activePhase.type === "maintenance" ? (phaseProgress?.maintenanceInRange ? "Within range" : "Outside range") : phaseProgress?.percent === null ? "--" : `${phaseProgress.percent}%`} />
+              <MetricRow label="Days completed" value={phaseProgress?.daysCompleted ?? "--"} />
+              <MetricRow label="Days remaining" value={phaseProgress?.daysRemaining ?? "--"} />
+              <MetricRow label="Actual weekly rate" value={phaseProgress?.weeklyRate === null ? "--" : `${phaseProgress.weeklyRate > 0 ? "+" : ""}${phaseProgress.weeklyRate} lb/wk`} />
+              <MetricRow label="Target weekly rate" value={phaseProgress?.targetWeeklyRate || "--"} />
+              <MetricRow label="Calories / Protein" value={`${activePhase.currentCalorieTarget || "--"} cal · ${activePhase.proteinTarget || "--"}g`} />
+            </div>
+          ) : (
+            <EmptyState copy="Create your first phase to connect nutrition targets with bodyweight trends." />
+          )}
+        </section>
+
+        <section style={panel}>
+          <p style={eyebrow}>Calorie Recommendation</p>
+          <h2 style={sectionTitle}>{formatRecommendation(recommendation)}</h2>
+          <p style={muted}>{recommendation.reason}</p>
+          <div style={metricRows}>
+            <MetricRow label="Current target" value={recommendation.currentTarget || activePhase?.currentCalorieTarget || "--"} />
+            <MetricRow label="Recommended target" value={recommendation.recommendedTarget || "--"} />
+            <MetricRow label="Confidence" value={recommendation.confidence} />
+          </div>
+          <div style={pillRow}>
+            {recommendation.adjustment ? (
+              <button type="button" className="primary" onClick={applyRecommendation} style={compactPrimary}>
+                Apply
+              </button>
+            ) : null}
+            <button type="button" onClick={() => updateRecommendation("dismissed")} style={ghostButton}>
+              Dismiss
+            </button>
+            <button type="button" onClick={() => updateRecommendation("snoozed")} style={ghostButton}>
+              Snooze 1 Week
+            </button>
+          </div>
+        </section>
+      </section>
+
+      {phaseForm.startDate && (
+        <section style={panel}>
+          <p style={eyebrow}>{phaseForm.id ? "Edit" : "Create"}</p>
+          <h2 style={sectionTitle}>Phase Details</h2>
+          <form onSubmit={savePhaseForm} style={formGrid}>
+            <Field label="Name" value={phaseForm.name} onChange={(value) => setPhaseForm({ ...phaseForm, name: value })} />
+            <Field label="Type" as="select" value={phaseForm.type} onChange={(value) => setPhaseForm(applyPhaseTypeDefaults({ ...phaseForm, type: value }))}>
+              {PHASE_TYPES.map((type) => <option key={type.id} value={type.id}>{type.label}</option>)}
+            </Field>
+            <Field label="Status" as="select" value={phaseForm.status} onChange={(value) => setPhaseForm({ ...phaseForm, status: value })}>
+              <option value="planned">Planned</option>
+              <option value="active">Active</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+            </Field>
+            <Field label="Start date" type="date" value={phaseForm.startDate} onChange={(value) => setPhaseForm({ ...phaseForm, startDate: value })} />
+            <Field label="Planned end" type="date" value={phaseForm.plannedEndDate} onChange={(value) => setPhaseForm({ ...phaseForm, plannedEndDate: value })} />
+            <Field label="Actual end" type="date" value={phaseForm.actualEndDate} onChange={(value) => setPhaseForm({ ...phaseForm, actualEndDate: value })} />
+            <Field label="Starting weight" type="number" step="0.1" value={phaseForm.startingWeight} onChange={(value) => setPhaseForm({ ...phaseForm, startingWeight: value })} />
+            <Field label="Target weight" type="number" step="0.1" value={phaseForm.targetWeight} onChange={(value) => setPhaseForm({ ...phaseForm, targetWeight: value })} />
+            <Field label="Ending weight" type="number" step="0.1" value={phaseForm.endingWeight} onChange={(value) => setPhaseForm({ ...phaseForm, endingWeight: value })} />
+            <Field label="Starting calories" type="number" value={phaseForm.startingCalorieTarget} onChange={(value) => setPhaseForm({ ...phaseForm, startingCalorieTarget: value })} />
+            <Field label="Current calories" type="number" value={phaseForm.currentCalorieTarget} onChange={(value) => setPhaseForm({ ...phaseForm, currentCalorieTarget: value })} />
+            <Field label="Protein" type="number" value={phaseForm.proteinTarget} onChange={(value) => setPhaseForm({ ...phaseForm, proteinTarget: value })} />
+            <Field label="Weekly min" type="number" step="0.1" value={phaseForm.targetWeeklyWeightChangeMin} onChange={(value) => setPhaseForm({ ...phaseForm, targetWeeklyWeightChangeMin: value })} />
+            <Field label="Weekly max" type="number" step="0.1" value={phaseForm.targetWeeklyWeightChangeMax} onChange={(value) => setPhaseForm({ ...phaseForm, targetWeeklyWeightChangeMax: value })} />
+            <label style={{ ...field, gridColumn: "1 / -1" }}>
+              <span style={fieldLabel}>Notes</span>
+              <input value={phaseForm.notes} onChange={(event) => setPhaseForm({ ...phaseForm, notes: event.target.value })} />
+            </label>
+            <div style={stickyActions}>
+              <button type="submit" className="primary" style={saveButton}>Save Phase</button>
+            </div>
+          </form>
+        </section>
+      )}
+
+      <section style={panel}>
+        <div style={sectionHeaderRow}>
+          <div>
+            <p style={eyebrow}>Timeline</p>
+            <h2 style={sectionTitle}>Phases</h2>
+          </div>
+          {deletedPhase && <button type="button" onClick={undoPhaseDelete} style={ghostButton}>Undo Delete</button>}
+        </div>
+        <div style={timeline}>
+          {phases.map((phase) => {
+            const open = expandedPhaseId === phase.id;
+            const progress = buildPhaseProgress(phase, checkIns);
+            return (
+              <article key={phase.id} style={{ ...timelineItem, ...(phase.status === "active" ? activeTimelineItem : {}) }}>
+                <button type="button" onClick={() => setExpandedPhaseId(open ? "" : phase.id)} style={timelineHeader}>
+                  <span style={timelineDot} />
+                  <span>
+                    <strong>{phase.name}</strong>
+                    <small style={mutedSmall}>{formatPhaseType(phase.type)} · {phase.status} · {phase.startDate} to {phase.actualEndDate || phase.plannedEndDate || "--"}</small>
+                  </span>
+                  <strong>{phase.currentCalorieTarget || "--"} cal</strong>
+                </button>
+                {open && (
+                  <div style={timelineDetails}>
+                    <div style={metricRows}>
+                      <MetricRow label="Starting / target / ending weight" value={`${phase.startingWeight || "--"} / ${phase.targetWeight || "--"} / ${phase.endingWeight || "--"}`} />
+                      <MetricRow label="Planned / actual rate" value={`${progress?.targetWeeklyRate || "--"} · ${progress?.weeklyRate ?? "--"} lb/wk`} />
+                      <MetricRow label="Duration" value={`${progress?.totalDays || "--"} days`} />
+                      <MetricRow label="Protein target" value={`${phase.proteinTarget || "--"}g`} />
+                      <MetricRow label="Notes" value={phase.notes || "--"} />
+                    </div>
+                    <div style={rowActions}>
+                      <button type="button" onClick={() => editPhase(phase)} style={smallButton}>Edit</button>
+                      {phase.status === "planned" && <button type="button" onClick={() => changePhaseStatus(phase, "active")} style={smallButton}>Start</button>}
+                      {phase.status === "planned" && <button type="button" onClick={() => movePhase(phase.id, -1)} style={smallButton}>Up</button>}
+                      {phase.status === "planned" && <button type="button" onClick={() => movePhase(phase.id, 1)} style={smallButton}>Down</button>}
+                      {phase.status === "active" && <button type="button" onClick={() => changePhaseStatus(phase, "completed")} style={smallButton}>Complete</button>}
+                      {phase.status !== "cancelled" && <button type="button" onClick={() => changePhaseStatus(phase, "cancelled")} style={smallButton}>Cancel</button>}
+                      <button type="button" onClick={() => requestPhaseDelete(phase)} style={dangerGhost}>Delete</button>
+                    </div>
+                  </div>
+                )}
+              </article>
+            );
+          })}
+          {phases.length === 0 && <EmptyState copy="Create your first phase to connect nutrition targets with bodyweight trends." />}
+        </div>
+      </section>
+
+      <section style={grid}>
+        <section style={panel}>
+          <div style={sectionHeaderRow}>
+            <div>
+              <p style={eyebrow}>Weekly</p>
+              <h2 style={sectionTitle}>Reviews</h2>
+            </div>
+            <button type="button" className="primary" onClick={generateReview} style={compactPrimary}>Generate</button>
+          </div>
+          <Field label="Week starts" as="select" value={weekStartDay} onChange={updateWeekStart}>
+            <option value="0">Sunday</option>
+            <option value="1">Monday</option>
+            <option value="6">Saturday</option>
+          </Field>
+          <div style={compactList}>
+            {weeklyReviews.slice(0, 4).map((review) => (
+              <article key={review.id} style={insightRow}>
+                <strong>{review.weekStart} to {review.weekEnd}</strong>
+                <p style={muted}>{review.summary}</p>
+                <div style={metricRows}>
+                  <MetricRow label="Completeness" value={`${review.dataCompleteness || 0}% · ${review.confidence}`} />
+                  <MetricRow label="Weight / calories / protein" value={`${review.averageWeight || "--"} lb · ${review.averageCalories || "--"} cal · ${review.averageProtein || "--"}g`} />
+                  <MetricRow label="Workouts" value={review.workoutsCompleted || 0} />
+                </div>
+                <input value={review.userNotes || ""} onChange={(event) => updateReviewNotes(review, event.target.value)} placeholder="Review notes" />
+                <button type="button" onClick={() => exportReviewToNotes(review)} style={ghostButton}>Export to Notes</button>
+              </article>
+            ))}
+            {weeklyReviews.length === 0 && <EmptyState copy="Your weekly review will appear after enough data is logged." />}
+          </div>
+        </section>
+
+        <section style={panel}>
+          <p style={eyebrow}>Calorie History</p>
+          <h2 style={sectionTitle}>Target Changes</h2>
+          <div style={compactList}>
+            {targetHistory.filter((entry) => !activePhase || entry.phaseId === activePhase.id).slice(0, 6).map((entry) => (
+              <div key={entry.id} style={compactRow}>
+                <span>{entry.date} · {entry.source}</span>
+                <strong>{entry.previousTarget || "--"} → {entry.newTarget}</strong>
+              </div>
+            ))}
+            {targetHistory.length === 0 && <EmptyState copy="Calorie target history will appear when a phase starts or a recommendation is applied." />}
+          </div>
+        </section>
+      </section>
+
+      {activePhase && (
+        <section style={panel}>
+          <p style={eyebrow}>Completion Preview</p>
+          <h2 style={sectionTitle}>Phase Summary</h2>
+          <div style={metricRows}>
+            <MetricRow label="Weight change" value={completionSummary?.totalWeightChange === null ? "--" : `${completionSummary?.totalWeightChange > 0 ? "+" : ""}${completionSummary?.totalWeightChange} lb`} />
+            <MetricRow label="Average weekly change" value={completionSummary?.averageWeeklyWeightChange === null ? "--" : `${completionSummary?.averageWeeklyWeightChange} lb/wk`} />
+            <MetricRow label="Calories" value={`${completionSummary?.startingCalorieTarget || "--"} → ${completionSummary?.endingCalorieTarget || "--"}`} />
+            <MetricRow label="Average intake" value={`${completionSummary?.averageCalories || "--"} cal · ${completionSummary?.averageProtein || "--"}g protein`} />
+            <MetricRow label="Waist change" value={completionSummary?.waistChange === null ? "--" : `${completionSummary?.waistChange > 0 ? "+" : ""}${completionSummary?.waistChange}`} />
+            <MetricRow label="Workouts" value={completionSummary?.workoutsCompleted || 0} />
+            <MetricRow label="Average sleep" value={completionSummary?.averageSleep ? `${completionSummary.averageSleep} hr` : "--"} />
+          </div>
+        </section>
+      )}
     </>
   );
 }
@@ -788,6 +1482,94 @@ function fromDailyForm(form) {
   return next;
 }
 
+function createMeasurementForm(seed = {}) {
+  return {
+    date: seed.date || getTodayKey(),
+    unit: seed.unit || "in",
+    measurements: seed.measurements || {},
+    bodyweight: seed.bodyweight || "",
+    notes: seed.notes || "",
+  };
+}
+
+function fromMeasurementForm(form, activePhase) {
+  const measurements = {};
+  Object.entries(form.measurements || {}).forEach(([key, value]) => {
+    if (value !== "") measurements[key] = Number(value);
+  });
+  return {
+    date: form.date || getTodayKey(),
+    unit: form.unit || "in",
+    measurements,
+    bodyweight: form.bodyweight || "",
+    phaseId: activePhase?.id || "",
+    notes: form.notes || "",
+  };
+}
+
+function toPhaseForm(phase) {
+  return {
+    ...EMPTY_PHASE_FORM,
+    ...Object.fromEntries(Object.entries(phase || {}).map(([key, value]) => [key, value ?? ""])),
+    startDate: phase?.startDate || getTodayKey(),
+    plannedEndDate: phase?.plannedEndDate || addDateDays(getTodayKey(), 55),
+  };
+}
+
+function fromPhaseForm(form) {
+  const numeric = [
+    "startingWeight",
+    "targetWeight",
+    "endingWeight",
+    "startingCalorieTarget",
+    "currentCalorieTarget",
+    "proteinTarget",
+    "targetWeeklyWeightChangeMin",
+    "targetWeeklyWeightChangeMax",
+  ];
+  const phase = {
+    id: form.id || "",
+    name: form.name || formatPhaseType(form.type),
+    type: form.type || "lean-bulk",
+    status: form.status || "planned",
+    startDate: form.startDate || getTodayKey(),
+    plannedEndDate: form.plannedEndDate || "",
+    actualEndDate: form.actualEndDate || "",
+    notes: form.notes || "",
+  };
+  numeric.forEach((field) => {
+    if (form[field] !== "") phase[field] = Number(form[field]);
+  });
+  return phase;
+}
+
+function applyPhaseTypeDefaults(form) {
+  const type = PHASE_TYPES.find((item) => item.id === form.type);
+  if (!type) return form;
+  return {
+    ...form,
+    targetWeeklyWeightChangeMin: form.targetWeeklyWeightChangeMin || type.defaults[0],
+    targetWeeklyWeightChangeMax: form.targetWeeklyWeightChangeMax || type.defaults[1],
+    name: form.name || type.label,
+  };
+}
+
+function formatRecommendation(recommendation) {
+  if (!recommendation) return "Insufficient data";
+  if (recommendation.outcome === "increase") return `Increase ${recommendation.adjustment || 0} calories`;
+  if (recommendation.outcome === "decrease") return `Decrease ${Math.abs(recommendation.adjustment || 0)} calories`;
+  if (recommendation.outcome === "keep") return "Keep calories";
+  if (recommendation.outcome === "unstable-data") return "Unstable data";
+  return "Insufficient data";
+}
+
+function addDateDays(dateKey, days) {
+  const [year, month, day] = String(dateKey || getTodayKey()).split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  date.setDate(date.getDate() + days);
+  return getTodayKey(date);
+}
+
 function getWorkoutMinutesForDate(workouts, dateKey) {
   const sessions = (workouts || []).filter((workout) => getTodayKey(new Date(workout.date || Date.now())) === dateKey);
   const manual = sessions.reduce((sum, workout) => sum + Number(workout.durationMinutes || workout.summary?.durationMinutes || 0), 0);
@@ -877,6 +1659,7 @@ const pillRow = { display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 };
 const miniPill = { border: "1px solid #242424", borderRadius: 999, padding: "7px 10px", color: "#aaa", background: "#0b0b0b", fontSize: 12, fontWeight: 850 };
 const formGrid = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 10 };
 const morningGrid = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 10, alignItems: "end" };
+const measurementGrid = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginTop: 12 };
 const field = { display: "grid", gap: 6, minWidth: 0 };
 const fullField = { gridColumn: "1 / -1" };
 const fieldLabel = { color: "#777", fontSize: 12, fontWeight: 850, textTransform: "uppercase" };
@@ -905,5 +1688,13 @@ const legendDot = { display: "inline-block", width: 8, height: 8, borderRadius: 
 const historyRow = { display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", border: "1px solid #1f1f1f", borderRadius: 10, padding: 10, background: "#0b0b0b" };
 const rowActions = { display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" };
 const smallButton = { padding: "7px 10px", borderRadius: 8 };
+const activeSmallButton = { background: ACCENT, borderColor: ACCENT, color: "#050505" };
 const dangerGhost = { ...smallButton, color: RED, borderColor: "rgba(255, 107, 44, 0.35)", background: "rgba(255, 107, 44, 0.08)" };
 const ghostButton = { color: ACCENT, borderColor: "rgba(50, 207, 255, 0.35)", background: "rgba(50, 207, 255, 0.08)" };
+const ratioStack = { display: "grid", gap: 2, textAlign: "right", minWidth: 84 };
+const timeline = { display: "grid", gap: 10 };
+const timelineItem = { border: "1px solid #202020", borderRadius: 10, background: "#0b0b0b", overflow: "hidden" };
+const activeTimelineItem = { borderColor: "rgba(228, 255, 47, 0.45)", boxShadow: "0 0 0 1px rgba(228, 255, 47, 0.08)" };
+const timelineHeader = { width: "100%", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 10, alignItems: "center", border: 0, borderRadius: 0, background: "transparent", textAlign: "left", padding: 12 };
+const timelineDot = { width: 10, height: 10, borderRadius: "50%", background: YELLOW, boxShadow: "0 0 14px rgba(228, 255, 47, 0.35)" };
+const timelineDetails = { borderTop: "1px solid #1d1d1d", padding: 12 };

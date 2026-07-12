@@ -14,6 +14,7 @@ import {
   saveDailyCheckIn,
   saveProgressTargets,
 } from "../lib/progressTracking";
+import { buildPhaseTargets, getActivePhase, getPhases } from "../lib/progressPhase2";
 
 const PROTEIN_QUICK_AMOUNTS = [2.5, 5, 10, 25];
 const CALORIE_QUICK_AMOUNTS = [100, 250, 500];
@@ -25,6 +26,7 @@ export default function Nutrition() {
   const [proteinLog, setProteinLog] = useState({});
   const [checkIns, setCheckIns] = useState([]);
   const [targets, setTargets] = useState({ calorieTarget: 2800, proteinTarget: 160 });
+  const [activePhase, setActivePhase] = useState(null);
   const [customProtein, setCustomProtein] = useState("");
   const [customCalories, setCustomCalories] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
@@ -35,6 +37,7 @@ export default function Nutrition() {
       setProteinLog(getProteinLog());
       setCheckIns(getDailyCheckIns());
       setTargets(savedTargets);
+      setActivePhase(getActivePhase(getPhases()));
       setSelectedDate(getTodayKey());
     }, 0);
 
@@ -43,15 +46,16 @@ export default function Nutrition() {
 
   const dateKey = selectedDate || getTodayKey();
   const entry = useMemo(() => getEntryForDate(checkIns, dateKey), [checkIns, dateKey]);
+  const activeTargets = useMemo(() => buildPhaseTargets(targets, activePhase), [targets, activePhase]);
   const proteinSummary = useMemo(
-    () => getProteinSummary(proteinLog, Number(targets.proteinTarget || getProteinTarget())),
-    [proteinLog, targets.proteinTarget]
+    () => getProteinSummary(proteinLog, Number(activeTargets.proteinTarget || getProteinTarget())),
+    [proteinLog, activeTargets.proteinTarget]
   );
   const caloriesToday = Number(entry.calories || 0);
   const proteinToday = Number(entry.protein ?? proteinLog[dateKey] ?? 0);
-  const calorieTarget = Number(targets.calorieTarget || 0);
-  const proteinTarget = Number(targets.proteinTarget || 0);
-  const recentDays = useMemo(() => buildRecentDays(checkIns, proteinLog, targets), [checkIns, proteinLog, targets]);
+  const calorieTarget = Number(activeTargets.calorieTarget || 0);
+  const proteinTarget = Number(activeTargets.proteinTarget || 0);
+  const recentDays = useMemo(() => buildRecentDays(checkIns, proteinLog, activeTargets), [checkIns, proteinLog, activeTargets]);
 
   function updateTargets(nextTargets) {
     const saved = saveProgressTargets(nextTargets);
@@ -98,6 +102,7 @@ export default function Nutrition() {
           <span style={fieldLabel}>Tracking date</span>
           <input type="date" value={dateKey} onChange={(event) => setSelectedDate(event.target.value)} />
         </label>
+        {activePhase && <p style={muted}>Targets are coming from active phase: {activePhase.name}</p>}
       </section>
 
       <section className="protein-hero" style={heroCard}>
@@ -150,7 +155,7 @@ export default function Nutrition() {
             <span style={fieldLabel}>Calories</span>
             <input
               type="number"
-              value={targets.calorieTarget || ""}
+              value={activeTargets.calorieTarget || ""}
               onChange={(event) => updateTargets({ ...targets, calorieTarget: event.target.value })}
             />
           </label>
@@ -158,7 +163,7 @@ export default function Nutrition() {
             <span style={fieldLabel}>Protein (g)</span>
             <input
               type="number"
-              value={targets.proteinTarget || ""}
+              value={activeTargets.proteinTarget || ""}
               onChange={(event) => updateTargets({ ...targets, proteinTarget: event.target.value })}
             />
           </label>
