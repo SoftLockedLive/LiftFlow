@@ -351,6 +351,8 @@ const dateCard = {
 };
 
 const heroCard = {
+  display: "flex",
+  flexWrap: "wrap",
   border: "1px solid rgba(50, 207, 255, 0.32)",
   borderRadius: 16,
   background: "#101010",
@@ -362,12 +364,16 @@ const heroCard = {
 };
 
 const heroMacro = {
-  flex: "1 1 0",
+  flex: "1 1 300px",
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
   gap: 14,
   minWidth: 0,
+  border: "1px solid #1f1f1f",
+  borderRadius: 12,
+  background: "#0b0b0b",
+  padding: 12,
 };
 
 const heroLabel = {
@@ -379,7 +385,7 @@ const heroLabel = {
 
 const heroNumber = {
   marginTop: 6,
-  fontSize: 46,
+  fontSize: 40,
   lineHeight: 1,
   fontWeight: 900,
 };
@@ -396,10 +402,10 @@ const muted = {
 };
 
 const ring = {
-  width: 82,
-  height: 82,
+  width: 72,
+  height: 72,
   borderRadius: "50%",
-  border: "8px solid",
+  border: "7px solid",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",

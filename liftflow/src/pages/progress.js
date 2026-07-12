@@ -486,7 +486,7 @@ function BodySection({
           <span style={saveHint}>Recovery, activity, notes</span>
         </div>
         <form onSubmit={saveForm} style={formGrid}>
-          <Field label="Date" type="date" value={form.date} onChange={(value) => updateForm("date", value)} />
+          <Field label="Date" type="date" value={form.date} onChange={(value) => updateForm("date", value)} full />
           <Field label="Steps" type="number" value={form.steps} onChange={(value) => updateForm("steps", value)} />
           <Field label="Sleep hours" type="number" value={form.sleepHours} onChange={(value) => updateForm("sleepHours", value)} step="0.25" />
           <Field label="Sleep score" type="number" value={form.sleepScore} onChange={(value) => updateForm("sleepScore", value)} />
@@ -655,9 +655,9 @@ function GoalCard({ goal }) {
   );
 }
 
-function Field({ label, value, onChange, type = "text", step, as, children }) {
+function Field({ label, value, onChange, type = "text", step, as, children, full = false }) {
   return (
-    <label style={field}>
+    <label style={{ ...field, ...(full ? fullField : {}) }}>
       <span style={fieldLabel}>{label}</span>
       {as === "select" ? (
         <select value={value || ""} onChange={(event) => onChange(event.target.value)}>
@@ -875,16 +875,17 @@ const empty = { color: "#555", fontWeight: 850 };
 const emptyState = { color: "#666", border: "1px dashed #2a2a2a", borderRadius: 10, padding: 12, fontWeight: 800, background: "#0b0b0b" };
 const pillRow = { display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 };
 const miniPill = { border: "1px solid #242424", borderRadius: 999, padding: "7px 10px", color: "#aaa", background: "#0b0b0b", fontSize: 12, fontWeight: 850 };
-const formGrid = { display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10 };
-const morningGrid = { display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: 10, alignItems: "end" };
+const formGrid = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 10 };
+const morningGrid = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 10, alignItems: "end" };
 const field = { display: "grid", gap: 6, minWidth: 0 };
+const fullField = { gridColumn: "1 / -1" };
 const fieldLabel = { color: "#777", fontSize: 12, fontWeight: 850, textTransform: "uppercase" };
 const scaleRow = { display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1fr))", gap: 6 };
 const scaleButton = { padding: "9px 0", borderRadius: 8, background: "#0b0b0b", color: "#777" };
 const scaleButtonActive = { background: ACCENT, borderColor: ACCENT, color: "#050505" };
 const saveHint = { color: "#777", fontSize: 12, fontWeight: 850 };
 const stickyActions = { gridColumn: "1 / -1", position: "sticky", bottom: 78, zIndex: 10, display: "flex", justifyContent: "flex-end", paddingTop: 4 };
-const saveButton = { minWidth: 150 };
+const saveButton = { minWidth: 150, minHeight: 42 };
 const rangeTabs = { display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" };
 const rangeButton = { padding: "7px 10px", borderRadius: 999, color: "#777", background: "#0b0b0b" };
 const rangeButtonActive = { color: "#050505", background: YELLOW, borderColor: YELLOW };
