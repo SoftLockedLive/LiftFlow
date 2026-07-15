@@ -220,82 +220,105 @@ export const PROGRAM_TEMPLATES = [
   {
     id: "peyto-split",
     name: "Peyto Split",
-    summary: "ULPPL powerbuilding split for bench strength, hypertrophy, arms, shoulders, core, neck, and recovery.",
+    summary: "Weekly powerbuilding routine with bench, squat, deadlift, hypertrophy, recovery, and mobility.",
     days: {
       Monday: day("Upper (Bench Strength)", [
-        lift("Barbell Bench Press", "chest", "4", "3-5", "Band pull-aparts, external rotations, shoulder circles, 2-4 ramp-up sets"),
-        lift("Chest-Supported Row", "back", "3", "8-10", "Light rows, scap squeezes"),
-        lift("Standing Overhead Press", "shoulders", "3", "6-8", "Wall slides, empty bar presses"),
-        lift("Lat Pulldown", "back", "3", "8-10", "Dead hang, scap pull-downs"),
-        lift("Cable Lateral Raise", "shoulders", "2", "15-20", "Shoulder circles"),
-        lift("Bayesian Curl", "arms", "3", "10-12", "Wrist and elbow circles"),
-        lift("Overhead Triceps Extension", "arms", "3", "10-12", "Elbow circles, light extensions"),
-        lift("EZ-Bar Curl", "arms", "2-3", "8-10", "Wrist and elbow circles"),
-        lift("Face Pull", "shoulders", "2", "15-20", "Band pull-aparts"),
+        lift("Bench Press", "chest", "4", "3-5", "Main strength focus. Keep reps controlled and leave room for progression."),
+        lift("Chest-Supported Row", "back", "3", "8-10", "Strict torso position. Pull elbows back, not up."),
+        lift("Standing Overhead Press", "shoulders", "3", "6-8", "Brace hard. Avoid turning it into a push press."),
+        lift("Lat Pulldown", "back", "3", "8-10", "Drive elbows down and keep shoulders controlled."),
+        lift("Cable Lateral Raise", "shoulders", "2", "15-20", "Slow reps. Keep tension on side delts."),
+        lift("Bayesian Curl", "arms", "3", "10-12", "Let the biceps stretch behind the body."),
+        lift("Overhead Triceps Extension", "arms", "3", "10-12", "Full stretch, controlled lockout."),
+        lift("EZ-Bar Curl", "arms", "2-3", "8-10", "Use clean reps. Do not swing."),
+      ], [
+        warmup("Row", "time", "3 min"),
+        warmup("Band pull-aparts", "reps", { sets: "1", reps: "20" }),
+        warmup("Band external rotations", "reps", { sets: "1", reps: "15" }),
+        warmup("Shoulder circles", "reps", { sets: "1", reps: "15" }),
+        warmup("Bench warm-up sets", "reps", { sets: "2-4", reps: "3-5" }),
       ]),
 
       Tuesday: day("Lower (Squat Strength)", [
-        lift("Back Squat", "legs", "4", "3-5", "Leg swings, deep squat hold, glute bridges, ramp-up sets"),
-        lift("Leg Press", "legs", "3", "8-10", "Bodyweight squats"),
-        lift("Leg Curl", "legs", "3", "12-15", "Light curls (Superset with extensions)"),
-        lift("Leg Extension", "legs", "3", "12-15", "Light extensions (Superset with curls)"),
-        lift("Standing Calf Raise", "legs", "4", "12-15", "Ankle rocks"),
-        lift("Hanging Leg Raise", "core", "3", "10-15", "Cat-cow, bracing breaths"),
-        lift("Cable Crunch", "core", "3", "12-15", "Bracing breaths"),
-        lift("Neck Flexion", "neck", "2", "15", "Very light warm-up reps"),
-        lift("Neck Extension", "neck", "2", "15", "Very light warm-up reps"),
+        lift("Back Squat", "legs", "4", "3-5", "Main lower strength focus. Stay tight out of the hole."),
+        lift("Leg Press", "legs", "3", "8-10", "Controlled depth. Do not bounce the sled."),
+        lift("Leg Curl", "legs", "3", "12-15", "Hamstring control. Pause the squeeze."),
+        lift("Leg Extension", "legs", "3", "8-10", "Hard quad squeeze at the top."),
+        lift("Standing Calf Raise", "legs", "4", "12-15", "Full stretch and full raise."),
+        lift("Forearm Curls / Reverse Forearm Curls", "arms", "2", "alternate weekly", "Alternate weekly between wrist curls and reverse wrist curls."),
+      ], [
+        warmup("Incline walk", "time", "3 min"),
+        warmup("Leg swings", "reps", { sets: "1", reps: "10/side" }),
+        warmup("90/90 hip rotations", "reps", { sets: "1", reps: "8/side" }),
+        warmup("World's Greatest Stretch", "reps", { sets: "1", reps: "5/side" }),
+        warmup("Deep squat hold", "time", "30-45 sec"),
+        warmup("Glute bridges", "reps", { sets: "1", reps: "15" }),
+        warmup("Squat warm-up sets", "reps", { sets: "2-4", reps: "3-5" }),
       ]),
 
       Wednesday: recovery(
         "Recovery",
-        "Walk + Daily Flexibility",
+        "Walk + core + neck + daily flexibility",
         "20-30 min walk, 15-20 min flexibility",
         "Easy",
-        "Keep it light. Focus on hips, hamstrings, shoulders, calves, and breathing."
+        "Hanging Leg Raises 3x10-15, Cable Crunches 3x12-15, Neck Flexion 2x15, Neck Extension 2x15, Neck Lateral Flexion 2x15/side."
       ),
 
       Thursday: day("Push (Bench Volume + Hypertrophy)", [
-        lift("Barbell Bench Press", "chest", "4", "8-10", "Band pull-aparts, push-ups, 2-3 ramp-up sets"),
-        lift("Mark Press", "chest", "2", "near failure", "Use controlled reps after bench"),
-        lift("Seated Shoulder Press", "shoulders", "3", "8-10", "Wall slides, light presses"),
-        lift("Incline Dumbbell Press", "chest", "3", "8-12", "Light incline presses"),
-        lift("Skull Crusher", "arms", "3", "8-12", "Elbow circles, light extensions"),
-        lift("Cable Lateral Raise", "shoulders", "3", "12-20", "Shoulder circles"),
-        lift("Low-to-High Cable Fly", "chest", "2", "12-15", "Light flys, pec stretch"),
-        lift("Plank", "core", "3", "60+ sec", "Bracing breaths"),
+        lift("Bench Press", "chest", "4", "8-10", "Volume bench. Keep bar path consistent."),
+        lift("Mark Presses", "chest", "2", "near failure", "Controlled effort sets. Stop before form breaks."),
+        lift("Seated Shoulder Press", "shoulders", "3", "8-10", "Keep back tight and reps smooth."),
+        lift("Incline Dumbbell Press", "chest", "3", "8-12", "Moderate incline. Drive through chest."),
+        lift("Skull Crushers", "arms", "3", "8-12", "Keep elbows stable."),
+        lift("Cable Lateral Raises", "shoulders", "3", "12-20", "Use constant cable tension."),
+        lift("Low-to-High Cable Flyes", "chest", "2", "12-15", "Squeeze upper chest. Avoid shoulder takeover."),
+      ], [
+        warmup("Row", "time", "3 min"),
+        warmup("Band pull-aparts", "reps", { sets: "1", reps: "20" }),
+        warmup("Band external rotations", "reps", { sets: "1", reps: "15" }),
+        warmup("Push-ups", "reps", { sets: "1-2", reps: "8-15" }),
+        warmup("Bench warm-up sets", "reps", { sets: "2-3", reps: "5" }),
       ]),
 
       Friday: day("Pull (Deadlift Strength)", [
-        lift("Conventional Deadlift", "back", "4", "3-5", "Hip hinge drill, bird dogs, hamstring sweeps, ramp-up sets"),
-        lift("Chest-Supported Row", "back", "3", "8-10", "Light rows, scap squeezes"),
-        lift("Lat Pulldown", "back", "3", "8-10", "Dead hang, scap pull-downs"),
-        lift("Reverse Pec Deck", "shoulders", "3", "12-15", "Band pull-aparts"),
-        lift("Barbell Shrug", "back", "3", "10-12", "Light shrugs"),
-        lift("Single-Arm Preacher Hammer Curl", "arms", "3", "10-12", "Wrist and elbow circles"),
-        lift("Griffin Curl", "arms", "2", "burnout", "Light curl warm-up"),
-        lift("Forearm Curl / Reverse Forearm Curl", "arms", "2", "to failure", "Alternate weekly between wrist curls and reverse wrist curls"),
-        lift("Ab Wheel Rollout", "core", "3", "8-12", "Cat-cow, bracing breaths"),
-        lift("Dead Hang", "back", "2", "45-60 sec", "Grip and shoulder decompression"),
+        lift("Deadlift", "back", "4", "3-5", "Main pull strength focus. Reset every rep if needed."),
+        lift("Chest-Supported Row", "back", "3", "8-10", "Strict rows. No body English."),
+        lift("Lat Pulldown", "back", "3", "8-10", "Pull elbows down and keep ribs controlled."),
+        lift("Reverse Pec Deck", "shoulders", "3", "12-15", "Rear delt focus. Keep traps quiet."),
+        lift("Face Pulls", "shoulders", "2", "15-20", "Pull toward face with external rotation."),
+        lift("Single-Arm Preacher Hammer Curl", "arms", "3", "10-12", "Keep upper arm pinned."),
+        lift("Barbell Shrugs", "back", "3", "10-12", "Pause at the top."),
+        lift("Griffin Curls", "arms", "2", "burnout", "Controlled burnout sets."),
+      ], [
+        warmup("Row", "time", "3 min"),
+        warmup("Hip hinge drill", "reps", { sets: "1", reps: "10" }),
+        warmup("Bird dogs", "reps", { sets: "1", reps: "8/side" }),
+        warmup("Hamstring sweeps", "reps", { sets: "1", reps: "10/side" }),
+        warmup("Deadlift warm-up sets", "reps", { sets: "2-4", reps: "3-5" }),
       ]),
 
       Saturday: day("Legs (Hypertrophy)", [
-        lift("Front Squat", "legs", "3", "8-10", "Leg swings, deep squat hold, front squat ramp-up sets"),
-        lift("Bulgarian Split Squat", "legs", "3", "8-10/leg", "Hip opener, bodyweight split squats"),
-        lift("Leg Press", "legs", "3", "12", "Bodyweight squats"),
-        lift("Leg Curl", "legs", "3", "12-15", "Light curls (Superset with extensions)"),
-        lift("Leg Extension", "legs", "3", "12-15", "Light extensions (Superset with curls)"),
-        lift("Seated Calf Raise", "legs", "4", "12-15", "Ankle rocks"),
-        lift("Dead Bug", "core", "3", "10/side", "Bracing breaths"),
-        lift("Plank", "core", "3", "60+ sec", "Bracing breaths"),
-        lift("Neck Lateral Flexion", "neck", "2", "15/side", "Very light warm-up reps"),
+        lift("Front Squat", "legs", "3", "8-10", "Hypertrophy squat. Stay upright and controlled."),
+        lift("Bulgarian Split Squat", "legs", "3", "8-10/leg", "Control balance and depth."),
+        lift("Leg Press", "legs", "3", "12", "Higher rep quad work. Keep tension."),
+        lift("Leg Curl", "legs", "3", "12-15", "Hamstring squeeze."),
+        lift("Leg Extension", "legs", "3", "12-15", "Quad squeeze. Do not rush reps."),
+        lift("Seated Calf Raise", "legs", "4", "12-15", "Pause stretched and contracted positions."),
+      ], [
+        warmup("Bike", "time", "3 min"),
+        warmup("World's Greatest Stretch", "reps", { sets: "1", reps: "5/side" }),
+        warmup("90/90 hip rotations", "reps", { sets: "1", reps: "8/side" }),
+        warmup("Leg swings", "reps", { sets: "1", reps: "10/side" }),
+        warmup("Cossack squats", "reps", { sets: "1", reps: "6/side" }),
+        warmup("Front squat warm-up sets", "reps", { sets: "2-3", reps: "5" }),
       ]),
 
       Sunday: recovery(
-        "Rest",
-        "Full Rest Day",
-        "All day",
+        "Recovery",
+        "Yoga or mobility + core",
+        "20-30 min mobility",
         "Easy",
-        "No lifting. Eat, sleep, walk if desired, and recover."
+        "Ab Wheel Rollouts 3x8-12, Dead Bugs 3x10/side, Planks 2-3x60 sec."
       ),
     },
   },
@@ -532,10 +555,11 @@ export function buildDayFromTemplate(templateId, recoveryTemplate = false) {
   };
 }
 
-function day(name, lifts) {
+function day(name, lifts, warmup = defaultWarmupFor(name)) {
   return {
     name,
     type: "training",
+    warmup,
     lifts,
   };
 }
@@ -554,13 +578,44 @@ function recovery(name, activity, duration, intensity, notes) {
   };
 }
 
-function lift(exercise, muscleGroup, sets, reps, stretches = "") {
+function warmup(name, mode, value, note = "") {
+  if (mode === "time") return { name, mode, time: value, note };
+  return { name, mode: "reps", sets: value?.sets || "", reps: value?.reps || "", note };
+}
+
+function defaultWarmupFor(dayName) {
+  const name = String(dayName || "").toLowerCase();
+  if (name.includes("lower") || name.includes("legs") || name.includes("squat")) {
+    return [
+      warmup("Easy bike or incline walk", "time", "3-5 min"),
+      warmup("Leg swings", "reps", { sets: "1", reps: "10/side" }),
+      warmup("Deep squat hold", "time", "30-45 sec"),
+      warmup("Ramp-up sets", "reps", { sets: "2-4", reps: "3-5" }),
+    ];
+  }
+  if (name.includes("pull") || name.includes("deadlift") || name.includes("back")) {
+    return [
+      warmup("Easy row", "time", "3 min"),
+      warmup("Hip hinge drill", "reps", { sets: "1", reps: "10" }),
+      warmup("Band pull-aparts", "reps", { sets: "1", reps: "20" }),
+      warmup("Ramp-up sets", "reps", { sets: "2-4", reps: "3-5" }),
+    ];
+  }
+  return [
+    warmup("Easy row", "time", "3 min"),
+    warmup("Band pull-aparts", "reps", { sets: "1", reps: "20" }),
+    warmup("Band external rotations", "reps", { sets: "1", reps: "15" }),
+    warmup("Ramp-up sets", "reps", { sets: "2-4", reps: "3-5" }),
+  ];
+}
+
+function lift(exercise, muscleGroup, sets, reps, note = "") {
   return {
     exercise,
     muscleGroup,
     sets,
     reps,
-    note: stretches,
-    stretches,
+    note,
+    stretches: note,
   };
 }

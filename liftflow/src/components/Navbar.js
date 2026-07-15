@@ -7,6 +7,8 @@ export default function NavBar() {
     { label: "Home", path: "/" },
     { label: "Workout", path: "/workout" },
     { label: "Plan", path: "/plan" },
+    { label: "Mobility", path: "/mobility" },
+    { label: "Running", path: "/running" },
     { label: "PRs", path: "/prs" },
     { label: "History", path: "/history" },
     { label: "Profile", path: "/profile" },

@@ -112,6 +112,18 @@ export default function Workout() {
     });
   }
 
+  function toggleWarmup(movementId) {
+    setSession((prev) => {
+      const warmupState = { ...(prev.__warmup || {}) };
+      warmupState[movementId] = !warmupState[movementId];
+      const copy = { ...prev, __warmup: warmupState };
+      const updatedDrafts = { ...drafts, [selectedDay]: copy };
+      setDrafts(updatedDrafts);
+      saveWorkoutDrafts(updatedDrafts);
+      return copy;
+    });
+  }
+
   function finishWorkout() {
     const previousWorkouts = getWorkouts();
     const completedWorkout = program.map((lift) => ({
@@ -202,15 +214,29 @@ export default function Workout() {
                 <span style={warmupCount}>{warmup.length} moves</span>
               </div>
               <div style={warmupList}>
-                {warmup.map((movement) => (
-                  <div key={movement.id || movement.name} style={warmupRow}>
-                    <div>
-                      <strong style={warmupName}>{movement.name}</strong>
-                      {movement.note && <p style={warmupNote}>{movement.note}</p>}
-                    </div>
-                    <span style={warmupDose}>{formatWarmupMovement(movement)}</span>
-                  </div>
-                ))}
+                {warmup.map((movement, index) => {
+                  const movementId = movement.id || `${movement.name}-${index}`;
+                  const done = Boolean(session.__warmup?.[movementId]);
+
+                  return (
+                    <button
+                      key={movementId}
+                      type="button"
+                      onClick={() => toggleWarmup(movementId)}
+                      style={{
+                        ...warmupRow,
+                        ...(done ? warmupRowDone : {}),
+                      }}
+                    >
+                      <span style={{ ...checkBox, ...(done ? checkBoxDone : {}) }}>{done ? "✓" : ""}</span>
+                      <span style={warmupMain}>
+                        <strong style={warmupName}>{movement.name}</strong>
+                        {movement.note && <span style={warmupNote}>{movement.note}</span>}
+                      </span>
+                      <span style={warmupDose}>{formatWarmupMovement(movement)}</span>
+                    </button>
+                  );
+                })}
               </div>
             </section>
           )}
@@ -560,10 +586,45 @@ const warmupList = {
 
 const warmupRow = {
   display: "flex",
+  alignItems: "center",
   justifyContent: "space-between",
   gap: 12,
   borderTop: "1px solid rgba(228, 255, 47, 0.16)",
+  borderLeft: 0,
+  borderRight: 0,
+  borderBottom: 0,
+  borderRadius: 0,
+  background: "transparent",
   paddingTop: 8,
+  textAlign: "left",
+};
+
+const warmupRowDone = {
+  opacity: 0.62,
+};
+
+const checkBox = {
+  width: 22,
+  height: 22,
+  border: "1px solid rgba(228, 255, 47, 0.45)",
+  borderRadius: 6,
+  color: "#050505",
+  background: "#050505",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  flex: "0 0 auto",
+  fontWeight: 900,
+};
+
+const checkBoxDone = {
+  background: "#e4ff2f",
+};
+
+const warmupMain = {
+  display: "grid",
+  gap: 3,
+  flex: "1 1 auto",
 };
 
 const warmupName = {
@@ -571,7 +632,6 @@ const warmupName = {
 };
 
 const warmupNote = {
-  margin: "4px 0 0",
   color: "#8a8a8a",
   fontSize: 13,
 };
