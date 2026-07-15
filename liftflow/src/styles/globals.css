@@ -3,11 +3,27 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+:root {
+  --lf-bg: #000000;
+  --lf-surface: #101010;
+  --lf-surface-soft: #0b0b0b;
+  --lf-surface-deep: #050505;
+  --lf-border: #242424;
+  --lf-border-soft: #1d1d1d;
+  --lf-text: #f7f7f2;
+  --lf-muted: #777777;
+  --lf-brand: #32cfff;
+  --lf-accent: #e4ff2f;
+  --lf-success: #32df76;
+  --lf-warning: #ff9b34;
+  --lf-danger: #ff6b2c;
+}
+
 html, body {
   margin: 0;
   padding: 0;
-  background: #000;
-  color: #f7f7f2;
+  background: var(--lf-bg);
+  color: var(--lf-text);
   font-family: "Segoe UI Variable", "Aptos", "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   overflow-x: hidden;
   font-weight: 600;
@@ -37,20 +53,20 @@ h3,
 }
 
 .card {
-  background: #101010;
-  border: 1px solid #242424;
+  background: var(--lf-surface);
+  border: 1px solid var(--lf-border);
   border-radius: 8px;
   padding: 18px;
   margin-bottom: 14px;
 }
 
 button {
-  border: 1px solid #303030;
+  border: 1px solid var(--lf-border);
   border-radius: 999px;
   padding: 10px 16px;
   font-weight: 750;
-  background: #121212;
-  color: #f7f7f2;
+  background: var(--lf-surface);
+  color: var(--lf-text);
   cursor: pointer;
 }
 
@@ -59,23 +75,23 @@ button:active {
 }
 
 button.primary {
-  background: #32cfff;
-  color: black;
-  border-color: #32cfff;
+  background: var(--lf-brand);
+  color: #050505;
+  border-color: var(--lf-brand);
 }
 
 input, select {
   width: 100%;
   padding: 10px;
   border-radius: 8px;
-  border: 1px solid #2b2b2b;
-  background: #0b0b0b;
-  color: #f7f7f2;
+  border: 1px solid var(--lf-border);
+  background: var(--lf-surface-soft);
+  color: var(--lf-text);
   font-weight: 800;
 }
 
 input:focus, select:focus {
-  border-color: #32cfff;
+  border-color: var(--lf-brand);
   box-shadow: 0 0 0 3px rgba(50, 207, 255, 0.12);
   outline: none;
 }

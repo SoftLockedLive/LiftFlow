@@ -1,4 +1,5 @@
 import { useRouter } from "next/router";
+import { colors, tint } from "../lib/theme";
 
 export default function NavBar() {
   const router = useRouter();
@@ -49,16 +50,16 @@ const bar = {
   overflowX: "auto",
   gap: 10,
   padding: 10,
-  background: "#0b0f19",
-  borderTop: "1px solid #1f2937",
+  background: colors.bg,
+  borderTop: `1px solid ${colors.borderSoft}`,
 };
 
 const tab = {
   padding: "8px 12px",
   borderRadius: 999,
-  background: "#111827",
-  border: "1px solid #1f2937",
-  color: "#9ca3af",
+  background: colors.surfaceDeep,
+  border: `1px solid ${colors.borderSoft}`,
+  color: colors.muted,
   fontSize: 12,
   whiteSpace: "nowrap",
   userSelect: "none",
@@ -67,7 +68,7 @@ const tab = {
 };
 
 const active = {
-  color: "#00e5ff",
-  borderColor: "#00e5ff",
-  background: "rgba(0,229,255,0.08)",
+  color: colors.brand,
+  borderColor: colors.brand,
+  background: tint(colors.brand, 0.08),
 };

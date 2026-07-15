@@ -7,18 +7,9 @@ import { getTodayName } from "../lib/today";
 import { getWorkouts, saveWorkout } from "../lib/workoutStorage";
 import { calculateSessionSummary, detectPRs } from "../lib/workoutAnalytics";
 import { buildLiveSetRecommendation } from "../lib/coach";
+import { colors, dayColors } from "../lib/theme";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-const ACCENT = "#32cfff";
-const DAY_ACCENTS = {
-  Monday: "#32cfff",
-  Tuesday: "#ff6b2c",
-  Wednesday: "#e4ff2f",
-  Thursday: "#be72ff",
-  Friday: "#ff9b34",
-  Saturday: "#32df76",
-  Sunday: "#f7f7f2",
-};
 const DRAFT_KEY = "liftflow_workout_drafts";
 const LAST_DAY_KEY = "liftflow_last_workout_day";
 
@@ -224,21 +215,24 @@ export default function Workout() {
       </header>
 
       <div style={dayRow}>
-        {DAYS.map((day) => (
-          <button
-            key={day}
-            type="button"
-            onClick={() => chooseDay(day)}
-            style={{
-              ...dayBtn,
-              borderColor: getDayAccent(day, selectedDay === day ? 0.78 : 0.28),
-              color: selectedDay === day ? "#050505" : getDayAccent(day),
-              background: selectedDay === day ? getDayAccent(day) : getDayAccent(day, 0.08),
-            }}
-          >
-            {day.slice(0, 3)}
-          </button>
-        ))}
+        {DAYS.map((day) => {
+          const dayAccent = getDayAccent(day, plan);
+          return (
+            <button
+              key={day}
+              type="button"
+              onClick={() => chooseDay(day)}
+              style={{
+                ...dayBtn,
+                borderColor: tint(dayAccent, selectedDay === day ? 0.78 : 0.28),
+                color: selectedDay === day ? colors.inverse : dayAccent,
+                background: selectedDay === day ? dayAccent : tint(dayAccent, 0.08),
+              }}
+            >
+              {day.slice(0, 3)}
+            </button>
+          );
+        })}
       </div>
 
       {recovery ? (
@@ -607,11 +601,8 @@ function saveLastWorkoutDay(day) {
   localStorage.setItem(LAST_DAY_KEY, day);
 }
 
-function getDayAccent(day, alpha) {
-  const color = DAY_ACCENTS[day] || ACCENT;
-
-  if (alpha === undefined) return color;
-  return tint(color, alpha);
+function getDayAccent(day, plan) {
+  return plan.__meta?.[day]?.recovery ? dayColors.recovery : dayColors.default;
 }
 
 function formatRestTime(seconds) {

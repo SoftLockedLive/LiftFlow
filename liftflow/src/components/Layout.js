@@ -6,15 +6,7 @@ import { getManualPRs } from "../lib/manualPRs";
 import { getProfile, saveProfile } from "../lib/profile";
 import { getWorkouts } from "../lib/workoutStorage";
 import { getBaseExercise, getLiftSets, getWorkoutItems } from "../lib/workoutAnalytics";
-
-const ACCENTS = {
-  lime: "#e4ff2f",
-  yellow: "#e4ff2f",
-  orange: "#ff6b2c",
-  cyan: "#32cfff",
-  violet: "#be72ff",
-  green: "#32df76",
-};
+import { colors, liftColors, tint } from "../lib/theme";
 
 export default function Layout({ children }) {
   const router = useRouter();
@@ -79,9 +71,9 @@ export default function Layout({ children }) {
   ];
 
   const liftCards = [
-    { label: "Bench", value: bench, reps: bestSets.bench?.reps, accent: ACCENTS.lime },
-    { label: "Squat", value: squat, reps: bestSets.squat?.reps, accent: ACCENTS.orange },
-    { label: "Dead", value: deadlift, reps: bestSets.deadlift?.reps, accent: ACCENTS.cyan },
+    { label: "Bench", value: bench, reps: bestSets.bench?.reps, accent: liftColors.bench },
+    { label: "Squat", value: squat, reps: bestSets.squat?.reps, accent: liftColors.squat },
+    { label: "Dead", value: deadlift, reps: bestSets.deadlift?.reps, accent: liftColors.deadlift },
   ];
 
   return (
@@ -244,14 +236,6 @@ export default function Layout({ children }) {
   );
 }
 
-function tint(hex, alpha) {
-  const value = hex.replace("#", "");
-  const r = parseInt(value.slice(0, 2), 16);
-  const g = parseInt(value.slice(2, 4), 16);
-  const b = parseInt(value.slice(4, 6), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
-
 function getInitials(name) {
   const parts = String(name || "")
     .trim()
@@ -301,8 +285,8 @@ function getBigThreeKey(exercise) {
 
 const shell = {
   minHeight: "100vh",
-  background: "#000",
-  color: "#f7f7f2",
+  background: colors.bg,
+  color: colors.text,
 };
 
 const hero = {};
@@ -322,12 +306,12 @@ const logoMark = {
   height: 38,
   borderRadius: 10,
   objectFit: "cover",
-  boxShadow: "0 0 22px rgba(50, 207, 255, 0.18)",
+  boxShadow: `0 0 22px ${tint(colors.brand, 0.18)}`,
 };
 
 const brand = {
   margin: 0,
-  color: ACCENTS.cyan,
+  color: colors.brand,
   fontSize: "clamp(28px, 5vw, 42px)",
   lineHeight: 1,
   fontWeight: 900,
@@ -350,7 +334,7 @@ const profileButton = {
   borderRadius: "50%",
   borderColor: "#262626",
   color: "#777",
-  background: "#0e0e0e",
+  background: colors.surface,
   overflow: "hidden",
 };
 
@@ -370,9 +354,9 @@ const totalStrip = {
   alignItems: "center",
   justifyContent: "space-between",
   minHeight: 44,
-  border: "1px solid rgba(50, 207, 255, 0.18)",
+  border: `1px solid ${tint(colors.brand, 0.18)}`,
   borderRadius: 14,
-  background: "linear-gradient(135deg, rgba(50, 207, 255, 0.12), rgba(228, 255, 47, 0.04))",
+  background: `linear-gradient(135deg, ${tint(colors.brand, 0.1)}, ${tint(colors.accent, 0.04)})`,
   padding: "9px 12px",
 };
 
@@ -384,7 +368,7 @@ const totalStripLabel = {
 };
 
 const totalStripValue = {
-  color: ACCENTS.yellow,
+  color: colors.accent,
   fontSize: 20,
   lineHeight: 1,
 };
@@ -392,7 +376,7 @@ const totalStripValue = {
 const metricCard = {
   gridColumn: "span 2",
   minHeight: 82,
-  background: "#111",
+  background: colors.surface,
   border: "1px solid",
   borderRadius: 14,
   display: "flex",
@@ -424,8 +408,8 @@ const tabWrapper = {
   position: "sticky",
   top: 0,
   zIndex: 40,
-  background: "#000",
-  borderBottom: "1px solid #151515",
+  background: colors.bg,
+  borderBottom: `1px solid ${colors.borderSoft}`,
 };
 
 const tabBar = {
@@ -434,17 +418,17 @@ const tabBar = {
 const tabPill = {
   flex: "0 0 auto",
   padding: "9px 15px",
-  borderColor: "#1d1d1d",
-  background: "#050505",
-  color: "#5e5e5e",
+  borderColor: colors.borderSoft,
+  background: colors.surfaceDeep,
+  color: colors.mutedStrong,
   fontSize: 14,
   textTransform: "uppercase",
 };
 
 const activeTab = {
-  background: "#f7f7f2",
-  borderColor: "#f7f7f2",
-  color: "#050505",
+  background: colors.brand,
+  borderColor: colors.brand,
+  color: colors.inverse,
 };
 
 const page = {
@@ -463,8 +447,8 @@ const overlay = {
 
 const panel = {
   width: "min(420px, 100%)",
-  background: "#101010",
-  border: "1px solid #2b2b2b",
+  background: colors.surface,
+  border: `1px solid ${colors.border}`,
   borderRadius: 12,
 };
 
@@ -478,7 +462,7 @@ const modalHeader = {
 
 const modalTitle = {
   margin: 0,
-  color: ACCENTS.lime,
+  color: colors.brand,
 };
 
 const closeBtn = {

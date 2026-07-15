@@ -3,6 +3,7 @@ import ConfirmDialog from "../components/ConfirmDialog";
 import { deleteCustomExercise, getCustomExercises, upsertCustomExercise } from "../lib/customExercises";
 import { getMuscleGroup, MUSCLE_GROUPS, tint } from "../lib/muscleGroups";
 import { getPlan, savePlan } from "../lib/plan";
+import { colors, dayColors } from "../lib/theme";
 import {
   DAY_TEMPLATES,
   DEFAULT_EXERCISES,
@@ -13,16 +14,7 @@ import {
 } from "../lib/programTemplates";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-const ACCENT = "#32cfff";
-const DAY_ACCENTS = {
-  Monday: "#32cfff",
-  Tuesday: "#ff6b2c",
-  Wednesday: "#e4ff2f",
-  Thursday: "#be72ff",
-  Friday: "#ff9b34",
-  Saturday: "#32df76",
-  Sunday: "#f7f7f2",
-};
+const ACCENT = colors.brand;
 
 export default function Plan() {
   const [plan, setPlan] = useState({});
@@ -370,9 +362,9 @@ export default function Plan() {
             onClick={() => selectDay(day)}
             style={{
               ...dayBtn,
-              borderColor: getDayAccent(day, selectedDay === day ? 0.78 : 0.28),
-              color: selectedDay === day ? "#050505" : getDayAccent(day),
-              background: selectedDay === day ? getDayAccent(day) : getDayAccent(day, 0.08),
+              borderColor: tint(getDayAccent(day, plan), selectedDay === day ? 0.78 : 0.28),
+              color: selectedDay === day ? colors.inverse : getDayAccent(day, plan),
+              background: selectedDay === day ? getDayAccent(day, plan) : tint(getDayAccent(day, plan), 0.08),
             }}
           >
             {day.slice(0, 3)}
@@ -746,11 +738,8 @@ export default function Plan() {
   );
 }
 
-function getDayAccent(day, alpha) {
-  const color = DAY_ACCENTS[day] || ACCENT;
-
-  if (alpha === undefined) return color;
-  return tint(color, alpha);
+function getDayAccent(day, plan) {
+  return plan.__meta?.[day]?.recovery ? dayColors.recovery : dayColors.default;
 }
 
 function formatWarmupMovement(movement) {

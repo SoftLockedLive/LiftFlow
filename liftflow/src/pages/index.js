@@ -5,9 +5,9 @@ import { getPlan } from "../lib/plan";
 import { getTodayName } from "../lib/today";
 import { getWorkouts } from "../lib/workoutStorage";
 import { calculateLiftVolume, calculateSessionSummary, getBaseExercise, getLiftSets, getWorkoutItems } from "../lib/workoutAnalytics";
+import { colors, dayColors, tint } from "../lib/theme";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-const ACCENTS = ["#32cfff", "#ff6b2c", "#e4ff2f", "#be72ff", "#ff9b34", "#32df76", "#f7f7f2"];
 
 export default function Home() {
   const router = useRouter();
@@ -28,7 +28,7 @@ export default function Home() {
 
   const week = useMemo(
     () =>
-      DAYS.map((day, index) => {
+      DAYS.map((day) => {
         const lifts = Array.isArray(plan[day]) ? plan[day] : [];
         const name = plan.__meta?.[day]?.name?.trim() || "";
         const recovery = plan.__meta?.[day]?.recovery || null;
@@ -37,7 +37,7 @@ export default function Home() {
           lifts,
           name,
           recovery,
-          accent: ACCENTS[index],
+          accent: day === today ? dayColors.today : dayColors.default,
           isToday: day === today,
         };
       }),
@@ -237,19 +237,11 @@ function formatDate(date) {
   }).format(parsed);
 }
 
-function tint(hex, alpha) {
-  const value = hex.replace("#", "");
-  const r = parseInt(value.slice(0, 2), 16);
-  const g = parseInt(value.slice(2, 4), 16);
-  const b = parseInt(value.slice(4, 6), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
-
 const focusCard = {
   minHeight: 76,
-  border: "1px solid rgba(50, 207, 255, 0.22)",
+  border: `1px solid ${tint(colors.brand, 0.22)}`,
   borderRadius: 12,
-  background: "#101010",
+  background: colors.surface,
   padding: "12px 14px",
   alignItems: "center",
   justifyContent: "space-between",
@@ -258,7 +250,7 @@ const focusCard = {
 
 const eyebrow = {
   margin: 0,
-  color: "#32cfff",
+  color: colors.brand,
   fontSize: 12,
   fontWeight: 850,
   textTransform: "uppercase",
@@ -266,7 +258,7 @@ const eyebrow = {
 
 const focusTitle = {
   margin: "4px 0",
-  color: "#f7f7f2",
+  color: colors.text,
   fontSize: 20,
   lineHeight: 1,
 };
@@ -309,9 +301,9 @@ const sectionMeta = {
 };
 
 const ghostButton = {
-  color: "#32cfff",
-  borderColor: "rgba(50, 207, 255, 0.4)",
-  background: "rgba(50, 207, 255, 0.08)",
+  color: colors.brand,
+  borderColor: tint(colors.brand, 0.4),
+  background: tint(colors.brand, 0.08),
   whiteSpace: "nowrap",
 };
 
