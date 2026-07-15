@@ -269,7 +269,7 @@ export const PROGRAM_TEMPLATES = [
 
       Thursday: day("Push (Bench Volume + Hypertrophy)", [
         lift("Bench Press", "chest", "4", "8-10", "Volume bench. Keep bar path consistent."),
-        lift("Mark Presses", "chest", "2", "near failure", "Controlled effort sets. Stop before form breaks."),
+        lift("Mark Presses", "chest", "2", "near failure", "Load light weight on the bar and crank out quick half reps till failure (Mark an ex Marine showed me this one)"),
         lift("Seated Shoulder Press", "shoulders", "3", "8-10", "Keep back tight and reps smooth."),
         lift("Incline Dumbbell Press", "chest", "3", "8-12", "Moderate incline. Drive through chest."),
         lift("Skull Crushers", "arms", "3", "8-12", "Keep elbows stable."),
@@ -293,7 +293,7 @@ export const PROGRAM_TEMPLATES = [
         lift("Face Pulls", "shoulders", "2", "15-20", "Pull toward face with external rotation."),
         lift("Single-Arm Preacher Hammer Curl", "arms", "3", "10-12", "Keep upper arm pinned."),
         lift("Barbell Shrugs", "back", "3", "10-12", "Pause at the top."),
-        lift("Griffin Curls", "arms", "2", "burnout", "Controlled burnout sets."),
+        lift("Griffin Curls", "arms", "2", "burnout", "Seated dumbbell curls till failure then stand up and hammer curl till failure (My friend Griffin showed me this)"),
       ], [
         warmup("Row", "time", "3 min"),
         warmup("Hip hinge drill", "reps", { sets: "1", reps: "10" }),

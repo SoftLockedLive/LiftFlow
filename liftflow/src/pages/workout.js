@@ -6,6 +6,7 @@ import { buildTodaysWorkout } from "../lib/trainingEngine";
 import { getTodayName } from "../lib/today";
 import { getWorkouts, saveWorkout } from "../lib/workoutStorage";
 import { calculateSessionSummary, detectPRs } from "../lib/workoutAnalytics";
+import { buildLiveSetRecommendation } from "../lib/coach";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const ACCENT = "#32cfff";
@@ -319,6 +320,8 @@ export default function Workout() {
             const variationOptions = getVariationOptions(lift);
             const variationDraft = normalizeVariationDraft(session.__variations?.[lift.id]);
             const selectedVariation = getSelectedVariation(variationDraft);
+            const coach = lift.coachRecommendation;
+            const liveCoach = buildLiveSetRecommendation(lift, session[lift.id] || [], coach);
 
             return (
               <article
@@ -342,6 +345,35 @@ export default function Workout() {
                     </span>
                   )}
                 </div>
+
+                {coach && (
+                  <section style={coachCard}>
+                    <div style={coachHeader}>
+                      <div>
+                        <span style={coachLabel}>Coach</span>
+                        <strong style={coachTitle}>{coach.headline}</strong>
+                      </div>
+                      {coach.workingWeight && <span style={coachBadge}>{coach.workingWeight} lb</span>}
+                    </div>
+                    <p style={coachDetail}>{coach.detail}</p>
+                    {coach.warmups?.length > 0 && (
+                      <div style={coachWarmups}>
+                        {coach.warmups.map((set) => (
+                          <span key={`${set.weight}-${set.reps}`} style={coachWarmupChip}>
+                            {set.weight} x {set.reps}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <p style={coachAction}>{coach.nextAction}</p>
+                    {liveCoach && (
+                      <div style={{ ...liveCoachBox, ...(liveCoach.tone === "up" ? liveCoachUp : liveCoach.tone === "down" ? liveCoachDown : {}) }}>
+                        <strong>{liveCoach.label}</strong>
+                        <span>{liveCoach.detail}</span>
+                      </div>
+                    )}
+                  </section>
+                )}
 
                 <div style={variationWrap}>
                   <button
@@ -874,6 +906,99 @@ const suggestion = {
   padding: "6px 10px",
   fontWeight: 850,
   whiteSpace: "nowrap",
+};
+
+const coachCard = {
+  border: "1px solid rgba(50, 207, 255, 0.28)",
+  borderRadius: 12,
+  background: "rgba(50, 207, 255, 0.08)",
+  padding: 12,
+  marginTop: 12,
+  display: "grid",
+  gap: 8,
+};
+
+const coachHeader = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 12,
+  alignItems: "flex-start",
+};
+
+const coachLabel = {
+  display: "block",
+  color: "#777",
+  fontSize: 12,
+  fontWeight: 850,
+  textTransform: "uppercase",
+};
+
+const coachTitle = {
+  display: "block",
+  marginTop: 3,
+  color: "#32cfff",
+  fontSize: 18,
+};
+
+const coachBadge = {
+  color: "#050505",
+  background: "#32cfff",
+  borderRadius: 999,
+  padding: "5px 9px",
+  fontWeight: 900,
+  whiteSpace: "nowrap",
+};
+
+const coachDetail = {
+  margin: 0,
+  color: "#bdbdb8",
+  lineHeight: 1.35,
+  fontSize: 13,
+};
+
+const coachWarmups = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: 7,
+};
+
+const coachWarmupChip = {
+  border: "1px solid rgba(50, 207, 255, 0.28)",
+  borderRadius: 999,
+  color: "#32cfff",
+  background: "#050505",
+  padding: "5px 8px",
+  fontSize: 12,
+  fontWeight: 850,
+};
+
+const coachAction = {
+  margin: 0,
+  color: "#f7f7f2",
+  fontWeight: 800,
+};
+
+const liveCoachBox = {
+  border: "1px solid rgba(228, 255, 47, 0.3)",
+  borderRadius: 10,
+  background: "rgba(228, 255, 47, 0.08)",
+  color: "#e4ff2f",
+  padding: 10,
+  display: "grid",
+  gap: 4,
+  fontSize: 13,
+};
+
+const liveCoachUp = {
+  borderColor: "rgba(50, 223, 118, 0.35)",
+  background: "rgba(50, 223, 118, 0.08)",
+  color: "#32df76",
+};
+
+const liveCoachDown = {
+  borderColor: "rgba(255, 107, 44, 0.35)",
+  background: "rgba(255, 107, 44, 0.08)",
+  color: "#ff9b34",
 };
 
 const stretchBox = {

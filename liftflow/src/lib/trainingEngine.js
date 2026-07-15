@@ -2,7 +2,7 @@ import { getPlan } from "./plan";
 import { getWorkouts } from "./workoutStorage";
 import { calculateFatigue, getPRs } from "./engine";
 import { getNextLoad } from "./progression";
-import { generateCoachSuggestions } from "./coach";
+import { buildCoachRecommendation } from "./coach";
 
 /**
  * CORE SYSTEM:
@@ -16,8 +16,6 @@ export function buildTodaysWorkout(day) {
 
   const fatigue = calculateFatigue(history);
   const prs = getPRs(history);
-
-  const coachNotes = generateCoachSuggestions(baseWorkout);
 
   return baseWorkout.map((lift) => {
     const baseExercise = lift.baseExercise || lift.exercise;
@@ -33,7 +31,7 @@ export function buildTodaysWorkout(day) {
 
       // coach layer (soft suggestions only)
       suggestedWeight,
-      coachNote: coachNotes[baseExercise] || null,
+      coachRecommendation: buildCoachRecommendation(lift, history),
 
       // user always overrides this
       userOverride: null,
