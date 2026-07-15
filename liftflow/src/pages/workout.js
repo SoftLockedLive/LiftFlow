@@ -403,6 +403,7 @@ export default function Workout() {
                     {coach.contextNotes?.map((note) => (
                       <p key={note} style={coachContextNote}>{note}</p>
                     ))}
+                    {coach.workingSetPlan && <p style={coachPlan}>{coach.workingSetPlan}</p>}
                     <p style={coachAction}>{coach.nextAction}</p>
                     {liveCoach && (
                       <div style={{ ...liveCoachBox, ...(liveCoach.tone === "up" ? liveCoachUp : liveCoach.tone === "down" ? liveCoachDown : {}) }}>
@@ -1056,6 +1057,13 @@ const miniCheckBoxDone = {
 const coachContextNote = {
   margin: 0,
   color: "#d9d178",
+  fontSize: 12,
+  lineHeight: 1.35,
+};
+
+const coachPlan = {
+  margin: 0,
+  color: "#d7d7d2",
   fontSize: 12,
   lineHeight: 1.35,
 };

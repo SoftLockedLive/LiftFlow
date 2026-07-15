@@ -16,6 +16,7 @@ export function buildCoachRecommendation(lift, workouts = getWorkouts()) {
       detail: "Log this lift once and coach recommendations will use your history.",
       warmups: [],
       workingWeight: null,
+      workingSetPlan: "Use flat working sets: same weight across the planned sets unless form breaks or reps fall under the target.",
       nextAction: "Choose a weight you can control for the programmed reps.",
     };
   }
@@ -44,6 +45,7 @@ export function buildCoachRecommendation(lift, workouts = getWorkouts()) {
     increment,
     confidence: context.confidence,
     contextNotes: context.notes,
+    workingSetPlan: "Use flat working sets: same weight across the planned sets. Adjust mid-workout only if reps miss the target or the weight is clearly too light.",
     nextAction: buildNextAction(workingWeight, lift),
   };
 }
@@ -60,10 +62,10 @@ export function buildLiveSetRecommendation(lift, loggedSets, coach) {
 
   if (!lastWeight || !lastReps) return null;
 
-  if (lastReps >= target.max) {
+  if (lastReps > target.max) {
     return {
       label: `Next set: ${roundToNearest(lastWeight + increment, increment)} lb`,
-      detail: `You hit the top of the range at ${lastWeight} lb.`,
+      detail: `You exceeded the target range at ${lastWeight} lb.`,
       tone: "up",
     };
   }
@@ -78,7 +80,9 @@ export function buildLiveSetRecommendation(lift, loggedSets, coach) {
 
   return {
     label: `Next set: stay at ${lastWeight} lb`,
-    detail: "You are inside the target range.",
+    detail: lastReps === target.max
+      ? "You hit the top of the range. Hold this weight for the workout; progress next time if the sets stay strong."
+      : "You are inside the target range.",
     tone: "hold",
   };
 }
@@ -116,13 +120,11 @@ function recommendWorkingWeight(latestWeight, avgReps, target, increment, contex
 
 function buildWarmupRamp(workingWeight, target, lift) {
   if (!workingWeight || workingWeight <= BAR_WEIGHT) {
-    return [{ weight: BAR_WEIGHT, reps: "10-12" }];
+    return needsFullRamp(lift) ? [{ weight: BAR_WEIGHT, reps: "10-12" }] : [];
   }
 
   if (!needsFullRamp(lift)) {
-    const feelerWeight = roundToNearest(Math.max(BAR_WEIGHT, workingWeight * 0.55), 5);
-    if (feelerWeight >= workingWeight) return [];
-    return [{ weight: feelerWeight, reps: "8-10" }];
+    return [];
   }
 
   const ramp = [
@@ -143,12 +145,10 @@ function needsFullRamp(lift) {
     "bench",
     "squat",
     "deadlift",
+    "romanian deadlift",
     "overhead press",
     "shoulder press",
     "leg press",
-    "row",
-    "pull-up",
-    "pulldown",
     "hack squat",
     "front squat",
   ];
