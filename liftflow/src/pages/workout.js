@@ -332,6 +332,7 @@ export default function Workout() {
 
           {program.map((lift) => {
             const group = getMuscleGroup(lift.muscleGroup);
+            const dayAccent = getDayAccent(selectedDay, plan);
             const workingSets = Array.isArray(session[lift.id]) ? session[lift.id] : [];
             const variationOptions = getVariationOptions(lift);
             const variationDraft = normalizeVariationDraft(session.__variations?.[lift.id]);
@@ -344,19 +345,19 @@ export default function Workout() {
                 key={lift.id}
                 style={{
                   ...liftCard,
-                  borderColor: tint(group.color, 0.42),
-                  background: tint(group.color, 0.07),
+                  borderColor: colors.border,
+                  background: colors.surface,
                 }}
               >
                 <div style={liftHeader}>
                   <div>
-                    <h2 style={{ ...liftTitle, color: group.color }}>{lift.exercise}</h2>
+                    <h2 style={liftTitle}>{lift.exercise}</h2>
                     <p style={liftMeta}>
                       {group.label} · {lift.sets} sets x {lift.reps} reps
                     </p>
                   </div>
                   {lift.suggestedWeight && (
-                    <span style={{ ...suggestion, color: group.color }}>
+                    <span style={{ ...suggestion, color: dayAccent, borderColor: tint(dayAccent, 0.38), background: colors.surfaceSoft }}>
                       {lift.suggestedWeight} lbs
                     </span>
                   )}
@@ -506,7 +507,7 @@ export default function Workout() {
                 )}
 
                 {workingSets.length > 0 && (
-                  <button type="button" onClick={() => addSet(lift.id)} style={{ ...addSetBtn, color: group.color, borderColor: tint(group.color, 0.38), background: tint(group.color, 0.1) }}>
+                  <button type="button" onClick={() => addSet(lift.id)} style={{ ...addSetBtn, color: dayAccent, borderColor: tint(dayAccent, 0.38), background: colors.surfaceSoft }}>
                     Add Set
                   </button>
                 )}
@@ -602,7 +603,7 @@ function saveLastWorkoutDay(day) {
 }
 
 function getDayAccent(day, plan) {
-  return plan.__meta?.[day]?.recovery ? dayColors.recovery : dayColors.default;
+  return plan.__meta?.[day]?.recovery ? dayColors.recovery : dayColors[day] || colors.brand;
 }
 
 function formatRestTime(seconds) {

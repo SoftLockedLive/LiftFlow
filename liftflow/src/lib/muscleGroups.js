@@ -1,14 +1,14 @@
 import { colors, tint } from "./theme";
 
 export const MUSCLE_GROUPS = [
-  { id: "chest", label: "Chest", color: colors.brand },
-  { id: "back", label: "Back", color: colors.blue },
-  { id: "legs", label: "Legs", color: colors.warning },
-  { id: "shoulders", label: "Shoulders", color: colors.violet },
-  { id: "arms", label: "Arms", color: colors.accent },
+  { id: "chest", label: "Chest", color: colors.textSoft },
+  { id: "back", label: "Back", color: colors.textSoft },
+  { id: "legs", label: "Legs", color: colors.textSoft },
+  { id: "shoulders", label: "Shoulders", color: colors.textSoft },
+  { id: "arms", label: "Arms", color: colors.textSoft },
   { id: "core", label: "Core", color: colors.textSoft },
-  { id: "conditioning", label: "Conditioning", color: colors.success },
-  { id: "other", label: "Other", color: "#8a8a8a" },
+  { id: "conditioning", label: "Conditioning", color: colors.textSoft },
+  { id: "other", label: "Other", color: colors.muted },
 ];
 
 export function getMuscleGroup(groupId) {

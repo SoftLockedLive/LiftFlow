@@ -444,14 +444,10 @@ export default function Plan() {
             return (
             <article
               key={lift.id}
-              style={{
-                ...liftCard,
-                borderColor: tint(group.color, 0.42),
-                background: tint(group.color, 0.08),
-              }}
+              style={liftCard}
             >
               <div>
-                <h3 style={{ ...liftName, color: group.color }}>{lift.exercise}</h3>
+                <h3 style={liftName}>{lift.exercise}</h3>
                 <p style={liftMeta}>
                   {group.label} · {lift.sets} sets x {lift.reps} reps
                 </p>
@@ -676,7 +672,7 @@ export default function Plan() {
                 return (
                   <div key={`${lift.exercise}-${lift.muscleGroup}`} style={libraryItem}>
                     <div>
-                      <strong style={{ color: group.color }}>{lift.exercise}</strong>
+                      <strong style={libraryLiftName}>{lift.exercise}</strong>
                       <p style={liftMeta}>{group.label} · {lift.sets} sets x {lift.reps} reps</p>
                     </div>
                     <button type="button" onClick={() => addExerciseToDay(lift)} style={editBtn}>
@@ -699,7 +695,7 @@ export default function Plan() {
                   return (
                     <div key={lift.id} style={libraryItem}>
                       <div>
-                        <strong style={{ color: group.color }}>{lift.exercise}</strong>
+                        <strong style={libraryLiftName}>{lift.exercise}</strong>
                         <p style={liftMeta}>{group.label} · {lift.sets} sets x {lift.reps} reps</p>
                       </div>
                       <div style={actions}>
@@ -739,7 +735,7 @@ export default function Plan() {
 }
 
 function getDayAccent(day, plan) {
-  return plan.__meta?.[day]?.recovery ? dayColors.recovery : dayColors.default;
+  return plan.__meta?.[day]?.recovery ? dayColors.recovery : dayColors[day] || colors.brand;
 }
 
 function formatWarmupMovement(movement) {
@@ -1027,8 +1023,12 @@ const editBtn = {
 
 const liftName = {
   margin: 0,
-  color: ACCENT,
+  color: colors.text,
   fontSize: 16,
+};
+
+const libraryLiftName = {
+  color: colors.textSoft,
 };
 
 const liftMeta = {

@@ -27,7 +27,13 @@ export const liftColors = {
 };
 
 export const dayColors = {
-  default: colors.brand,
+  Monday: colors.brand,
+  Tuesday: colors.warning,
+  Wednesday: colors.accent,
+  Thursday: colors.violet,
+  Friday: colors.danger,
+  Saturday: colors.success,
+  Sunday: colors.textSoft,
   recovery: colors.success,
   today: colors.brand,
 };

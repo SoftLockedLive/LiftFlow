@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
-import { getMuscleGroup, tint as groupTint } from "../lib/muscleGroups";
 import { getPlan } from "../lib/plan";
 import { getTodayName } from "../lib/today";
 import { getWorkouts } from "../lib/workoutStorage";
@@ -37,7 +36,7 @@ export default function Home() {
           lifts,
           name,
           recovery,
-          accent: day === today ? dayColors.today : dayColors.default,
+          accent: dayColors[day] || colors.brand,
           isToday: day === today,
         };
       }),
@@ -92,8 +91,8 @@ export default function Home() {
               style={{
                 ...dayCard,
                 ...(item.day === "Sunday" ? sundayCard : {}),
-                borderColor: item.recovery ? "rgba(50, 223, 118, 0.38)" : item.isToday ? item.accent : tint(item.accent, 0.34),
-                background: item.recovery ? "rgba(50, 223, 118, 0.08)" : item.isToday ? tint(item.accent, 0.1) : "#101010",
+                borderColor: item.recovery ? tint(colors.success, 0.42) : item.isToday ? item.accent : tint(item.accent, 0.34),
+                background: colors.surface,
               }}
             >
               <div style={dayTopline}>
@@ -101,7 +100,7 @@ export default function Home() {
                 {item.isToday && <span style={{ ...todayBadge, color: item.accent }}>Today</span>}
               </div>
 
-              <h3 style={{ ...dayTitle, color: item.recovery ? "#32df76" : item.lifts.length > 0 ? item.accent : "#555" }}>
+              <h3 style={{ ...dayTitle, color: item.recovery ? colors.success : item.lifts.length > 0 ? item.accent : colors.mutedStrong }}>
                 {getDayTitle(item)}
               </h3>
 
@@ -110,7 +109,7 @@ export default function Home() {
               ) : item.lifts.length > 0 ? (
                 <div style={liftPreview}>
                   {item.lifts.slice(0, 3).map((lift) => (
-                    <MuscleChip key={lift.id || lift.exercise} lift={lift} />
+                    <LiftChip key={lift.id || lift.exercise} lift={lift} />
                   ))}
                   {item.lifts.length > 3 && (
                     <span style={liftChip}>+{item.lifts.length - 3} more</span>
@@ -125,9 +124,9 @@ export default function Home() {
                 onClick={() => router.push(item.lifts.length > 0 || item.recovery ? "/workout" : "/plan")}
                 style={{
                   ...openButton,
-                  color: item.recovery ? "#32df76" : item.accent,
-                  background: item.recovery ? "rgba(50, 223, 118, 0.16)" : tint(item.accent, 0.16),
-                  borderColor: item.recovery ? "rgba(50, 223, 118, 0.48)" : tint(item.accent, 0.48),
+                  color: item.recovery ? colors.success : item.accent,
+                  background: colors.surfaceSoft,
+                  borderColor: item.recovery ? tint(colors.success, 0.48) : tint(item.accent, 0.48),
                 }}
               >
                 {item.lifts.length > 0 || item.recovery ? "Open" : "Add"}
@@ -182,18 +181,9 @@ export default function Home() {
   );
 }
 
-function MuscleChip({ lift }) {
-  const group = getMuscleGroup(lift.muscleGroup);
-
+function LiftChip({ lift }) {
   return (
-    <span
-      style={{
-        ...liftChip,
-        color: group.color,
-        borderColor: groupTint(group.color, 0.32),
-        background: groupTint(group.color, 0.08),
-      }}
-    >
+    <span style={liftChip}>
       {lift.exercise} · {lift.sets}x{lift.reps}
     </span>
   );
