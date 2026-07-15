@@ -16,7 +16,7 @@ export function buildCoachRecommendation(lift, workouts = getWorkouts()) {
       detail: "Log this lift once and coach recommendations will use your history.",
       warmups: [],
       workingWeight: null,
-      workingSetPlan: "Use flat working sets: same weight across the planned sets unless form breaks or reps fall under the target.",
+      workingSetPlan: "Flat sets by default.",
       nextAction: "Choose a weight you can control for the programmed reps.",
     };
   }
@@ -35,7 +35,7 @@ export function buildCoachRecommendation(lift, workouts = getWorkouts()) {
 
   return {
     status: "ready",
-    headline: `${workingWeight} lb working weight`,
+    headline: `${workingWeight} lb`,
     detail: buildDetail(direction, latestTopWeight, avgReps, target, context),
     warmups: buildWarmupRamp(workingWeight, target, lift),
     warmupLabel: "Ramp-up sets",
@@ -45,7 +45,7 @@ export function buildCoachRecommendation(lift, workouts = getWorkouts()) {
     increment,
     confidence: context.confidence,
     contextNotes: context.notes,
-    workingSetPlan: "Use flat working sets: same weight across the planned sets. Adjust mid-workout only if reps miss the target or the weight is clearly too light.",
+    workingSetPlan: "Flat sets by default. Adjust only if reps fall off or it is clearly too light.",
     nextAction: buildNextAction(workingWeight, lift),
   };
 }
@@ -214,5 +214,5 @@ function buildDetail(direction, latestWeight, avgReps, target, context) {
 
 function buildNextAction(workingWeight, lift) {
   if (!workingWeight) return "Pick a controlled starting weight.";
-  return `Start working sets around ${workingWeight} lb for ${lift.sets} x ${lift.reps}.`;
+  return `${lift.sets} x ${lift.reps} at about ${workingWeight} lb.`;
 }

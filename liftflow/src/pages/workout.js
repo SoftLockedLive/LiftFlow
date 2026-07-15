@@ -370,7 +370,7 @@ export default function Workout() {
                         <span style={coachLabel}>Coach</span>
                         <strong style={coachTitle}>{coach.headline}</strong>
                       </div>
-                      {coach.workingWeight && <span style={coachBadge}>{coach.workingWeight} lb</span>}
+                      <span style={coachBadge}>Flat sets</span>
                     </div>
                     <p style={coachDetail}>{coach.detail}</p>
                     {coach.warmups?.length > 0 && (
@@ -403,8 +403,10 @@ export default function Workout() {
                     {coach.contextNotes?.map((note) => (
                       <p key={note} style={coachContextNote}>{note}</p>
                     ))}
-                    {coach.workingSetPlan && <p style={coachPlan}>{coach.workingSetPlan}</p>}
-                    <p style={coachAction}>{coach.nextAction}</p>
+                    <div style={coachPlanRow}>
+                      {coach.workingSetPlan && <span style={coachPlan}>{coach.workingSetPlan}</span>}
+                      <strong style={coachAction}>{coach.nextAction}</strong>
+                    </div>
                     {liveCoach && (
                       <div style={{ ...liveCoachBox, ...(liveCoach.tone === "up" ? liveCoachUp : liveCoach.tone === "down" ? liveCoachDown : {}) }}>
                         <strong>{liveCoach.label}</strong>
@@ -468,7 +470,7 @@ export default function Workout() {
 
                 <div style={workingSetHeader}>
                   <span style={workingSetLabel}>Working sets</span>
-                  <span style={workingSetMeta}>Log the sets that count for history and PRs.</span>
+                  <span style={workingSetMeta}>Counts for history and PRs.</span>
                 </div>
 
                 <div style={setList}>
@@ -738,14 +740,14 @@ const recoveryNotes = {
 
 const list = {
   display: "grid",
-  gap: 14,
+  gap: 12,
 };
 
 const timerCard = {
-  border: "1px solid rgba(50, 207, 255, 0.35)",
-  borderRadius: 16,
+  border: "1px solid rgba(50, 207, 255, 0.24)",
+  borderRadius: 12,
   background: "#101010",
-  padding: 14,
+  padding: 10,
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
@@ -891,9 +893,9 @@ const timerLabel = {
 
 const timerValue = {
   display: "block",
-  marginTop: 4,
+  marginTop: 2,
   color: "#32cfff",
-  fontSize: 30,
+  fontSize: 24,
   lineHeight: 1,
 };
 
@@ -905,7 +907,7 @@ const timerActions = {
 };
 
 const timerChip = {
-  padding: "8px 11px",
+  padding: "7px 10px",
   color: "#8a8a8a",
 };
 
@@ -916,13 +918,13 @@ const activeTimerChip = {
 };
 
 const timerStart = {
-  padding: "8px 14px",
+  padding: "7px 13px",
 };
 
 const liftCard = {
   border: "1px solid",
-  borderRadius: 16,
-  padding: 16,
+  borderRadius: 14,
+  padding: 13,
   background: "#101010",
 };
 
@@ -935,13 +937,14 @@ const liftHeader = {
 
 const liftTitle = {
   margin: 0,
-  fontSize: 22,
+  fontSize: 20,
 };
 
 const liftMeta = {
-  margin: "6px 0 0",
+  margin: "4px 0 0",
   color: "#777",
   fontWeight: 750,
+  fontSize: 13,
 };
 
 const suggestion = {
@@ -953,13 +956,13 @@ const suggestion = {
 };
 
 const coachCard = {
-  border: "1px solid rgba(50, 207, 255, 0.28)",
-  borderRadius: 12,
-  background: "rgba(50, 207, 255, 0.08)",
-  padding: 12,
-  marginTop: 12,
+  border: "1px solid rgba(50, 207, 255, 0.2)",
+  borderRadius: 10,
+  background: "rgba(50, 207, 255, 0.06)",
+  padding: 10,
+  marginTop: 10,
   display: "grid",
-  gap: 8,
+  gap: 6,
 };
 
 const coachHeader = {
@@ -972,50 +975,58 @@ const coachHeader = {
 const coachLabel = {
   display: "block",
   color: "#777",
-  fontSize: 12,
+  fontSize: 10,
   fontWeight: 850,
   textTransform: "uppercase",
 };
 
 const coachTitle = {
   display: "block",
-  marginTop: 3,
+  marginTop: 1,
   color: "#32cfff",
   fontSize: 18,
 };
 
 const coachBadge = {
-  color: "#050505",
-  background: "#32cfff",
+  color: "#32cfff",
+  background: "rgba(50, 207, 255, 0.1)",
+  border: "1px solid rgba(50, 207, 255, 0.26)",
   borderRadius: 999,
-  padding: "5px 9px",
+  padding: "4px 8px",
   fontWeight: 900,
   whiteSpace: "nowrap",
+  fontSize: 11,
+  textTransform: "uppercase",
 };
 
 const coachDetail = {
   margin: 0,
   color: "#bdbdb8",
-  lineHeight: 1.35,
-  fontSize: 13,
+  lineHeight: 1.3,
+  fontSize: 12,
 };
 
 const coachWarmups = {
   display: "flex",
-  flexWrap: "wrap",
-  gap: 7,
+  flexWrap: "nowrap",
+  gap: 6,
+  overflowX: "auto",
+  paddingBottom: 1,
 };
 
 const coachWarmupBlock = {
-  display: "grid",
-  gap: 6,
+  display: "flex",
+  alignItems: "center",
+  gap: 8,
+  minWidth: 0,
 };
 
 const coachWarmupLabel = {
   color: "#777",
-  fontSize: 11,
+  fontSize: 10,
   fontWeight: 900,
   textTransform: "uppercase",
+  flex: "0 0 auto",
 };
 
 const coachWarmupChip = {
@@ -1023,12 +1034,13 @@ const coachWarmupChip = {
   borderRadius: 999,
   color: "#32cfff",
   background: "#050505",
-  padding: "5px 8px",
-  fontSize: 12,
+  padding: "5px 7px",
+  fontSize: 11,
   fontWeight: 850,
   display: "inline-flex",
   alignItems: "center",
-  gap: 6,
+  gap: 5,
+  flex: "0 0 auto",
 };
 
 const coachWarmupChipDone = {
@@ -1038,8 +1050,8 @@ const coachWarmupChipDone = {
 };
 
 const miniCheckBox = {
-  width: 14,
-  height: 14,
+  width: 13,
+  height: 13,
   border: "1px solid currentColor",
   borderRadius: 4,
   color: "inherit",
@@ -1057,21 +1069,30 @@ const miniCheckBoxDone = {
 const coachContextNote = {
   margin: 0,
   color: "#d9d178",
-  fontSize: 12,
-  lineHeight: 1.35,
+  fontSize: 11,
+  lineHeight: 1.3,
+};
+
+const coachPlanRow = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 10,
+  flexWrap: "wrap",
 };
 
 const coachPlan = {
   margin: 0,
   color: "#d7d7d2",
-  fontSize: 12,
-  lineHeight: 1.35,
+  fontSize: 11,
+  lineHeight: 1.3,
 };
 
 const coachAction = {
   margin: 0,
   color: "#f7f7f2",
   fontWeight: 800,
+  fontSize: 12,
 };
 
 const liveCoachBox = {
@@ -1079,10 +1100,10 @@ const liveCoachBox = {
   borderRadius: 10,
   background: "rgba(228, 255, 47, 0.08)",
   color: "#e4ff2f",
-  padding: 10,
+  padding: 8,
   display: "grid",
   gap: 4,
-  fontSize: 13,
+  fontSize: 12,
 };
 
 const liveCoachUp = {
@@ -1099,16 +1120,16 @@ const liveCoachDown = {
 
 const stretchBox = {
   border: "1px solid #242424",
-  borderRadius: 12,
+  borderRadius: 10,
   background: "#0b0b0b",
-  padding: 12,
-  marginTop: 12,
+  padding: 10,
+  marginTop: 10,
 };
 
 const variationWrap = {
   display: "grid",
   gap: 6,
-  marginTop: 12,
+  marginTop: 10,
 };
 
 const variationToggle = {
@@ -1116,23 +1137,23 @@ const variationToggle = {
   color: "#32cfff",
   borderColor: "rgba(50, 207, 255, 0.38)",
   background: "rgba(50, 207, 255, 0.1)",
-  padding: "8px 12px",
-  fontSize: 13,
+  padding: "7px 10px",
+  fontSize: 12,
 };
 
 const variationPanel = {
   display: "grid",
-  gap: 8,
+  gap: 7,
   border: "1px solid #242424",
-  borderRadius: 12,
+  borderRadius: 10,
   background: "#0b0b0b",
-  padding: 10,
+  padding: 9,
 };
 
 const variationChips = {
   display: "flex",
   flexWrap: "wrap",
-  gap: 8,
+  gap: 6,
 };
 
 const variationChip = {
@@ -1152,53 +1173,56 @@ const activeVariationChip = {
 const stretchLabel = {
   display: "block",
   color: "#e4ff2f",
-  fontSize: 12,
+  fontSize: 11,
   fontWeight: 850,
   textTransform: "uppercase",
 };
 
 const stretchText = {
-  margin: "6px 0 0",
+  margin: "4px 0 0",
   color: "#d7d7d2",
-  lineHeight: 1.4,
+  lineHeight: 1.35,
+  fontSize: 13,
 };
 
 const workingSetHeader = {
-  display: "grid",
-  gap: 3,
-  marginTop: 14,
-  paddingTop: 12,
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 10,
+  marginTop: 12,
+  paddingTop: 10,
   borderTop: "1px solid rgba(247, 247, 242, 0.12)",
 };
 
 const workingSetLabel = {
   color: "#f7f7f2",
-  fontSize: 13,
+  fontSize: 12,
   fontWeight: 900,
   textTransform: "uppercase",
 };
 
 const workingSetMeta = {
   color: "#777",
-  fontSize: 12,
+  fontSize: 11,
   fontWeight: 700,
 };
 
 const setList = {
   display: "grid",
-  gap: 10,
-  marginTop: 10,
+  gap: 8,
+  marginTop: 8,
 };
 
 const setRow = {
-  gap: 10,
+  gap: 8,
   gridTemplateColumns: "1fr 1fr auto",
 };
 
 const addSetBtn = {
   width: "100%",
-  marginTop: 12,
-  padding: "8px 12px",
+  marginTop: 10,
+  padding: "7px 12px",
 };
 
 const removeSetBtn = {
