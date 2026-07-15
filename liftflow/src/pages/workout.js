@@ -107,7 +107,12 @@ export default function Workout() {
     setSession((prev) => {
       const nextSets = [...(prev[exerciseId] || [])];
       nextSets.splice(setIndex, 1);
-      const copy = { ...prev, [exerciseId]: nextSets };
+      const copy = { ...prev };
+      if (nextSets.length > 0) {
+        copy[exerciseId] = nextSets;
+      } else {
+        delete copy[exerciseId];
+      }
       const updatedDrafts = { ...drafts, [selectedDay]: copy };
       setDrafts(updatedDrafts);
       saveWorkoutDrafts(updatedDrafts);
@@ -170,7 +175,7 @@ export default function Workout() {
       muscleGroup: lift.muscleGroup || "other",
       plannedSets: lift.sets || "",
       plannedReps: lift.reps || "",
-      sets: session[lift.id] || [],
+      sets: getLoggedSets(session[lift.id]),
       date: Date.now(),
       suggestedWeight: lift.suggestedWeight || null,
       note: lift.note || lift.stretches || "",
@@ -333,7 +338,7 @@ export default function Workout() {
 
           {program.map((lift) => {
             const group = getMuscleGroup(lift.muscleGroup);
-            const rowCount = Math.max(getSetRowCount(lift.sets), session[lift.id]?.length || 0);
+            const workingSets = Array.isArray(session[lift.id]) ? session[lift.id] : [];
             const variationOptions = getVariationOptions(lift);
             const variationDraft = normalizeVariationDraft(session.__variations?.[lift.id]);
             const selectedVariation = getSelectedVariation(variationDraft);
@@ -473,8 +478,13 @@ export default function Workout() {
                   <span style={workingSetMeta}>Counts for history and PRs.</span>
                 </div>
 
-                <div style={setList}>
-                  {Array.from({ length: rowCount }).map((_, i) => (
+                {workingSets.length === 0 ? (
+                  <button type="button" onClick={() => addSet(lift.id)} style={emptySetButton}>
+                    Add first working set
+                  </button>
+                ) : (
+                  <div style={setList}>
+                    {workingSets.map((_, i) => (
                     <div key={i} className="field-row" style={setRow}>
                       <input
                         type="number"
@@ -497,12 +507,15 @@ export default function Workout() {
                         -
                       </button>
                     </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
 
-                <button type="button" onClick={() => addSet(lift.id)} style={{ ...addSetBtn, color: group.color, borderColor: tint(group.color, 0.38), background: tint(group.color, 0.1) }}>
-                  Add Set
-                </button>
+                {workingSets.length > 0 && (
+                  <button type="button" onClick={() => addSet(lift.id)} style={{ ...addSetBtn, color: group.color, borderColor: tint(group.color, 0.38), background: tint(group.color, 0.1) }}>
+                    Add Set
+                  </button>
+                )}
               </article>
             );
           })}
@@ -561,14 +574,12 @@ function SummaryStat({ label, value }) {
   );
 }
 
-function getSetRowCount(sets) {
-  const numbers = String(sets || "")
-    .split("-")
-    .map((value) => Number(value.trim()))
-    .filter((value) => Number.isFinite(value) && value > 0);
-
-  if (numbers.length === 0) return 0;
-  return Math.max(...numbers);
+function getLoggedSets(sets) {
+  return (Array.isArray(sets) ? sets : []).filter((set) => {
+    const weight = Number(set?.weight || 0);
+    const reps = Number(set?.reps || 0);
+    return weight > 0 || reps > 0;
+  });
 }
 
 function getWorkoutDrafts() {
@@ -1212,6 +1223,16 @@ const setList = {
   display: "grid",
   gap: 8,
   marginTop: 8,
+};
+
+const emptySetButton = {
+  width: "100%",
+  marginTop: 8,
+  padding: "9px 12px",
+  color: "#32cfff",
+  borderColor: "rgba(50, 207, 255, 0.34)",
+  background: "rgba(50, 207, 255, 0.08)",
+  fontSize: 13,
 };
 
 const setRow = {

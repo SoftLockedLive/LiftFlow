@@ -246,11 +246,11 @@ function tint(hex, alpha) {
 }
 
 const focusCard = {
-  minHeight: 88,
+  minHeight: 76,
   border: "1px solid rgba(50, 207, 255, 0.22)",
-  borderRadius: 14,
+  borderRadius: 12,
   background: "#101010",
-  padding: "14px 16px",
+  padding: "12px 14px",
   alignItems: "center",
   justifyContent: "space-between",
   gap: 12,
@@ -265,16 +265,16 @@ const eyebrow = {
 };
 
 const focusTitle = {
-  margin: "5px 0 5px",
+  margin: "4px 0",
   color: "#f7f7f2",
-  fontSize: 22,
+  fontSize: 20,
   lineHeight: 1,
 };
 
 const focusCopy = {
   margin: 0,
   color: "#747474",
-  fontSize: 14,
+  fontSize: 13,
   lineHeight: 1.4,
   fontWeight: 700,
 };
@@ -284,14 +284,14 @@ const focusButton = {
 };
 
 const section = {
-  marginTop: 18,
+  marginTop: 16,
 };
 
 const sectionHeader = {
   alignItems: "center",
   justifyContent: "space-between",
   gap: 14,
-  marginBottom: 14,
+  marginBottom: 10,
 };
 
 const sectionTitle = {
@@ -302,9 +302,10 @@ const sectionTitle = {
 };
 
 const sectionMeta = {
-  margin: "8px 0 0",
+  margin: "5px 0 0",
   color: "#555",
   fontWeight: 800,
+  fontSize: 13,
 };
 
 const ghostButton = {
@@ -315,14 +316,14 @@ const ghostButton = {
 };
 
 const weekGrid = {
-  gap: 10,
+  gap: 8,
 };
 
 const dayCard = {
-  minHeight: 132,
+  minHeight: 112,
   border: "1px solid",
-  borderRadius: 14,
-  padding: 12,
+  borderRadius: 12,
+  padding: 10,
   display: "flex",
   flexDirection: "column",
   alignItems: "flex-start",
@@ -352,22 +353,22 @@ const todayBadge = {
 };
 
 const dayTitle = {
-  margin: "9px 0 8px",
-  fontSize: 17,
+  margin: "7px 0 7px",
+  fontSize: 16,
   lineHeight: 1.1,
 };
 
 const liftPreview = {
   display: "flex",
   flexWrap: "wrap",
-  gap: 7,
-  marginBottom: 12,
+  gap: 5,
+  marginBottom: 8,
 };
 
 const liftChip = {
   border: "1px solid #262626",
   borderRadius: 999,
-  padding: "5px 9px",
+  padding: "4px 7px",
   color: "#aaa",
   background: "#0a0a0a",
   fontSize: 11,
@@ -375,16 +376,16 @@ const liftChip = {
 };
 
 const restCopy = {
-  margin: "0 0 16px",
+  margin: "0 0 10px",
   color: "#4d4d4d",
   fontWeight: 800,
 };
 
 const openButton = {
   marginTop: "auto",
-  minWidth: 82,
-  padding: "8px 16px",
-  fontSize: 13,
+  minWidth: 72,
+  padding: "7px 13px",
+  fontSize: 12,
 };
 
 const emptyState = {
@@ -400,12 +401,12 @@ const emptyState = {
 
 const recentList = {
   display: "grid",
-  gap: 10,
+  gap: 8,
 };
 
 const recentCard = {
   border: "1px solid #222",
-  borderRadius: 14,
+  borderRadius: 12,
   background: "#0f0f0f",
   overflow: "hidden",
 };
@@ -415,7 +416,7 @@ const recentSummary = {
   border: 0,
   borderRadius: 0,
   background: "transparent",
-  padding: "12px 14px",
+  padding: "10px 12px",
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
@@ -426,12 +427,13 @@ const recentSummary = {
 const recentExercise = {
   margin: 0,
   color: "#32cfff",
-  fontSize: 19,
+  fontSize: 17,
 };
 
 const recentDate = {
-  margin: "6px 0 0",
+  margin: "4px 0 0",
   color: "#666",
+  fontSize: 12,
 };
 
 const recentLoad = {
@@ -448,7 +450,7 @@ const recentLift = {
   display: "flex",
   justifyContent: "space-between",
   gap: 12,
-  padding: "10px 14px",
+  padding: "8px 12px",
   borderBottom: "1px solid #171717",
 };
 
