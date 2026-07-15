@@ -5,13 +5,13 @@ export const PROGRAM_TEMPLATES = [
     summary: "Four days built around strength basics.",
     days: {
       Monday: day("Upper A", [
-        lift("Bench Press", "chest", "3", "5-8", "Band pull-aparts, shoulder circles, 2 ramp-up sets"),
+        lift("Bench Press", "chest", "3", "5-8", "Band pull-aparts, shoulder circles"),
         lift("Barbell Row", "back", "3", "6-10", "Lat stretch, light rows"),
         lift("Overhead Press", "shoulders", "3", "6-8", "Wall slides, empty bar presses"),
         lift("Triceps Pushdown", "arms", "2", "10-15", "Elbow circles"),
       ]),
       Tuesday: day("Lower A", [
-        lift("Squat", "legs", "3", "5-8", "Hip flexor stretch, bodyweight squats, ramp-up sets"),
+        lift("Squat", "legs", "3", "5-8", "Hip flexor stretch, bodyweight squats"),
         lift("Romanian Deadlift", "legs", "3", "8-10", "Hamstring sweeps"),
         lift("Leg Curl", "legs", "2", "10-15", "Light hamstring curls"),
         lift("Calf Raise", "legs", "3", "10-15", "Ankle rocks"),
@@ -23,7 +23,7 @@ export const PROGRAM_TEMPLATES = [
         lift("Curl", "arms", "2", "10-15", "Wrist and elbow circles"),
       ]),
       Friday: day("Lower B", [
-        lift("Deadlift", "legs", "3", "3-5", "Hip hinge drill, hamstring sweeps, ramp-up sets"),
+        lift("Deadlift", "legs", "3", "3-5", "Hip hinge drill, hamstring sweeps"),
         lift("Front Squat", "legs", "3", "6-8", "Ankle rocks, goblet squats"),
         lift("Lunge", "legs", "2", "8-12", "Hip opener"),
         lift("Plank", "core", "3", "30-60", "Cat-cow, bracing breaths"),
@@ -49,7 +49,7 @@ export const PROGRAM_TEMPLATES = [
         lift("Curl", "arms", "3", "10-15", "Elbow circles"),
       ]),
       Wednesday: day("Legs A", [
-        lift("Squat", "legs", "3", "5-8", "Hip flexor stretch, ramp-up sets"),
+        lift("Squat", "legs", "3", "5-8", "Hip flexor stretch"),
         lift("Romanian Deadlift", "legs", "3", "8-10", "Hamstring sweeps"),
         lift("Leg Press", "legs", "3", "10-15", "Bodyweight squats"),
         lift("Calf Raise", "legs", "3", "10-15", "Ankle rocks"),
@@ -236,7 +236,6 @@ export const PROGRAM_TEMPLATES = [
         warmup("Band pull-aparts", "reps", { sets: "1", reps: "20" }),
         warmup("Band external rotations", "reps", { sets: "1", reps: "15" }),
         warmup("Shoulder circles", "reps", { sets: "1", reps: "15" }),
-        warmup("Bench warm-up sets", "reps", { sets: "2-4", reps: "3-5" }),
       ]),
 
       Tuesday: day("Lower (Squat Strength)", [
@@ -253,7 +252,6 @@ export const PROGRAM_TEMPLATES = [
         warmup("World's Greatest Stretch", "reps", { sets: "1", reps: "5/side" }),
         warmup("Deep squat hold", "time", "30-45 sec"),
         warmup("Glute bridges", "reps", { sets: "1", reps: "15" }),
-        warmup("Squat warm-up sets", "reps", { sets: "2-4", reps: "3-5" }),
       ]),
 
       Wednesday: day("Recovery Core + Neck", [
@@ -282,7 +280,6 @@ export const PROGRAM_TEMPLATES = [
         warmup("Band pull-aparts", "reps", { sets: "1", reps: "20" }),
         warmup("Band external rotations", "reps", { sets: "1", reps: "15" }),
         warmup("Push-ups", "reps", { sets: "1-2", reps: "8-15" }),
-        warmup("Bench warm-up sets", "reps", { sets: "2-3", reps: "5" }),
       ]),
 
       Friday: day("Pull (Deadlift Strength)", [
@@ -299,7 +296,6 @@ export const PROGRAM_TEMPLATES = [
         warmup("Hip hinge drill", "reps", { sets: "1", reps: "10" }),
         warmup("Bird dogs", "reps", { sets: "1", reps: "8/side" }),
         warmup("Hamstring sweeps", "reps", { sets: "1", reps: "10/side" }),
-        warmup("Deadlift warm-up sets", "reps", { sets: "2-4", reps: "3-5" }),
       ]),
 
       Saturday: day("Legs (Hypertrophy)", [
@@ -315,7 +311,6 @@ export const PROGRAM_TEMPLATES = [
         warmup("90/90 hip rotations", "reps", { sets: "1", reps: "8/side" }),
         warmup("Leg swings", "reps", { sets: "1", reps: "10/side" }),
         warmup("Cossack squats", "reps", { sets: "1", reps: "6/side" }),
-        warmup("Front squat warm-up sets", "reps", { sets: "2-3", reps: "5" }),
       ]),
 
       Sunday: day("Recovery Mobility + Core", [
@@ -610,7 +605,6 @@ function defaultWarmupFor(dayName) {
       warmup("Easy bike or incline walk", "time", "3-5 min"),
       warmup("Leg swings", "reps", { sets: "1", reps: "10/side" }),
       warmup("Deep squat hold", "time", "30-45 sec"),
-      warmup("Ramp-up sets", "reps", { sets: "2-4", reps: "3-5" }),
     ];
   }
   if (name.includes("pull") || name.includes("deadlift") || name.includes("back")) {
@@ -618,14 +612,12 @@ function defaultWarmupFor(dayName) {
       warmup("Easy row", "time", "3 min"),
       warmup("Hip hinge drill", "reps", { sets: "1", reps: "10" }),
       warmup("Band pull-aparts", "reps", { sets: "1", reps: "20" }),
-      warmup("Ramp-up sets", "reps", { sets: "2-4", reps: "3-5" }),
     ];
   }
   return [
     warmup("Easy row", "time", "3 min"),
     warmup("Band pull-aparts", "reps", { sets: "1", reps: "20" }),
     warmup("Band external rotations", "reps", { sets: "1", reps: "15" }),
-    warmup("Ramp-up sets", "reps", { sets: "2-4", reps: "3-5" }),
   ];
 }
 

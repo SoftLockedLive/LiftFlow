@@ -127,6 +127,21 @@ export default function Workout() {
     });
   }
 
+  function toggleRampSet(exerciseId, setIndex) {
+    setSession((prev) => {
+      const rampState = { ...(prev.__ramp || {}) };
+      const liftRamp = { ...(rampState[exerciseId] || {}) };
+      liftRamp[setIndex] = !liftRamp[setIndex];
+      rampState[exerciseId] = liftRamp;
+
+      const copy = { ...prev, __ramp: rampState };
+      const updatedDrafts = { ...drafts, [selectedDay]: copy };
+      setDrafts(updatedDrafts);
+      saveWorkoutDrafts(updatedDrafts);
+      return copy;
+    });
+  }
+
   function updateVariation(exerciseId, patch) {
     setSession((prev) => {
       const variations = { ...(prev.__variations || {}) };
@@ -153,6 +168,8 @@ export default function Workout() {
       exercise: lift.baseExercise || lift.exercise,
       variation: getSelectedVariation(session.__variations?.[lift.id]),
       muscleGroup: lift.muscleGroup || "other",
+      plannedSets: lift.sets || "",
+      plannedReps: lift.reps || "",
       sets: session[lift.id] || [],
       date: Date.now(),
       suggestedWeight: lift.suggestedWeight || null,
@@ -357,14 +374,35 @@ export default function Workout() {
                     </div>
                     <p style={coachDetail}>{coach.detail}</p>
                     {coach.warmups?.length > 0 && (
-                      <div style={coachWarmups}>
-                        {coach.warmups.map((set) => (
-                          <span key={`${set.weight}-${set.reps}`} style={coachWarmupChip}>
-                            {set.weight} x {set.reps}
-                          </span>
-                        ))}
+                      <div style={coachWarmupBlock}>
+                        <span style={coachWarmupLabel}>{coach.warmupLabel || "Optional ramp"}</span>
+                        <div style={coachWarmups}>
+                          {coach.warmups.map((set, index) => {
+                            const done = Boolean(session.__ramp?.[lift.id]?.[index]);
+
+                            return (
+                              <button
+                                key={`${set.weight}-${set.reps}-${index}`}
+                                type="button"
+                                onClick={() => toggleRampSet(lift.id, index)}
+                                style={{
+                                  ...coachWarmupChip,
+                                  ...(done ? coachWarmupChipDone : {}),
+                                }}
+                              >
+                                <span style={{ ...miniCheckBox, ...(done ? miniCheckBoxDone : {}) }}>
+                                  {done ? "✓" : ""}
+                                </span>
+                                {set.weight} x {set.reps}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
+                    {coach.contextNotes?.map((note) => (
+                      <p key={note} style={coachContextNote}>{note}</p>
+                    ))}
                     <p style={coachAction}>{coach.nextAction}</p>
                     {liveCoach && (
                       <div style={{ ...liveCoachBox, ...(liveCoach.tone === "up" ? liveCoachUp : liveCoach.tone === "down" ? liveCoachDown : {}) }}>
@@ -426,6 +464,11 @@ export default function Workout() {
                     <p style={stretchText}>{lift.note || lift.stretches}</p>
                   </div>
                 )}
+
+                <div style={workingSetHeader}>
+                  <span style={workingSetLabel}>Working sets</span>
+                  <span style={workingSetMeta}>Log the sets that count for history and PRs.</span>
+                </div>
 
                 <div style={setList}>
                   {Array.from({ length: rowCount }).map((_, i) => (
@@ -962,6 +1005,18 @@ const coachWarmups = {
   gap: 7,
 };
 
+const coachWarmupBlock = {
+  display: "grid",
+  gap: 6,
+};
+
+const coachWarmupLabel = {
+  color: "#777",
+  fontSize: 11,
+  fontWeight: 900,
+  textTransform: "uppercase",
+};
+
 const coachWarmupChip = {
   border: "1px solid rgba(50, 207, 255, 0.28)",
   borderRadius: 999,
@@ -970,6 +1025,39 @@ const coachWarmupChip = {
   padding: "5px 8px",
   fontSize: 12,
   fontWeight: 850,
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 6,
+};
+
+const coachWarmupChipDone = {
+  color: "#050505",
+  background: "#32cfff",
+  borderColor: "#32cfff",
+};
+
+const miniCheckBox = {
+  width: 14,
+  height: 14,
+  border: "1px solid currentColor",
+  borderRadius: 4,
+  color: "inherit",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  fontSize: 10,
+  lineHeight: 1,
+};
+
+const miniCheckBoxDone = {
+  borderColor: "#050505",
+};
+
+const coachContextNote = {
+  margin: 0,
+  color: "#d9d178",
+  fontSize: 12,
+  lineHeight: 1.35,
 };
 
 const coachAction = {
@@ -1067,10 +1155,31 @@ const stretchText = {
   lineHeight: 1.4,
 };
 
+const workingSetHeader = {
+  display: "grid",
+  gap: 3,
+  marginTop: 14,
+  paddingTop: 12,
+  borderTop: "1px solid rgba(247, 247, 242, 0.12)",
+};
+
+const workingSetLabel = {
+  color: "#f7f7f2",
+  fontSize: 13,
+  fontWeight: 900,
+  textTransform: "uppercase",
+};
+
+const workingSetMeta = {
+  color: "#777",
+  fontSize: 12,
+  fontWeight: 700,
+};
+
 const setList = {
   display: "grid",
   gap: 10,
-  marginTop: 14,
+  marginTop: 10,
 };
 
 const setRow = {

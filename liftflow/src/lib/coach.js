@@ -27,19 +27,23 @@ export function buildCoachRecommendation(lift, workouts = getWorkouts()) {
   const avgReps = sameWeightSets.length
     ? sameWeightSets.reduce((sum, set) => sum + Number(set.reps || 0), 0) / sameWeightSets.length
     : 0;
+  const context = buildHistoryContext(latest, target);
 
-  const workingWeight = recommendWorkingWeight(latestTopWeight, avgReps, target, increment);
+  const workingWeight = recommendWorkingWeight(latestTopWeight, avgReps, target, increment, context);
   const direction = workingWeight > latestTopWeight ? "increase" : workingWeight < latestTopWeight ? "reduce" : "hold";
 
   return {
     status: "ready",
     headline: `${workingWeight} lb working weight`,
-    detail: buildDetail(direction, latestTopWeight, avgReps, target),
-    warmups: buildWarmupRamp(workingWeight, target),
+    detail: buildDetail(direction, latestTopWeight, avgReps, target, context),
+    warmups: buildWarmupRamp(workingWeight, target, lift),
+    warmupLabel: "Ramp-up sets",
     workingWeight,
     latestTopWeight,
     target,
     increment,
+    confidence: context.confidence,
+    contextNotes: context.notes,
     nextAction: buildNextAction(workingWeight, lift),
   };
 }
@@ -89,6 +93,9 @@ function collectLiftHistory(workouts, baseExercise) {
         .filter((lift) => getBaseExercise(lift) === baseExercise)
         .map((lift) => ({
           date,
+          target: parseRepTarget(lift.reps || lift.plannedReps),
+          targetLabel: lift.reps || lift.plannedReps || "",
+          variation: lift.variation || "",
           sets: getLiftSets(lift).filter((set) => Number(set.weight || 0) > 0 && Number(set.reps || 0) > 0),
         }));
     })
@@ -96,29 +103,57 @@ function collectLiftHistory(workouts, baseExercise) {
     .slice(0, 6);
 }
 
-function recommendWorkingWeight(latestWeight, avgReps, target, increment) {
+function recommendWorkingWeight(latestWeight, avgReps, target, increment, context) {
   if (!latestWeight) return null;
-  if (avgReps >= target.max) return roundToNearest(latestWeight + increment, increment);
+  if (avgReps >= target.max) {
+    return context.confidence === "high"
+      ? roundToNearest(latestWeight + increment, increment)
+      : roundToNearest(latestWeight, increment);
+  }
   if (avgReps < target.min) return Math.max(BAR_WEIGHT, roundToNearest(latestWeight - increment, increment));
   return roundToNearest(latestWeight, increment);
 }
 
-function buildWarmupRamp(workingWeight, target) {
+function buildWarmupRamp(workingWeight, target, lift) {
   if (!workingWeight || workingWeight <= BAR_WEIGHT) {
-    return [{ weight: BAR_WEIGHT, reps: Math.min(10, Math.max(target.max, 5)) }];
+    return [{ weight: BAR_WEIGHT, reps: "10-12" }];
+  }
+
+  if (!needsFullRamp(lift)) {
+    const feelerWeight = roundToNearest(Math.max(BAR_WEIGHT, workingWeight * 0.55), 5);
+    if (feelerWeight >= workingWeight) return [];
+    return [{ weight: feelerWeight, reps: "8-10" }];
   }
 
   const ramp = [
-    { weight: BAR_WEIGHT, reps: 10 },
-    { weight: roundToNearest(workingWeight * 0.55, 5), reps: 5 },
-    { weight: roundToNearest(workingWeight * 0.72, 5), reps: 3 },
+    { weight: BAR_WEIGHT, reps: "10-12" },
+    { weight: roundToNearest(workingWeight * 0.6, 5), reps: 5 },
   ];
 
-  if (workingWeight >= 185) {
-    ramp.push({ weight: roundToNearest(workingWeight * 0.85, 5), reps: 1 });
+  if (workingWeight >= 225 || target.max <= 5) {
+    ramp.push({ weight: roundToNearest(workingWeight * 0.8, 5), reps: "2-3" });
   }
 
   return dedupeWarmups(ramp.filter((set) => set.weight < workingWeight));
+}
+
+function needsFullRamp(lift) {
+  const name = String(lift?.exercise || lift?.baseExercise || "").toLowerCase();
+  const fullRampExercises = [
+    "bench",
+    "squat",
+    "deadlift",
+    "overhead press",
+    "shoulder press",
+    "leg press",
+    "row",
+    "pull-up",
+    "pulldown",
+    "hack squat",
+    "front squat",
+  ];
+
+  return fullRampExercises.some((exercise) => name.includes(exercise));
 }
 
 function dedupeWarmups(sets) {
@@ -148,11 +183,33 @@ function roundToNearest(value, increment) {
   return Math.round(Number(value || 0) / increment) * increment;
 }
 
-function buildDetail(direction, latestWeight, avgReps, target) {
+function buildHistoryContext(latest, currentTarget) {
+  const notes = [];
+  let confidence = "high";
+
+  if (latest.targetLabel && !sameRepTarget(latest.target, currentTarget)) {
+    confidence = "medium";
+    notes.push(`Last log used ${latest.targetLabel}, so this is a rep-range estimate.`);
+  }
+
+  if (latest.variation) {
+    confidence = "medium";
+    notes.push(`Last log was ${latest.variation}, so compare the load loosely.`);
+  }
+
+  return { confidence, notes };
+}
+
+function sameRepTarget(a, b) {
+  return Number(a?.min || 0) === Number(b?.min || 0) && Number(a?.max || 0) === Number(b?.max || 0);
+}
+
+function buildDetail(direction, latestWeight, avgReps, target, context) {
   const reps = Math.round(avgReps * 10) / 10;
-  if (direction === "increase") return `Last time you averaged ${reps} reps at ${latestWeight} lb, above the ${target.min}-${target.max} target.`;
-  if (direction === "reduce") return `Last time you averaged ${reps} reps at ${latestWeight} lb, below the ${target.min}-${target.max} target.`;
-  return `Last time you averaged ${reps} reps at ${latestWeight} lb, inside the ${target.min}-${target.max} target.`;
+  const confidence = context.confidence === "high" ? "" : " Treat this as an estimate.";
+  if (direction === "increase") return `Last time you averaged ${reps} reps at ${latestWeight} lb, above the ${target.min}-${target.max} target.${confidence}`;
+  if (direction === "reduce") return `Last time you averaged ${reps} reps at ${latestWeight} lb, below the ${target.min}-${target.max} target.${confidence}`;
+  return `Last time you averaged ${reps} reps at ${latestWeight} lb against today's ${target.min}-${target.max} target.${confidence}`;
 }
 
 function buildNextAction(workingWeight, lift) {
