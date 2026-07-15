@@ -717,15 +717,15 @@ const empty = {
 };
 
 const recoveryCard = {
-  border: "1px solid rgba(50, 223, 118, 0.35)",
+  border: `1px solid ${tint(dayColors.recovery, 0.36)}`,
   borderRadius: 16,
-  background: "rgba(50, 223, 118, 0.08)",
+  background: colors.surface,
   padding: 18,
 };
 
 const recoveryTitle = {
   margin: "6px 0 8px",
-  color: "#32df76",
+  color: dayColors.recovery,
   fontSize: 26,
 };
 
@@ -747,7 +747,7 @@ const list = {
 };
 
 const timerCard = {
-  border: "1px solid rgba(50, 207, 255, 0.24)",
+  border: `1px solid ${colors.border}`,
   borderRadius: 12,
   background: "#101010",
   padding: 10,
@@ -759,15 +759,15 @@ const timerCard = {
 };
 
 const emphasisCard = {
-  border: "1px solid rgba(50, 223, 118, 0.32)",
+  border: `1px solid ${tint(dayColors.recovery, 0.28)}`,
   borderRadius: 14,
-  background: "rgba(50, 223, 118, 0.07)",
+  background: colors.surface,
   padding: 14,
 };
 
 const emphasisTitle = {
   margin: "4px 0 0",
-  color: "#32df76",
+  color: dayColors.recovery,
   fontSize: 22,
 };
 
@@ -785,9 +785,9 @@ const actionGrid = {
 
 const actionCard = {
   borderRadius: 12,
-  color: "#e4ff2f",
-  borderColor: "rgba(228, 255, 47, 0.35)",
-  background: "rgba(228, 255, 47, 0.08)",
+  color: colors.text,
+  borderColor: colors.border,
+  background: colors.surfaceSoft,
   display: "grid",
   gap: 5,
   textAlign: "left",
@@ -795,9 +795,9 @@ const actionCard = {
 };
 
 const warmupCard = {
-  border: "1px solid rgba(228, 255, 47, 0.32)",
+  border: `1px solid ${colors.border}`,
   borderRadius: 14,
-  background: "rgba(228, 255, 47, 0.06)",
+  background: colors.surface,
   padding: 14,
 };
 
@@ -811,13 +811,13 @@ const warmupHeader = {
 
 const warmupTitle = {
   margin: "4px 0 0",
-  color: "#e4ff2f",
+  color: colors.text,
   fontSize: 22,
 };
 
 const warmupCount = {
-  color: "#e4ff2f",
-  border: "1px solid rgba(228, 255, 47, 0.35)",
+  color: colors.muted,
+  border: `1px solid ${colors.border}`,
   borderRadius: 999,
   padding: "6px 10px",
   fontWeight: 850,
@@ -833,7 +833,7 @@ const warmupRow = {
   alignItems: "center",
   justifyContent: "space-between",
   gap: 12,
-  borderTop: "1px solid rgba(228, 255, 47, 0.16)",
+  borderTop: `1px solid ${colors.borderSoft}`,
   borderLeft: 0,
   borderRight: 0,
   borderBottom: 0,
@@ -850,7 +850,7 @@ const warmupRowDone = {
 const checkBox = {
   width: 22,
   height: 22,
-  border: "1px solid rgba(228, 255, 47, 0.45)",
+  border: `1px solid ${colors.border}`,
   borderRadius: 6,
   color: "#050505",
   background: "#050505",
@@ -862,7 +862,7 @@ const checkBox = {
 };
 
 const checkBoxDone = {
-  background: "#e4ff2f",
+  background: colors.brand,
 };
 
 const warmupMain = {
@@ -881,7 +881,7 @@ const warmupNote = {
 };
 
 const warmupDose = {
-  color: "#e4ff2f",
+  color: colors.muted,
   fontWeight: 850,
   whiteSpace: "nowrap",
 };
@@ -1175,7 +1175,7 @@ const activeVariationChip = {
 
 const stretchLabel = {
   display: "block",
-  color: "#e4ff2f",
+  color: colors.muted,
   fontSize: 11,
   fontWeight: 850,
   textTransform: "uppercase",
@@ -1254,7 +1254,7 @@ const finishBtn = {
 };
 
 const summaryPanel = {
-  border: "1px solid rgba(228, 255, 47, 0.35)",
+  border: `1px solid ${colors.border}`,
   borderRadius: 16,
   background: "#101010",
   padding: 16,
@@ -1307,9 +1307,9 @@ const summaryValue = {
 };
 
 const prBox = {
-  border: "1px solid rgba(228, 255, 47, 0.35)",
+  border: `1px solid ${tint(colors.accent, 0.32)}`,
   borderRadius: 14,
-  background: "rgba(228, 255, 47, 0.08)",
+  background: colors.surfaceSoft,
   padding: 12,
   marginTop: 12,
 };

@@ -27,15 +27,15 @@ export const liftColors = {
 };
 
 export const dayColors = {
-  Monday: colors.brand,
-  Tuesday: colors.warning,
-  Wednesday: colors.accent,
-  Thursday: colors.violet,
-  Friday: colors.danger,
-  Saturday: colors.success,
-  Sunday: colors.textSoft,
-  recovery: colors.success,
-  today: colors.brand,
+  Monday: "#5aa7b5",
+  Tuesday: "#b07a54",
+  Wednesday: "#aaa85d",
+  Thursday: "#8b74a8",
+  Friday: "#a8675d",
+  Saturday: "#6d9a7a",
+  Sunday: "#8f8f88",
+  recovery: "#6d9a7a",
+  today: "#5aa7b5",
 };
 
 export function tint(hex, alpha) {

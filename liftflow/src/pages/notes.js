@@ -139,7 +139,6 @@ export default function Notes() {
                 style={{
                   ...noteCard,
                   borderColor: tint(noteLevel.color, 0.4),
-                  background: tint(noteLevel.color, 0.07),
                 }}
               >
                 <div style={noteTop}>
@@ -224,7 +223,7 @@ const title = {
 };
 
 const card = {
-  border: "1px solid rgba(228, 255, 47, 0.35)",
+  border: "1px solid #242424",
   borderRadius: 16,
   background: "#101010",
   padding: 16,
@@ -309,6 +308,7 @@ const empty = {
 const noteCard = {
   border: "1px solid",
   borderRadius: 16,
+  background: "#101010",
   padding: 14,
 };
 

@@ -6,8 +6,9 @@ import {
   getMobilityRoutine,
   saveMobilityRoutine,
 } from "../lib/mobility";
+import { colors, dayColors, tint } from "../lib/theme";
 
-const ACCENT = "#32df76";
+const ACCENT = dayColors.recovery;
 
 export default function Mobility() {
   const [routine, setRoutine] = useState([]);
@@ -191,9 +192,9 @@ const title = {
 
 const count = {
   color: ACCENT,
-  border: "1px solid rgba(50, 223, 118, 0.35)",
+  border: `1px solid ${tint(ACCENT, 0.35)}`,
   borderRadius: 999,
-  background: "rgba(50, 223, 118, 0.08)",
+  background: colors.surfaceSoft,
   padding: "8px 12px",
   fontWeight: 850,
 };
@@ -236,9 +237,9 @@ const presetGrid = {
 const presetButton = {
   borderRadius: 10,
   padding: 12,
-  color: ACCENT,
-  borderColor: "rgba(50, 223, 118, 0.32)",
-  background: "rgba(50, 223, 118, 0.08)",
+  color: colors.textSoft,
+  borderColor: colors.border,
+  background: colors.surfaceSoft,
   display: "grid",
   gap: 5,
   textAlign: "left",
@@ -302,8 +303,8 @@ const addRow = {
 
 const addBtn = {
   color: ACCENT,
-  borderColor: "rgba(50, 223, 118, 0.4)",
-  background: "rgba(50, 223, 118, 0.1)",
+  borderColor: tint(ACCENT, 0.35),
+  background: colors.surfaceSoft,
 };
 
 const logRow = {

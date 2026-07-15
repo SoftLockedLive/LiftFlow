@@ -15,12 +15,13 @@ import {
   saveProgressTargets,
 } from "../lib/progressTracking";
 import { buildPhaseTargets, getActivePhase, getPhases } from "../lib/progressPhase2";
+import { colors, tint } from "../lib/theme";
 
 const PROTEIN_QUICK_AMOUNTS = [2.5, 5, 10, 25];
 const CALORIE_QUICK_AMOUNTS = [100, 250, 500];
-const ACCENT = "#32df76";
-const CYAN = "#32cfff";
-const YELLOW = "#e4ff2f";
+const ACCENT = colors.success;
+const CYAN = colors.brand;
+const YELLOW = colors.accent;
 
 export default function Nutrition() {
   const [proteinLog, setProteinLog] = useState({});
@@ -228,7 +229,7 @@ function MacroLogger({ title, value, target, quickAmounts, customValue, setCusto
           <h2 style={cardTitle}>{title}</h2>
           <p style={mutedSmall}>{value.toLocaleString()}{unit} / {target.toLocaleString()}{unit} · {percent}%</p>
         </div>
-        <button type="button" onClick={() => onSet(0)} style={{ ...ghostButton, color, borderColor: tint(color, 0.4), background: tint(color, 0.08) }}>
+        <button type="button" onClick={() => onSet(0)} style={{ ...ghostButton, color, borderColor: tint(color, 0.32) }}>
           Clear
         </button>
       </div>
@@ -239,7 +240,7 @@ function MacroLogger({ title, value, target, quickAmounts, customValue, setCusto
             key={amount}
             type="button"
             onClick={() => onAdd(amount)}
-            style={{ ...quickButton, color, borderColor: tint(color, 0.38), background: tint(color, 0.1) }}
+            style={{ ...quickButton, color: colors.textSoft, borderColor: colors.border, background: colors.surfaceSoft }}
           >
             +{amount}{unit}
           </button>
@@ -303,14 +304,6 @@ function getEntryForDate(checkIns, dateKey) {
   return (checkIns || []).find((entry) => entry.date === dateKey) || {};
 }
 
-function tint(hex, alpha) {
-  const value = hex.replace("#", "");
-  const r = parseInt(value.slice(0, 2), 16);
-  const g = parseInt(value.slice(2, 4), 16);
-  const b = parseInt(value.slice(4, 6), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
-
 const wrap = {
   maxWidth: 820,
   margin: "0 auto",
@@ -339,11 +332,11 @@ const title = {
 };
 
 const streakBadge = {
-  border: "1px solid rgba(50, 223, 118, 0.4)",
+  border: `1px solid ${colors.border}`,
   borderRadius: 999,
   padding: "8px 12px",
-  color: ACCENT,
-  background: "rgba(50, 223, 118, 0.1)",
+  color: colors.textSoft,
+  background: colors.surfaceSoft,
   fontWeight: 850,
 };
 
@@ -358,7 +351,7 @@ const dateCard = {
 const heroCard = {
   display: "flex",
   flexWrap: "wrap",
-  border: "1px solid rgba(50, 207, 255, 0.32)",
+  border: `1px solid ${colors.border}`,
   borderRadius: 16,
   background: "#101010",
   padding: 16,
@@ -461,7 +454,7 @@ const fieldLabel = {
 };
 
 const ghostButton = {
-  background: "rgba(50, 223, 118, 0.08)",
+  background: colors.surfaceSoft,
 };
 
 const quickGrid = {

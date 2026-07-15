@@ -3,7 +3,7 @@ import ConfirmDialog from "../components/ConfirmDialog";
 import { deleteManualPR, getManualPRs, upsertManualPR } from "../lib/manualPRs";
 import { getWorkouts } from "../lib/workoutStorage";
 import { getBaseExercise, getLiftSets, getWorkoutItems } from "../lib/workoutAnalytics";
-import { MUSCLE_GROUPS, tint } from "../lib/muscleGroups";
+import { MUSCLE_GROUPS } from "../lib/muscleGroups";
 
 export default function PRs() {
   const [workouts, setWorkouts] = useState([]);
@@ -97,9 +97,9 @@ export default function PRs() {
                   onClick={() => setOpenGroups((prev) => ({ ...prev, [group.id]: !expanded }))}
                   style={{
                     ...groupHeader,
-                    color: group.color,
-                    borderColor: tint(group.color, 0.28),
-                    background: tint(group.color, 0.07),
+                    color: "#d7d7d2",
+                    borderColor: "#242424",
+                    background: "#101010",
                   }}
                 >
                   <span>{group.label} {expanded ? "▲" : "▼"}</span>
@@ -111,7 +111,7 @@ export default function PRs() {
                     {group.items.map((pr) => (
                       <article key={pr.exercise} style={prCard}>
                         <div>
-                          <h2 style={{ ...prName, color: group.color }}>{pr.exercise}</h2>
+                          <h2 style={prName}>{pr.exercise}</h2>
                           <p style={prMeta}>
                             {pr.weight} lb{pr.reps ? ` x ${pr.reps} reps` : ""}
                           </p>

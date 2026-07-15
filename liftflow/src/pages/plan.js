@@ -428,9 +428,9 @@ export default function Plan() {
         </div>
 
         {recovery ? (
-          <article style={{ ...liftCard, borderColor: "rgba(50, 223, 118, 0.42)", background: "rgba(50, 223, 118, 0.08)" }}>
+          <article style={{ ...liftCard, borderColor: tint(dayColors.recovery, 0.36), background: colors.surface }}>
             <div>
-              <h3 style={{ ...liftName, color: "#32df76" }}>{selectedMeta.name || "Recovery"}</h3>
+              <h3 style={{ ...liftName, color: dayColors.recovery }}>{selectedMeta.name || "Recovery"}</h3>
               <p style={liftMeta}>{recovery.activity} · {recovery.duration} · {recovery.intensity}</p>
               {recovery.notes && <p style={stretchPreview}>{recovery.notes}</p>}
             </div>
@@ -773,11 +773,11 @@ const title = {
 };
 
 const count = {
-  border: "1px solid rgba(50, 207, 255, 0.35)",
+  border: `1px solid ${colors.border}`,
   borderRadius: 999,
   padding: "8px 12px",
   color: ACCENT,
-  background: "rgba(50, 207, 255, 0.08)",
+  background: colors.surfaceSoft,
   fontWeight: 850,
 };
 
@@ -846,15 +846,15 @@ const chipGrid = {
 };
 
 const smallTemplateBtn = {
-  color: "#32cfff",
-  borderColor: "rgba(50, 207, 255, 0.35)",
-  background: "rgba(50, 207, 255, 0.08)",
+  color: colors.textSoft,
+  borderColor: colors.border,
+  background: colors.surfaceSoft,
 };
 
 const recoveryTemplateBtn = {
-  color: "#32df76",
-  borderColor: "rgba(50, 223, 118, 0.35)",
-  background: "rgba(50, 223, 118, 0.08)",
+  color: dayColors.recovery,
+  borderColor: tint(dayColors.recovery, 0.35),
+  background: colors.surfaceSoft,
 };
 
 const templateCard = {
@@ -866,7 +866,7 @@ const templateCard = {
 
 const templateName = {
   margin: 0,
-  color: "#32cfff",
+  color: colors.text,
   fontSize: 18,
 };
 
@@ -879,9 +879,9 @@ const templateSummary = {
 
 const templateButton = {
   width: "100%",
-  color: "#e4ff2f",
-  borderColor: "rgba(228, 255, 47, 0.4)",
-  background: "rgba(228, 255, 47, 0.08)",
+  color: ACCENT,
+  borderColor: tint(ACCENT, 0.35),
+  background: colors.surfaceSoft,
 };
 
 const label = {
@@ -1015,8 +1015,8 @@ const actions = {
 
 const editBtn = {
   color: ACCENT,
-  borderColor: "rgba(50, 207, 255, 0.45)",
-  background: "rgba(50, 207, 255, 0.12)",
+  borderColor: tint(ACCENT, 0.38),
+  background: colors.surfaceSoft,
   padding: "7px 10px",
   fontSize: 12,
 };

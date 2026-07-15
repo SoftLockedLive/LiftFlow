@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { RUNNING_PRESETS, addRun, deleteRun, getRunLog } from "../lib/running";
+import { colors } from "../lib/theme";
 
-const ACCENT = "#32cfff";
+const ACCENT = colors.brand;
 
 export default function Running() {
   const [log, setLog] = useState([]);
@@ -179,7 +180,7 @@ const statsGrid = {
 };
 
 const statCard = {
-  border: "1px solid rgba(50, 207, 255, 0.3)",
+  border: `1px solid ${colors.border}`,
   borderRadius: 12,
   background: "#101010",
   padding: 14,
@@ -226,9 +227,9 @@ const presetGrid = {
 
 const presetButton = {
   borderRadius: 10,
-  color: ACCENT,
-  borderColor: "rgba(50, 207, 255, 0.35)",
-  background: "rgba(50, 207, 255, 0.08)",
+  color: colors.textSoft,
+  borderColor: colors.border,
+  background: colors.surfaceSoft,
   display: "grid",
   gap: 4,
   textAlign: "left",
