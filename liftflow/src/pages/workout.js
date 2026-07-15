@@ -126,10 +126,18 @@ export default function Workout() {
     });
   }
 
-  function updateVariation(exerciseId, variation) {
+  function updateVariation(exerciseId, patch) {
     setSession((prev) => {
       const variations = { ...(prev.__variations || {}) };
-      variations[exerciseId] = variation;
+      const current = normalizeVariationDraft(variations[exerciseId]);
+      const next = { ...current, ...patch };
+
+      if (!next.open && !next.value && !next.custom) {
+        delete variations[exerciseId];
+      } else {
+        variations[exerciseId] = next;
+      }
+
       const copy = { ...prev, __variations: variations };
       const updatedDrafts = { ...drafts, [selectedDay]: copy };
       setDrafts(updatedDrafts);
@@ -142,7 +150,7 @@ export default function Workout() {
     const previousWorkouts = getWorkouts();
     const completedWorkout = program.map((lift) => ({
       exercise: lift.baseExercise || lift.exercise,
-      variation: getSelectedVariation(lift, session),
+      variation: getSelectedVariation(session.__variations?.[lift.id]),
       muscleGroup: lift.muscleGroup || "other",
       sets: session[lift.id] || [],
       date: Date.now(),
@@ -309,7 +317,8 @@ export default function Workout() {
             const group = getMuscleGroup(lift.muscleGroup);
             const rowCount = Math.max(getSetRowCount(lift.sets), session[lift.id]?.length || 0);
             const variationOptions = getVariationOptions(lift);
-            const selectedVariation = getSelectedVariation(lift, session);
+            const variationDraft = normalizeVariationDraft(session.__variations?.[lift.id]);
+            const selectedVariation = getSelectedVariation(variationDraft);
 
             return (
               <article
@@ -334,21 +343,50 @@ export default function Workout() {
                   )}
                 </div>
 
-                {variationOptions.length > 0 && (
-                  <label style={variationWrap}>
-                    <span style={variationLabel}>Variation</span>
-                    <select
-                      value={selectedVariation}
-                      onChange={(event) => updateVariation(lift.id, event.target.value)}
-                    >
-                      {variationOptions.map((variation) => (
-                        <option key={variation} value={variation}>
-                          {variation}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                )}
+                <div style={variationWrap}>
+                  <button
+                    type="button"
+                    onClick={() => updateVariation(lift.id, { open: !variationDraft.open })}
+                    style={variationToggle}
+                  >
+                    Variation: {selectedVariation || "None"}
+                  </button>
+
+                  {variationDraft.open && (
+                    <div style={variationPanel}>
+                      <div style={variationChips}>
+                        <button
+                          type="button"
+                          onClick={() => updateVariation(lift.id, { value: "", custom: "", open: false })}
+                          style={{
+                            ...variationChip,
+                            ...(!selectedVariation ? activeVariationChip : {}),
+                          }}
+                        >
+                          None
+                        </button>
+                        {variationOptions.map((variation) => (
+                          <button
+                            key={variation}
+                            type="button"
+                            onClick={() => updateVariation(lift.id, { value: variation, custom: "", open: false })}
+                            style={{
+                              ...variationChip,
+                              ...(selectedVariation === variation ? activeVariationChip : {}),
+                            }}
+                          >
+                            {variation}
+                          </button>
+                        ))}
+                      </div>
+                      <input
+                        placeholder="Custom variation performed"
+                        value={variationDraft.custom}
+                        onChange={(event) => updateVariation(lift.id, { custom: event.target.value, value: "" })}
+                      />
+                    </div>
+                  )}
+                </div>
 
                 {(lift.note || lift.stretches) && (
                   <div style={stretchBox}>
@@ -520,10 +558,19 @@ function getVariationOptions(lift) {
   return [];
 }
 
-function getSelectedVariation(lift, session) {
-  const options = getVariationOptions(lift);
-  if (options.length === 0) return "";
-  return session.__variations?.[lift.id] || lift.defaultVariation || options[0];
+function normalizeVariationDraft(value) {
+  if (!value) return { open: false, value: "", custom: "" };
+  if (typeof value === "string") return { open: false, value, custom: "" };
+  return {
+    open: Boolean(value.open),
+    value: value.value || "",
+    custom: value.custom || "",
+  };
+}
+
+function getSelectedVariation(draft) {
+  const normalized = normalizeVariationDraft(draft);
+  return normalized.custom.trim() || normalized.value || "";
 }
 
 const wrap = {
@@ -843,11 +890,42 @@ const variationWrap = {
   marginTop: 12,
 };
 
-const variationLabel = {
-  color: "#777",
+const variationToggle = {
+  justifySelf: "start",
+  color: "#32cfff",
+  borderColor: "rgba(50, 207, 255, 0.38)",
+  background: "rgba(50, 207, 255, 0.1)",
+  padding: "8px 12px",
+  fontSize: 13,
+};
+
+const variationPanel = {
+  display: "grid",
+  gap: 8,
+  border: "1px solid #242424",
+  borderRadius: 12,
+  background: "#0b0b0b",
+  padding: 10,
+};
+
+const variationChips = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: 8,
+};
+
+const variationChip = {
+  color: "#aaa",
+  borderColor: "#303030",
+  background: "#101010",
+  padding: "7px 10px",
   fontSize: 12,
-  fontWeight: 850,
-  textTransform: "uppercase",
+};
+
+const activeVariationChip = {
+  color: "#050505",
+  borderColor: "#32cfff",
+  background: "#32cfff",
 };
 
 const stretchLabel = {

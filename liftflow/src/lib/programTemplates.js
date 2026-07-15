@@ -274,7 +274,6 @@ export const PROGRAM_TEMPLATES = [
         lift("Incline Dumbbell Press", "chest", "3", "8-12", "Moderate incline. Drive through chest."),
         lift("Skull Crushers", "arms", "3", "8-12", "Keep elbows stable."),
         lift("Lateral Raises", "shoulders", "3", "12-20", "Use constant tension and controlled reps.", {
-          defaultVariation: "Cable Lateral Raise",
           variations: ["Cable Lateral Raise", "Dumbbell Lateral Raise", "Machine Lateral Raise"],
         }),
         lift("Low-to-High Cable Flyes", "chest", "2", "12-15", "Squeeze upper chest. Avoid shoulder takeover."),
