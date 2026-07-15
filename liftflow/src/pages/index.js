@@ -4,7 +4,7 @@ import { getMuscleGroup, tint as groupTint } from "../lib/muscleGroups";
 import { getPlan } from "../lib/plan";
 import { getTodayName } from "../lib/today";
 import { getWorkouts } from "../lib/workoutStorage";
-import { calculateLiftVolume, calculateSessionSummary, getLiftSets, getWorkoutItems } from "../lib/workoutAnalytics";
+import { calculateLiftVolume, calculateSessionSummary, getBaseExercise, getLiftSets, getWorkoutItems } from "../lib/workoutAnalytics";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const ACCENTS = ["#32cfff", "#ff6b2c", "#e4ff2f", "#be72ff", "#ff9b34", "#32df76", "#f7f7f2"];
@@ -161,8 +161,9 @@ export default function Home() {
                       {session.lifts.map((lift, index) => (
                         <div key={`${session.id}-${lift.exercise}-${index}`} style={recentLift}>
                           <div>
-                            <strong style={recentLiftName}>{lift.exercise}</strong>
+                            <strong style={recentLiftName}>{getBaseExercise(lift)}</strong>
                             <p style={recentDate}>
+                              {lift.variation ? `${lift.variation} · ` : ""}
                               {getLiftSets(lift).map((set) => `${set.reps || "--"} x ${set.weight || "--"} lb`).join(" · ") || "No sets logged"}
                             </p>
                           </div>

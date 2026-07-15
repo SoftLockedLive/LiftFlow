@@ -5,7 +5,7 @@ import { getPRs } from "../lib/engine";
 import { getManualPRs } from "../lib/manualPRs";
 import { getProfile, saveProfile } from "../lib/profile";
 import { getWorkouts } from "../lib/workoutStorage";
-import { getLiftSets, getWorkoutItems } from "../lib/workoutAnalytics";
+import { getBaseExercise, getLiftSets, getWorkoutItems } from "../lib/workoutAnalytics";
 
 const ACCENTS = {
   lime: "#e4ff2f",
@@ -268,7 +268,7 @@ function getBigThreeBestSets(workouts, manualPrs) {
 
   (workouts || []).forEach((session) => {
     getWorkoutItems(session).forEach((lift) => {
-      const key = getBigThreeKey(lift.exercise);
+      const key = getBigThreeKey(getBaseExercise(lift));
       if (!key) return;
 
       getLiftSets(lift).forEach((set) => {

@@ -1,4 +1,5 @@
 import { getWorkouts } from "./workoutStorage";
+import { getBaseExercise } from "./workoutAnalytics";
 
 /**
  * Normalize workout shape safely
@@ -21,8 +22,11 @@ export function getExerciseTrends() {
     const lifts = normalizeWorkout(session);
 
     lifts.forEach((lift) => {
-      if (!stats[lift.exercise]) {
-        stats[lift.exercise] = {
+      const exercise = getBaseExercise(lift);
+      if (!exercise) return;
+
+      if (!stats[exercise]) {
+        stats[exercise] = {
           totalWeight: 0,
           count: 0,
           lastWeight: 0,
@@ -32,9 +36,9 @@ export function getExerciseTrends() {
       (lift.sets || []).forEach((set) => {
         if (!set.weight) return;
 
-        stats[lift.exercise].totalWeight += set.weight;
-        stats[lift.exercise].count += 1;
-        stats[lift.exercise].lastWeight = set.weight;
+        stats[exercise].totalWeight += set.weight;
+        stats[exercise].count += 1;
+        stats[exercise].lastWeight = set.weight;
       });
     });
   });
@@ -53,7 +57,8 @@ export function getPRs(workouts = getWorkouts()) {
     const lifts = normalizeWorkout(session);
 
     lifts.forEach((exercise) => {
-      const name = exercise.exercise;
+      const name = getBaseExercise(exercise);
+      if (!name) return;
 
       if (!prs[name]) {
         prs[name] = 0;

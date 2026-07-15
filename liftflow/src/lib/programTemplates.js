@@ -256,13 +256,16 @@ export const PROGRAM_TEMPLATES = [
         warmup("Squat warm-up sets", "reps", { sets: "2-4", reps: "3-5" }),
       ]),
 
-      Wednesday: recovery(
-        "Recovery",
-        "Walk + core + neck + daily flexibility",
-        "20-30 min walk, 15-20 min flexibility",
-        "Easy",
-        "Hanging Leg Raises 3x10-15, Cable Crunches 3x12-15, Neck Flexion 2x15, Neck Extension 2x15, Neck Lateral Flexion 2x15/side."
-      ),
+      Wednesday: day("Recovery Core + Neck", [
+        lift("Hanging Leg Raises", "core", "3", "10-15", "Controlled reps. Avoid swinging."),
+        lift("Cable Crunches", "core", "3", "12-15", "Round through the abs, not the hips."),
+        lift("Neck Flexion", "neck", "2", "15", "Very light and controlled."),
+        lift("Neck Extension", "neck", "2", "15", "Very light and controlled."),
+        lift("Neck Lateral Flexion", "neck", "2", "15/side", "Smooth range of motion only."),
+      ], [
+        warmup("Walk", "time", "20-30 min"),
+        warmup("Daily flexibility routine", "time", "15-20 min"),
+      ], recoveryOptions("Recovery emphasis. Keep the session easy and leave fresher than you started.")),
 
       Thursday: day("Push (Bench Volume + Hypertrophy)", [
         lift("Bench Press", "chest", "4", "8-10", "Volume bench. Keep bar path consistent."),
@@ -270,7 +273,10 @@ export const PROGRAM_TEMPLATES = [
         lift("Seated Shoulder Press", "shoulders", "3", "8-10", "Keep back tight and reps smooth."),
         lift("Incline Dumbbell Press", "chest", "3", "8-12", "Moderate incline. Drive through chest."),
         lift("Skull Crushers", "arms", "3", "8-12", "Keep elbows stable."),
-        lift("Cable Lateral Raises", "shoulders", "3", "12-20", "Use constant cable tension."),
+        lift("Lateral Raises", "shoulders", "3", "12-20", "Use constant tension and controlled reps.", {
+          defaultVariation: "Cable Lateral Raise",
+          variations: ["Cable Lateral Raise", "Dumbbell Lateral Raise", "Machine Lateral Raise"],
+        }),
         lift("Low-to-High Cable Flyes", "chest", "2", "12-15", "Squeeze upper chest. Avoid shoulder takeover."),
       ], [
         warmup("Row", "time", "3 min"),
@@ -313,13 +319,13 @@ export const PROGRAM_TEMPLATES = [
         warmup("Front squat warm-up sets", "reps", { sets: "2-3", reps: "5" }),
       ]),
 
-      Sunday: recovery(
-        "Recovery",
-        "Yoga or mobility + core",
-        "20-30 min mobility",
-        "Easy",
-        "Ab Wheel Rollouts 3x8-12, Dead Bugs 3x10/side, Planks 2-3x60 sec."
-      ),
+      Sunday: day("Recovery Mobility + Core", [
+        lift("Dead Bugs", "core", "3", "10/side", "Home-friendly core work. Keep low back pressed down."),
+        lift("Planks", "core", "2-3", "60 sec", "Brace hard and breathe."),
+        lift("Bird Dogs", "core", "2", "10/side", "Move slowly. Hips stay square."),
+      ], [
+        warmup("Yoga or mobility", "time", "20-30 min"),
+      ], recoveryOptions("Recovery emphasis. Keep intensity low and focus on movement quality.")),
     },
   },
 ];
@@ -522,6 +528,8 @@ export function buildPlanFromTemplate(templateId) {
         ...item,
         id: crypto.randomUUID(),
       })),
+      emphasis: config.emphasis || "",
+      actionCards: config.actionCards || [],
     };
 
     plan[dayName] = (config.lifts || []).map((item) => ({
@@ -547,6 +555,8 @@ export function buildDayFromTemplate(templateId, recoveryTemplate = false) {
         ...item,
         id: crypto.randomUUID(),
       })),
+      emphasis: template.config.emphasis || "",
+      actionCards: template.config.actionCards || [],
     },
     lifts: (template.config.lifts || []).map((item) => ({
       ...item,
@@ -555,11 +565,12 @@ export function buildDayFromTemplate(templateId, recoveryTemplate = false) {
   };
 }
 
-function day(name, lifts, warmup = defaultWarmupFor(name)) {
+function day(name, lifts, warmup = defaultWarmupFor(name), options = {}) {
   return {
     name,
     type: "training",
     warmup,
+    ...options,
     lifts,
   };
 }
@@ -581,6 +592,16 @@ function recovery(name, activity, duration, intensity, notes) {
 function warmup(name, mode, value, note = "") {
   if (mode === "time") return { name, mode, time: value, note };
   return { name, mode: "reps", sets: value?.sets || "", reps: value?.reps || "", note };
+}
+
+function recoveryOptions(emphasis) {
+  return {
+    emphasis,
+    actionCards: [
+      { label: "Running", href: "/running", description: "Log the easy walk or recovery cardio." },
+      { label: "Yoga", href: "/mobility", description: "Open mobility for yoga or flexibility work." },
+    ],
+  };
 }
 
 function defaultWarmupFor(dayName) {
@@ -609,7 +630,7 @@ function defaultWarmupFor(dayName) {
   ];
 }
 
-function lift(exercise, muscleGroup, sets, reps, note = "") {
+function lift(exercise, muscleGroup, sets, reps, note = "", options = {}) {
   return {
     exercise,
     muscleGroup,
@@ -617,5 +638,8 @@ function lift(exercise, muscleGroup, sets, reps, note = "") {
     reps,
     note,
     stretches: note,
+    baseExercise: options.baseExercise || exercise,
+    defaultVariation: options.defaultVariation || "",
+    variations: options.variations || [],
   };
 }

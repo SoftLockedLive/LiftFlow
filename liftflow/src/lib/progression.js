@@ -1,4 +1,5 @@
 import { getWorkouts } from "./workoutStorage";
+import { getBaseExercise } from "./workoutAnalytics";
 
 function getWorkoutItems(workout) {
   if (Array.isArray(workout)) return workout;
@@ -18,7 +19,7 @@ export function getNextLoad(exerciseName, currentWeight = 0) {
 
   workouts.forEach((workout) => {
     getWorkoutItems(workout).forEach((ex) => {
-      if (ex.exercise !== exerciseName) return;
+      if (getBaseExercise(ex) !== exerciseName) return;
 
       (ex.sets || []).forEach((set) => {
         totalSets++;
@@ -47,6 +48,6 @@ export function getNextLoad(exerciseName, currentWeight = 0) {
 export function getProgramProgression(program = []) {
   return program.map((lift) => ({
     ...lift,
-    nextWeight: getNextLoad(lift.exercise, lift.weight || 0),
+    nextWeight: getNextLoad(lift.baseExercise || lift.exercise, lift.weight || 0),
   }));
 }

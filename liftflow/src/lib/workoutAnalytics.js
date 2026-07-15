@@ -8,6 +8,10 @@ export function getLiftSets(lift) {
   return Array.isArray(lift?.sets) ? lift.sets.filter(Boolean) : [];
 }
 
+export function getBaseExercise(lift) {
+  return lift?.baseExercise || lift?.exercise || "";
+}
+
 export function calculateLiftVolume(lift) {
   return getLiftSets(lift).reduce(
     (sum, set) => sum + Number(set.weight || 0) * Number(set.reps || 0),
@@ -22,7 +26,7 @@ export function calculateSessionSummary(lifts) {
   const topSet = safeLifts
     .flatMap((lift) =>
       getLiftSets(lift).map((set) => ({
-        exercise: lift.exercise,
+        exercise: getBaseExercise(lift),
         weight: Number(set.weight || 0),
         reps: Number(set.reps || 0),
       }))
@@ -37,22 +41,24 @@ export function detectPRs(workouts, completedLifts) {
 
   (workouts || []).forEach((session) => {
     getWorkoutItems(session).forEach((lift) => {
-      if (!lift?.exercise) return;
+      const exercise = getBaseExercise(lift);
+      if (!exercise) return;
       getLiftSets(lift).forEach((set) => {
         const weight = Number(set.weight || 0);
-        if (weight > (existing[lift.exercise] || 0)) existing[lift.exercise] = weight;
+        if (weight > (existing[exercise] || 0)) existing[exercise] = weight;
       });
     });
   });
 
   return (completedLifts || []).flatMap((lift) =>
     getLiftSets(lift)
-      .filter((set) => Number(set.weight || 0) > (existing[lift.exercise] || 0))
+      .filter((set) => Number(set.weight || 0) > (existing[getBaseExercise(lift)] || 0))
       .map((set) => ({
-        exercise: lift.exercise,
+        exercise: getBaseExercise(lift),
+        variation: lift.variation || "",
         weight: Number(set.weight || 0),
         reps: Number(set.reps || 0),
-        previous: existing[lift.exercise] || 0,
+        previous: existing[getBaseExercise(lift)] || 0,
       }))
   );
 }
@@ -63,11 +69,12 @@ export function buildExerciseHistory(workouts) {
   (workouts || []).forEach((session, sessionIndex) => {
     const date = session?.date || null;
     getWorkoutItems(session).forEach((lift) => {
-      if (!lift?.exercise) return;
+      const exercise = getBaseExercise(lift);
+      if (!exercise) return;
 
-      if (!history[lift.exercise]) {
-        history[lift.exercise] = {
-          exercise: lift.exercise,
+      if (!history[exercise]) {
+        history[exercise] = {
+          exercise,
           sessions: 0,
           sets: 0,
           volume: 0,
@@ -86,14 +93,15 @@ export function buildExerciseHistory(workouts) {
         { weight: 0, reps: 0 }
       );
 
-      history[lift.exercise].sessions += 1;
-      history[lift.exercise].sets += liftSets.length;
-      history[lift.exercise].volume += volume;
-      history[lift.exercise].bestWeight = Math.max(history[lift.exercise].bestWeight, bestSet.weight);
-      history[lift.exercise].entries.unshift({
-        id: `${session?.id || sessionIndex}-${lift.exercise}`,
+      history[exercise].sessions += 1;
+      history[exercise].sets += liftSets.length;
+      history[exercise].volume += volume;
+      history[exercise].bestWeight = Math.max(history[exercise].bestWeight, bestSet.weight);
+      history[exercise].entries.unshift({
+        id: `${session?.id || sessionIndex}-${exercise}`,
         date,
         sets: liftSets,
+        variation: lift.variation || "",
         volume,
         bestSet,
       });
@@ -120,13 +128,14 @@ export function buildProgressData(workouts) {
 
   sessions.forEach((session) => {
     session.lifts.forEach((lift) => {
-      if (!lift?.exercise) return;
+      const exercise = getBaseExercise(lift);
+      if (!exercise) return;
 
       const group = lift.muscleGroup || "other";
       muscleVolume[group] = (muscleVolume[group] || 0) + calculateLiftVolume(lift);
       getLiftSets(lift).forEach((set) => {
         const weight = Number(set.weight || 0);
-        if (weight > (exerciseBest[lift.exercise] || 0)) exerciseBest[lift.exercise] = weight;
+        if (weight > (exerciseBest[exercise] || 0)) exerciseBest[exercise] = weight;
       });
     });
   });

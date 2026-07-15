@@ -20,10 +20,11 @@ export function buildTodaysWorkout(day) {
   const coachNotes = generateCoachSuggestions(baseWorkout);
 
   return baseWorkout.map((lift) => {
-    const lastPR = prs[lift.exercise] || 0;
+    const baseExercise = lift.baseExercise || lift.exercise;
+    const lastPR = prs[baseExercise] || 0;
 
     const suggestedWeight = getNextLoad(
-      lift.exercise,
+      baseExercise,
       lastPR
     );
 
@@ -32,7 +33,7 @@ export function buildTodaysWorkout(day) {
 
       // coach layer (soft suggestions only)
       suggestedWeight,
-      coachNote: coachNotes[lift.exercise] || null,
+      coachNote: coachNotes[baseExercise] || null,
 
       // user always overrides this
       userOverride: null,

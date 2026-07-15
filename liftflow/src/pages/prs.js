@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { deleteManualPR, getManualPRs, upsertManualPR } from "../lib/manualPRs";
 import { getWorkouts } from "../lib/workoutStorage";
-import { getLiftSets, getWorkoutItems } from "../lib/workoutAnalytics";
+import { getBaseExercise, getLiftSets, getWorkoutItems } from "../lib/workoutAnalytics";
 import { MUSCLE_GROUPS, tint } from "../lib/muscleGroups";
 
 export default function PRs() {
@@ -158,11 +158,14 @@ function mergePRs(workouts, manualPrs) {
 
   (workouts || []).forEach((session) => {
     getWorkoutItems(session).forEach((lift) => {
+      const exercise = getBaseExercise(lift);
+      if (!exercise) return;
+
       getLiftSets(lift).forEach((set) => {
         const weight = Number(set.weight || 0);
         const reps = set.reps === undefined ? "" : Number(set.reps || 0);
-        if (!records[lift.exercise] || weight > records[lift.exercise].weight) {
-          records[lift.exercise] = { exercise: lift.exercise, weight, reps, muscleGroup: lift.muscleGroup || inferMuscleGroup(lift.exercise), source: "history" };
+        if (!records[exercise] || weight > records[exercise].weight) {
+          records[exercise] = { exercise, weight, reps, muscleGroup: lift.muscleGroup || inferMuscleGroup(exercise), source: "history" };
         }
       });
     });

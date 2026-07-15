@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import { getMuscleGroup, tint } from "../lib/muscleGroups";
 import { getPlan } from "../lib/plan";
 import { buildTodaysWorkout } from "../lib/trainingEngine";
@@ -21,6 +22,7 @@ const DRAFT_KEY = "liftflow_workout_drafts";
 const LAST_DAY_KEY = "liftflow_last_workout_day";
 
 export default function Workout() {
+  const router = useRouter();
   const [plan, setPlan] = useState({});
   const [selectedDay, setSelectedDay] = useState("Monday");
   const [program, setProgram] = useState([]);
@@ -124,10 +126,23 @@ export default function Workout() {
     });
   }
 
+  function updateVariation(exerciseId, variation) {
+    setSession((prev) => {
+      const variations = { ...(prev.__variations || {}) };
+      variations[exerciseId] = variation;
+      const copy = { ...prev, __variations: variations };
+      const updatedDrafts = { ...drafts, [selectedDay]: copy };
+      setDrafts(updatedDrafts);
+      saveWorkoutDrafts(updatedDrafts);
+      return copy;
+    });
+  }
+
   function finishWorkout() {
     const previousWorkouts = getWorkouts();
     const completedWorkout = program.map((lift) => ({
-      exercise: lift.exercise,
+      exercise: lift.baseExercise || lift.exercise,
+      variation: getSelectedVariation(lift, session),
       muscleGroup: lift.muscleGroup || "other",
       sets: session[lift.id] || [],
       date: Date.now(),
@@ -164,6 +179,8 @@ export default function Workout() {
   const focusName = plan.__meta?.[selectedDay]?.name || selectedDay;
   const recovery = plan.__meta?.[selectedDay]?.recovery;
   const warmup = Array.isArray(plan.__meta?.[selectedDay]?.warmup) ? plan.__meta[selectedDay].warmup : [];
+  const emphasis = plan.__meta?.[selectedDay]?.emphasis || "";
+  const actionCards = Array.isArray(plan.__meta?.[selectedDay]?.actionCards) ? plan.__meta[selectedDay].actionCards : [];
 
   return (
     <div style={wrap}>
@@ -204,6 +221,25 @@ export default function Workout() {
         <section style={empty}>No workout planned for {selectedDay}.</section>
       ) : (
         <section style={list}>
+          {emphasis && (
+            <section style={emphasisCard}>
+              <p style={eyebrow}>Recovery Emphasis</p>
+              <h2 style={emphasisTitle}>{focusName}</h2>
+              <p style={emphasisText}>{emphasis}</p>
+            </section>
+          )}
+
+          {actionCards.length > 0 && (
+            <section style={actionGrid}>
+              {actionCards.map((card) => (
+                <button key={card.href} type="button" onClick={() => router.push(card.href)} style={actionCard}>
+                  <strong>{card.label}</strong>
+                  <span>{card.description}</span>
+                </button>
+              ))}
+            </section>
+          )}
+
           {warmup.length > 0 && (
             <section style={warmupCard}>
               <div style={warmupHeader}>
@@ -272,6 +308,8 @@ export default function Workout() {
           {program.map((lift) => {
             const group = getMuscleGroup(lift.muscleGroup);
             const rowCount = Math.max(getSetRowCount(lift.sets), session[lift.id]?.length || 0);
+            const variationOptions = getVariationOptions(lift);
+            const selectedVariation = getSelectedVariation(lift, session);
 
             return (
               <article
@@ -295,6 +333,22 @@ export default function Workout() {
                     </span>
                   )}
                 </div>
+
+                {variationOptions.length > 0 && (
+                  <label style={variationWrap}>
+                    <span style={variationLabel}>Variation</span>
+                    <select
+                      value={selectedVariation}
+                      onChange={(event) => updateVariation(lift.id, event.target.value)}
+                    >
+                      {variationOptions.map((variation) => (
+                        <option key={variation} value={variation}>
+                          {variation}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
 
                 {(lift.note || lift.stretches) && (
                   <div style={stretchBox}>
@@ -446,6 +500,32 @@ function formatWarmupMovement(movement) {
   return `${sets} x ${reps}`;
 }
 
+function getVariationOptions(lift) {
+  const configured = Array.isArray(lift.variations) ? lift.variations.filter(Boolean) : [];
+  if (configured.length > 0) return configured;
+
+  const name = String(lift.exercise || "").toLowerCase();
+  if (name.includes("lateral raise")) {
+    return ["Dumbbell Lateral Raise", "Cable Lateral Raise", "Machine Lateral Raise"];
+  }
+  if (name.includes("pulldown")) {
+    return ["Lat Pulldown", "Neutral-Grip Pulldown", "Single-Arm Pulldown"];
+  }
+  if (name.includes("row")) {
+    return ["Chest-Supported Row", "Cable Row", "Dumbbell Row", "Machine Row"];
+  }
+  if (name.includes("curl")) {
+    return ["EZ-Bar Curl", "Dumbbell Curl", "Cable Curl"];
+  }
+  return [];
+}
+
+function getSelectedVariation(lift, session) {
+  const options = getVariationOptions(lift);
+  if (options.length === 0) return "";
+  return session.__variations?.[lift.id] || lift.defaultVariation || options[0];
+}
+
 const wrap = {
   maxWidth: 760,
   margin: "0 auto",
@@ -548,6 +628,42 @@ const timerCard = {
   justifyContent: "space-between",
   gap: 14,
   flexWrap: "wrap",
+};
+
+const emphasisCard = {
+  border: "1px solid rgba(50, 223, 118, 0.32)",
+  borderRadius: 14,
+  background: "rgba(50, 223, 118, 0.07)",
+  padding: 14,
+};
+
+const emphasisTitle = {
+  margin: "4px 0 0",
+  color: "#32df76",
+  fontSize: 22,
+};
+
+const emphasisText = {
+  margin: "8px 0 0",
+  color: "#bdbdb8",
+  lineHeight: 1.4,
+};
+
+const actionGrid = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gap: 10,
+};
+
+const actionCard = {
+  borderRadius: 12,
+  color: "#e4ff2f",
+  borderColor: "rgba(228, 255, 47, 0.35)",
+  background: "rgba(228, 255, 47, 0.08)",
+  display: "grid",
+  gap: 5,
+  textAlign: "left",
+  padding: 12,
 };
 
 const warmupCard = {
@@ -719,6 +835,19 @@ const stretchBox = {
   background: "#0b0b0b",
   padding: 12,
   marginTop: 12,
+};
+
+const variationWrap = {
+  display: "grid",
+  gap: 6,
+  marginTop: 12,
+};
+
+const variationLabel = {
+  color: "#777",
+  fontSize: 12,
+  fontWeight: 850,
+  textTransform: "uppercase",
 };
 
 const stretchLabel = {

@@ -1,4 +1,5 @@
 import { getWorkouts } from "./workoutStorage";
+import { getBaseExercise } from "./workoutAnalytics";
 
 function getWorkoutItems(workout) {
   if (Array.isArray(workout)) return workout;
@@ -21,8 +22,9 @@ export function generateCoachSuggestions(plan) {
   }
 
   return plan.reduce((suggestions, lift) => {
+    const baseExercise = lift.baseExercise || lift.exercise;
     const match = lastWorkout.find(
-      (w) => w.exercise === lift.exercise
+      (w) => getBaseExercise(w) === baseExercise
     );
 
     if (!match || !match.sets?.length) {
@@ -42,7 +44,7 @@ export function generateCoachSuggestions(plan) {
       suggestion = "decrease_weight";
     }
 
-    suggestions[lift.exercise] = suggestion;
+    suggestions[baseExercise] = suggestion;
     return suggestions;
   }, {});
 }

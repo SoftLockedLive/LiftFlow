@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { deleteLiftFromWorkout, deleteWorkout, getWorkouts, updateLiftInWorkout } from "../lib/workoutStorage";
-import { buildExerciseHistory, calculateLiftVolume, getLiftSets, getWorkoutItems } from "../lib/workoutAnalytics";
+import { buildExerciseHistory, calculateLiftVolume, getBaseExercise, getLiftSets, getWorkoutItems } from "../lib/workoutAnalytics";
 
 export default function History() {
   const [workouts, setWorkouts] = useState([]);
@@ -53,7 +53,7 @@ export default function History() {
     setEditingLift({
       sessionId,
       liftIndex,
-      exercise: lift.exercise || "",
+      exercise: getBaseExercise(lift),
       setsText: getLiftSets(lift).map((set) => `${set.weight || 0}x${set.reps || 0}`).join(", "),
     });
   }
@@ -137,8 +137,11 @@ export default function History() {
                       <div key={liftId} style={liftRow}>
                         <button type="button" onClick={() => toggleLift(liftId)} style={liftSummary}>
                           <div>
-                            <strong style={liftName}>{lift.exercise} {liftOpen ? "▲" : "▼"}</strong>
-                            <p style={setLine}>Total {lift.exercise.toLowerCase()} volume: {calculateLiftVolume(lift).toLocaleString()} lb</p>
+                            <strong style={liftName}>{getBaseExercise(lift)} {liftOpen ? "▲" : "▼"}</strong>
+                            <p style={setLine}>
+                              {lift.variation ? `${lift.variation} · ` : ""}
+                              Total {getBaseExercise(lift).toLowerCase()} volume: {calculateLiftVolume(lift).toLocaleString()} lb
+                            </p>
                           </div>
                           <span style={liftVolume}>{sets.length} sets</span>
                         </button>
@@ -272,7 +275,7 @@ function filterSessions(sessions, search) {
     .map((session) => ({
       ...session,
       lifts: session.lifts.filter(({ lift }) =>
-        `${session.name} ${lift.exercise}`.toLowerCase().includes(query)
+        `${session.name} ${getBaseExercise(lift)} ${lift.variation || ""}`.toLowerCase().includes(query)
       ),
     }))
     .filter((session) => session.lifts.length > 0);
