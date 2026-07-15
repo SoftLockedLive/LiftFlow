@@ -25,6 +25,7 @@ export function upsertCustomExercise(exercise) {
     muscleGroup: exercise.muscleGroup || "other",
     sets: exercise.sets || "3",
     reps: exercise.reps || "8-12",
+    note: exercise.note || exercise.stretches || "",
     stretches: exercise.stretches || "",
   };
   const exists = exercises.some((item) => item.id === nextExercise.id);

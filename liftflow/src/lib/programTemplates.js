@@ -495,6 +495,10 @@ export function buildPlanFromTemplate(templateId) {
       name: config.name,
       type: config.type || "training",
       recovery: config.recovery || null,
+      warmup: (config.warmup || []).map((item) => ({
+        ...item,
+        id: crypto.randomUUID(),
+      })),
     };
 
     plan[dayName] = (config.lifts || []).map((item) => ({
@@ -516,6 +520,10 @@ export function buildDayFromTemplate(templateId, recoveryTemplate = false) {
       name: template.config.name,
       type: template.config.type || "training",
       recovery: template.config.recovery || null,
+      warmup: (template.config.warmup || []).map((item) => ({
+        ...item,
+        id: crypto.randomUUID(),
+      })),
     },
     lifts: (template.config.lifts || []).map((item) => ({
       ...item,
@@ -552,6 +560,7 @@ function lift(exercise, muscleGroup, sets, reps, stretches = "") {
     muscleGroup,
     sets,
     reps,
+    note: stretches,
     stretches,
   };
 }

@@ -120,6 +120,7 @@ export default function Workout() {
       sets: session[lift.id] || [],
       date: Date.now(),
       suggestedWeight: lift.suggestedWeight || null,
+      note: lift.note || lift.stretches || "",
       stretches: lift.stretches || "",
     }));
     const workoutSummary = calculateSessionSummary(completedWorkout);
@@ -150,6 +151,7 @@ export default function Workout() {
 
   const focusName = plan.__meta?.[selectedDay]?.name || selectedDay;
   const recovery = plan.__meta?.[selectedDay]?.recovery;
+  const warmup = Array.isArray(plan.__meta?.[selectedDay]?.warmup) ? plan.__meta[selectedDay].warmup : [];
 
   return (
     <div style={wrap}>
@@ -190,6 +192,29 @@ export default function Workout() {
         <section style={empty}>No workout planned for {selectedDay}.</section>
       ) : (
         <section style={list}>
+          {warmup.length > 0 && (
+            <section style={warmupCard}>
+              <div style={warmupHeader}>
+                <div>
+                  <p style={eyebrow}>Warmup</p>
+                  <h2 style={warmupTitle}>Prep Work</h2>
+                </div>
+                <span style={warmupCount}>{warmup.length} moves</span>
+              </div>
+              <div style={warmupList}>
+                {warmup.map((movement) => (
+                  <div key={movement.id || movement.name} style={warmupRow}>
+                    <div>
+                      <strong style={warmupName}>{movement.name}</strong>
+                      {movement.note && <p style={warmupNote}>{movement.note}</p>}
+                    </div>
+                    <span style={warmupDose}>{formatWarmupMovement(movement)}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
           <div style={timerCard}>
             <div>
               <span style={timerLabel}>Rest Timer</span>
@@ -245,10 +270,10 @@ export default function Workout() {
                   )}
                 </div>
 
-                {lift.stretches && (
+                {(lift.note || lift.stretches) && (
                   <div style={stretchBox}>
-                    <span style={stretchLabel}>Stretches</span>
-                    <p style={stretchText}>{lift.stretches}</p>
+                    <span style={stretchLabel}>Lift Note</span>
+                    <p style={stretchText}>{lift.note || lift.stretches}</p>
                   </div>
                 )}
 
@@ -388,6 +413,13 @@ function formatRestTime(seconds) {
   return `${minutes}:${remaining}`;
 }
 
+function formatWarmupMovement(movement) {
+  if (movement.mode === "time") return movement.time || "Timed";
+  const sets = movement.sets || "--";
+  const reps = movement.reps || "--";
+  return `${sets} x ${reps}`;
+}
+
 const wrap = {
   maxWidth: 760,
   margin: "0 auto",
@@ -490,6 +522,64 @@ const timerCard = {
   justifyContent: "space-between",
   gap: 14,
   flexWrap: "wrap",
+};
+
+const warmupCard = {
+  border: "1px solid rgba(228, 255, 47, 0.32)",
+  borderRadius: 14,
+  background: "rgba(228, 255, 47, 0.06)",
+  padding: 14,
+};
+
+const warmupHeader = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: 12,
+  marginBottom: 10,
+};
+
+const warmupTitle = {
+  margin: "4px 0 0",
+  color: "#e4ff2f",
+  fontSize: 22,
+};
+
+const warmupCount = {
+  color: "#e4ff2f",
+  border: "1px solid rgba(228, 255, 47, 0.35)",
+  borderRadius: 999,
+  padding: "6px 10px",
+  fontWeight: 850,
+};
+
+const warmupList = {
+  display: "grid",
+  gap: 8,
+};
+
+const warmupRow = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 12,
+  borderTop: "1px solid rgba(228, 255, 47, 0.16)",
+  paddingTop: 8,
+};
+
+const warmupName = {
+  color: "#f7f7f2",
+};
+
+const warmupNote = {
+  margin: "4px 0 0",
+  color: "#8a8a8a",
+  fontSize: 13,
+};
+
+const warmupDose = {
+  color: "#e4ff2f",
+  fontWeight: 850,
+  whiteSpace: "nowrap",
 };
 
 const timerLabel = {

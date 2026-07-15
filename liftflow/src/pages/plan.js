@@ -32,8 +32,15 @@ export default function Plan() {
   const [sets, setSets] = useState("");
   const [reps, setReps] = useState("");
   const [stretches, setStretches] = useState("");
+  const [warmupName, setWarmupName] = useState("");
+  const [warmupMode, setWarmupMode] = useState("reps");
+  const [warmupSets, setWarmupSets] = useState("");
+  const [warmupReps, setWarmupReps] = useState("");
+  const [warmupTime, setWarmupTime] = useState("");
+  const [warmupNote, setWarmupNote] = useState("");
   const [muscleGroup, setMuscleGroup] = useState("chest");
   const [editingId, setEditingId] = useState(null);
+  const [editingWarmupId, setEditingWarmupId] = useState(null);
   const [customExercises, setCustomExercises] = useState([]);
   const [editingCustomId, setEditingCustomId] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null);
@@ -89,6 +96,7 @@ export default function Plan() {
               muscleGroup,
               sets,
               reps,
+              note: stretches,
               stretches,
             }
           : lift
@@ -102,6 +110,7 @@ export default function Plan() {
           muscleGroup,
           sets,
           reps,
+          note: stretches,
           stretches,
         },
       ];
@@ -123,6 +132,7 @@ export default function Plan() {
         muscleGroup: lift.muscleGroup || "other",
         sets: lift.sets || "3",
         reps: lift.reps || "8-12",
+        note: lift.note || lift.stretches || "",
         stretches: lift.stretches || "",
       },
     ];
@@ -148,6 +158,7 @@ export default function Plan() {
       muscleGroup,
       sets,
       reps,
+      note: stretches,
       stretches,
     });
 
@@ -166,13 +177,23 @@ export default function Plan() {
     setMuscleGroup("chest");
   }
 
+  function clearWarmupForm() {
+    setEditingWarmupId(null);
+    setWarmupName("");
+    setWarmupMode("reps");
+    setWarmupSets("");
+    setWarmupReps("");
+    setWarmupTime("");
+    setWarmupNote("");
+  }
+
   function startCustomEdit(lift) {
     setEditingCustomId(lift.id);
     setBuilderPanel("editor");
     setExercise(lift.exercise || "");
     setSets(String(lift.sets || ""));
     setReps(String(lift.reps || ""));
-    setStretches(lift.stretches || "");
+    setStretches(lift.note || lift.stretches || "");
     setMuscleGroup(lift.muscleGroup || "other");
   }
 
@@ -182,8 +203,64 @@ export default function Plan() {
     setExercise(lift.exercise || "");
     setSets(String(lift.sets || ""));
     setReps(String(lift.reps || ""));
-    setStretches(lift.stretches || "");
+    setStretches(lift.note || lift.stretches || "");
     setMuscleGroup(lift.muscleGroup || "other");
+  }
+
+  function saveWarmupMovement() {
+    if (!warmupName.trim()) return;
+
+    const updated = { ...plan };
+    const meta = updated.__meta?.[selectedDay] || {};
+    const warmup = Array.isArray(meta.warmup) ? meta.warmup : [];
+    const movement = {
+      id: editingWarmupId || crypto.randomUUID(),
+      name: warmupName.trim(),
+      mode: warmupMode,
+      sets: warmupSets,
+      reps: warmupReps,
+      time: warmupTime,
+      note: warmupNote,
+    };
+
+    updated.__meta = {
+      ...(updated.__meta || {}),
+      [selectedDay]: {
+        ...meta,
+        warmup: editingWarmupId
+          ? warmup.map((item) => (item.id === editingWarmupId ? movement : item))
+          : [...warmup, movement],
+      },
+    };
+
+    setPlan(updated);
+    savePlan(updated);
+    clearWarmupForm();
+  }
+
+  function startWarmupEdit(movement) {
+    setBuilderPanel("warmup");
+    setEditingWarmupId(movement.id);
+    setWarmupName(movement.name || "");
+    setWarmupMode(movement.mode || "reps");
+    setWarmupSets(String(movement.sets || ""));
+    setWarmupReps(String(movement.reps || ""));
+    setWarmupTime(String(movement.time || ""));
+    setWarmupNote(movement.note || "");
+  }
+
+  function deleteWarmupMovement(id) {
+    const updated = { ...plan };
+    const meta = updated.__meta?.[selectedDay] || {};
+    updated.__meta = {
+      ...(updated.__meta || {}),
+      [selectedDay]: {
+        ...meta,
+        warmup: (meta.warmup || []).filter((item) => item.id !== id),
+      },
+    };
+    setPlan(updated);
+    savePlan(updated);
   }
 
   function handleDelete(id) {
@@ -273,6 +350,7 @@ export default function Plan() {
   const todayPlan = Array.isArray(plan[selectedDay]) ? plan[selectedDay] : [];
   const selectedMeta = plan.__meta?.[selectedDay] || {};
   const recovery = selectedMeta.recovery;
+  const selectedWarmup = Array.isArray(selectedMeta.warmup) ? selectedMeta.warmup : [];
 
   return (
     <div style={wrap}>
@@ -309,6 +387,41 @@ export default function Plan() {
           value={dayName}
           onChange={(event) => saveDayName(event.target.value)}
         />
+      </section>
+
+      <section style={compactPanel}>
+        <div style={currentHeader}>
+          <div>
+            <p style={label}>Warmup Routine</p>
+            <h2 style={cardTitle}>{selectedWarmup.length} movements</h2>
+          </div>
+          <button type="button" onClick={() => setBuilderPanel("warmup")} style={editBtn}>
+            Add Warmup
+          </button>
+        </div>
+        {selectedWarmup.length === 0 ? (
+          <p style={mutedLine}>No warmup set for this day.</p>
+        ) : (
+          <div style={libraryList}>
+            {selectedWarmup.map((movement) => (
+              <div key={movement.id} style={libraryItem}>
+                <div>
+                  <strong style={{ color: ACCENT }}>{movement.name}</strong>
+                  <p style={liftMeta}>{formatWarmupMovement(movement)}</p>
+                  {movement.note && <p style={stretchPreview}>{movement.note}</p>}
+                </div>
+                <div style={actions}>
+                  <button type="button" onClick={() => startWarmupEdit(movement)} style={editBtn}>
+                    Edit
+                  </button>
+                  <button type="button" onClick={() => deleteWarmupMovement(movement.id)} style={removeBtn}>
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       <section style={list}>
@@ -350,7 +463,7 @@ export default function Plan() {
                 <p style={liftMeta}>
                   {group.label} · {lift.sets} sets x {lift.reps} reps
                 </p>
-                {lift.stretches && <p style={stretchPreview}>{lift.stretches}</p>}
+                {(lift.note || lift.stretches) && <p style={stretchPreview}>{lift.note || lift.stretches}</p>}
               </div>
 
               <div style={actions}>
@@ -388,6 +501,13 @@ export default function Plan() {
           style={{ ...toolTab, ...(builderPanel === "library" ? activeToolTab : {}) }}
         >
           Exercise Library
+        </button>
+        <button
+          type="button"
+          onClick={() => setBuilderPanel(builderPanel === "warmup" ? "" : "warmup")}
+          style={{ ...toolTab, ...(builderPanel === "warmup" ? activeToolTab : {}) }}
+        >
+          Warmup
         </button>
         <button
           type="button"
@@ -474,9 +594,9 @@ export default function Plan() {
             ))}
           </select>
 
-          <label style={label}>Stretches / warmup</label>
+          <label style={label}>Lift Note</label>
           <textarea
-            placeholder="Band pull-aparts, hip flexor stretch, ramp-up sets..."
+            placeholder="Cue, setup note, tempo, injury reminder..."
             value={stretches}
             onChange={(event) => setStretches(event.target.value)}
             style={textarea}
@@ -492,6 +612,62 @@ export default function Plan() {
           )}
           {(editingId || editingCustomId) && (
             <button type="button" onClick={clearForm} style={cancelBtn}>
+              Cancel Edit
+            </button>
+          )}
+        </section>
+      )}
+
+      {builderPanel === "warmup" && (
+        <section style={card}>
+          <h2 style={cardTitle}>{editingWarmupId ? "Edit Warmup Movement" : "Add Warmup Movement"}</h2>
+          <input
+            placeholder="Movement, e.g. Band pull-aparts"
+            value={warmupName}
+            onChange={(event) => setWarmupName(event.target.value)}
+          />
+
+          <label style={label}>Tracking Type</label>
+          <select value={warmupMode} onChange={(event) => setWarmupMode(event.target.value)}>
+            <option value="reps">Sets / reps</option>
+            <option value="time">Time</option>
+          </select>
+
+          {warmupMode === "reps" ? (
+            <div className="field-row" style={fieldRow}>
+              <input
+                placeholder="Sets"
+                inputMode="numeric"
+                value={warmupSets}
+                onChange={(event) => setWarmupSets(event.target.value)}
+              />
+              <input
+                placeholder="Reps"
+                inputMode="numeric"
+                value={warmupReps}
+                onChange={(event) => setWarmupReps(event.target.value)}
+              />
+            </div>
+          ) : (
+            <input
+              placeholder="Time, e.g. 5 min or 30 sec"
+              value={warmupTime}
+              onChange={(event) => setWarmupTime(event.target.value)}
+            />
+          )}
+
+          <textarea
+            placeholder="Optional note..."
+            value={warmupNote}
+            onChange={(event) => setWarmupNote(event.target.value)}
+            style={textarea}
+          />
+
+          <button type="button" className="primary" onClick={saveWarmupMovement} style={fullButton}>
+            {editingWarmupId ? "Save Warmup" : "Add Warmup"}
+          </button>
+          {editingWarmupId && (
+            <button type="button" onClick={clearWarmupForm} style={cancelBtn}>
               Cancel Edit
             </button>
           )}
@@ -577,6 +753,13 @@ function getDayAccent(day, alpha) {
   return tint(color, alpha);
 }
 
+function formatWarmupMovement(movement) {
+  if (movement.mode === "time") return movement.time || "Timed";
+  const sets = movement.sets || "--";
+  const reps = movement.reps || "--";
+  return `${sets} sets x ${reps} reps`;
+}
+
 const wrap = {
   maxWidth: 760,
   margin: "0 auto",
@@ -637,6 +820,16 @@ const card = {
   marginBottom: 14,
   display: "grid",
   gap: 12,
+};
+
+const compactPanel = {
+  border: "1px solid #242424",
+  borderRadius: 12,
+  background: "#101010",
+  padding: 12,
+  marginBottom: 14,
+  display: "grid",
+  gap: 10,
 };
 
 const templateSection = {
@@ -720,6 +913,12 @@ const cardTitle = {
 
 const fieldRow = {
   gap: 10,
+};
+
+const mutedLine = {
+  margin: 0,
+  color: "#666",
+  fontWeight: 750,
 };
 
 const textarea = {
