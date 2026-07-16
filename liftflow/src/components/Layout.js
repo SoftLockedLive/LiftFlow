@@ -350,7 +350,10 @@ const avatarImage = {
   backgroundPosition: "center",
 };
 
-const clubGrid = {};
+const clubGrid = {
+  marginBottom: 14,
+  paddingBottom: 18,
+};
 
 const totalStrip = {
   gridColumn: "1 / -1",
@@ -416,8 +419,10 @@ const tabWrapper = {
   top: 0,
   zIndex: 40,
   background: "rgba(2, 3, 5, 0.84)",
+  borderTop: `1px solid ${tint(colors.text, 0.06)}`,
   borderBottom: `1px solid ${tint(colors.brand, 0.12)}`,
   backdropFilter: "blur(14px)",
+  boxShadow: `0 -10px 24px rgba(2, 3, 5, 0.52), 0 12px 26px rgba(2, 3, 5, 0.28)`,
 };
 
 const tabBar = {
