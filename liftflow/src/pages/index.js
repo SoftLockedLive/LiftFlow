@@ -66,7 +66,7 @@ export default function Home() {
         <button
           type="button"
           className="primary"
-          onClick={() => router.push(todaysLifts.length > 0 || todayItem?.recovery ? "/workout" : "/plan")}
+          onClick={() => router.push(todaysLifts.length > 0 || todayItem?.recovery ? `/workout?day=${encodeURIComponent(today)}` : "/plan")}
           style={focusButton}
         >
           {todaysLifts.length > 0 || todayItem?.recovery ? "View" : "Program"}
@@ -121,7 +121,7 @@ export default function Home() {
 
               <button
                 type="button"
-                onClick={() => router.push(item.lifts.length > 0 || item.recovery ? "/workout" : "/plan")}
+                onClick={() => router.push(item.lifts.length > 0 || item.recovery ? `/workout?day=${encodeURIComponent(item.day)}` : "/plan")}
                 style={{
                   ...openButton,
                   color: item.recovery ? colors.success : item.accent,

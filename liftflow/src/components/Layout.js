@@ -10,6 +10,7 @@ import { colors, liftColors, tint } from "../lib/theme";
 
 export default function Layout({ children }) {
   const router = useRouter();
+  const isHome = router.pathname === "/";
   const [profileOpen, setProfileOpen] = useState(false);
   const [profile, setProfile] = useState({
     name: "",
@@ -76,6 +77,11 @@ export default function Layout({ children }) {
     { label: "Dead", value: deadlift, reps: bestSets.deadlift?.reps, accent: liftColors.deadlift },
   ];
 
+  function navigateTab(path) {
+    if (!path || router.pathname === path) return;
+    router.push(path, undefined, { scroll: false });
+  }
+
   return (
     <div style={shell}>
       <header className="app-hero" style={hero}>
@@ -105,23 +111,25 @@ export default function Layout({ children }) {
         </div>
       </header>
 
-      <section className="app-metrics" style={clubGrid} aria-label="Club total and PRs">
-        <div style={totalStrip}>
-          <span style={totalStripLabel}>Big 3 Total</span>
-          <strong style={totalStripValue}>{hasTotal ? `${total} ${units}` : "--"}</strong>
-        </div>
-
-        {liftCards.map((lift) => (
-          <div key={lift.label} style={{ ...metricCard, borderColor: tint(lift.accent, 0.35) }}>
-            <span style={metricLabel}>{lift.label}</span>
-            <strong style={{ ...metricValue, color: lift.value ? lift.accent : "#3e3e3e" }}>
-              {lift.value ? `${lift.value} ${units}` : "--"}
-            </strong>
-            <span style={metricHint}>{lift.value && lift.reps ? `x ${lift.reps} reps` : lift.value ? "tracked" : "not logged"}</span>
+      {isHome && (
+        <section className="app-metrics" style={clubGrid} aria-label="Club total and PRs">
+          <div style={totalStrip}>
+            <span style={totalStripLabel}>Big 3 Total</span>
+            <strong style={totalStripValue}>{hasTotal ? `${total} ${units}` : "--"}</strong>
           </div>
-        ))}
 
-      </section>
+          {liftCards.map((lift) => (
+            <div key={lift.label} style={{ ...metricCard, borderColor: tint(lift.accent, 0.35) }}>
+              <span style={metricLabel}>{lift.label}</span>
+              <strong style={{ ...metricValue, color: lift.value ? lift.accent : "#3e3e3e" }}>
+                {lift.value ? `${lift.value} ${units}` : "--"}
+              </strong>
+              <span style={metricHint}>{lift.value && lift.reps ? `x ${lift.reps} reps` : lift.value ? "tracked" : "not logged"}</span>
+            </div>
+          ))}
+
+        </section>
+      )}
 
       <nav style={tabWrapper} aria-label="Main navigation">
         <div className="app-tabs" style={tabBar}>
@@ -132,7 +140,7 @@ export default function Layout({ children }) {
               <button
                 key={tab.name}
                 type="button"
-                onClick={() => (tab.action ? tab.action() : router.push(tab.path))}
+                onClick={() => (tab.action ? tab.action() : navigateTab(tab.path))}
                 style={{
                   ...tabPill,
                   ...(active ? activeTab : {}),

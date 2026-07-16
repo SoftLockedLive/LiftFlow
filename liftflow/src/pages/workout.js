@@ -35,27 +35,34 @@ export default function Workout() {
   }, [restSeconds]);
 
   useEffect(() => {
+    if (!router.isReady) return undefined;
+
     const timer = window.setTimeout(() => {
       const savedPlan = getPlan();
+      const requestedDay = getRequestedDay(router.query.day);
       const savedDay = getLastWorkoutDay();
-      const today = DAYS.includes(savedDay) ? savedDay : getTodayName();
+      const initialDay = requestedDay || (DAYS.includes(savedDay) ? savedDay : getTodayName());
       const savedDrafts = getWorkoutDrafts();
 
       setPlan(savedPlan);
-      setSelectedDay(today);
-      setProgram(buildTodaysWorkout(today));
+      setSelectedDay(initialDay);
+      setProgram(buildTodaysWorkout(initialDay));
       setDrafts(savedDrafts);
-      setSession(savedDrafts[today] || {});
+      setSession(savedDrafts[initialDay] || {});
     }, 0);
 
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [router.isReady, router.query.day]);
 
   function chooseDay(day) {
     setSelectedDay(day);
     saveLastWorkoutDay(day);
     setProgram(buildTodaysWorkout(day));
     setSession(drafts[day] || {});
+
+    if (router.query.day) {
+      router.replace("/workout", undefined, { shallow: true, scroll: false });
+    }
   }
 
   function updateSet(exerciseId, setIndex, field, value) {
@@ -600,6 +607,11 @@ function getLastWorkoutDay() {
 function saveLastWorkoutDay(day) {
   if (typeof window === "undefined") return;
   localStorage.setItem(LAST_DAY_KEY, day);
+}
+
+function getRequestedDay(value) {
+  const day = Array.isArray(value) ? value[0] : value;
+  return DAYS.includes(day) ? day : "";
 }
 
 function getDayAccent(day, plan) {
