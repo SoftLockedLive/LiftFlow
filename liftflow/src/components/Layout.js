@@ -111,26 +111,6 @@ export default function Layout({ children }) {
         </div>
       </header>
 
-      {isHome && (
-        <section className="app-metrics" style={clubGrid} aria-label="Club total and PRs">
-          <div style={totalStrip}>
-            <span style={totalStripLabel}>Big 3 Total</span>
-            <strong style={totalStripValue}>{hasTotal ? `${total} ${units}` : "--"}</strong>
-          </div>
-
-          {liftCards.map((lift) => (
-            <div key={lift.label} style={{ ...metricCard, borderColor: tint(lift.accent, 0.35) }}>
-              <span style={metricLabel}>{lift.label}</span>
-              <strong style={{ ...metricValue, color: lift.value ? lift.accent : "#3e3e3e" }}>
-                {lift.value ? `${lift.value} ${units}` : "--"}
-              </strong>
-              <span style={metricHint}>{lift.value && lift.reps ? `x ${lift.reps} reps` : lift.value ? "tracked" : "not logged"}</span>
-            </div>
-          ))}
-
-        </section>
-      )}
-
       <nav style={tabWrapper} aria-label="Main navigation">
         <div className="app-tabs" style={tabBar}>
           {tabs.map((tab) => {
@@ -152,6 +132,26 @@ export default function Layout({ children }) {
           })}
         </div>
       </nav>
+
+      {isHome && (
+        <section className="app-metrics" style={clubGrid} aria-label="Club total and PRs">
+          <div style={totalStrip}>
+            <span style={totalStripLabel}>Big 3 Total</span>
+            <strong style={totalStripValue}>{hasTotal ? `${total} ${units}` : "--"}</strong>
+          </div>
+
+          {liftCards.map((lift) => (
+            <div key={lift.label} style={{ ...metricCard, borderColor: tint(lift.accent, 0.35) }}>
+              <span style={metricLabel}>{lift.label}</span>
+              <strong style={{ ...metricValue, color: lift.value ? lift.accent : "#3e3e3e" }}>
+                {lift.value ? `${lift.value} ${units}` : "--"}
+              </strong>
+              <span style={metricHint}>{lift.value && lift.reps ? `x ${lift.reps} reps` : lift.value ? "tracked" : "not logged"}</span>
+            </div>
+          ))}
+
+        </section>
+      )}
 
       <main className="app-page" style={page}>{children}</main>
 
@@ -359,8 +359,9 @@ const avatarImage = {
 };
 
 const clubGrid = {
-  marginBottom: 56,
-  paddingBottom: 28,
+  marginTop: 18,
+  marginBottom: 20,
+  paddingBottom: 20,
 };
 
 const totalStrip = {
