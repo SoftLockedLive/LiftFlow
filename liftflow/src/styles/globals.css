@@ -212,11 +212,11 @@ input:focus, select:focus {
 }
 
 .home-flow-next {
-  animation: home-flow-next 180ms ease-out;
+  animation: home-flow-next 280ms ease-out;
 }
 
 .home-flow-prev {
-  animation: home-flow-prev 180ms ease-out;
+  animation: home-flow-prev 280ms ease-out;
 }
 
 @keyframes home-flow-next {

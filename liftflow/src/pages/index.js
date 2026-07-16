@@ -59,12 +59,13 @@ export default function Home() {
     setFlowIndex((current) => (current + direction + DAYS.length) % DAYS.length);
   }
 
-  function finishSwipe(endX) {
+  function finishSwipe(end) {
     if (touchStart === null) return;
-    const distance = endX - touchStart;
+    const distanceX = end.x - touchStart.x;
+    const distanceY = Math.abs(end.y - touchStart.y);
     setTouchStart(null);
-    if (Math.abs(distance) < 42) return;
-    moveFlow(distance < 0 ? 1 : -1);
+    if (Math.abs(distanceX) < 76 || Math.abs(distanceX) < distanceY * 1.45) return;
+    moveFlow(distanceX < 0 ? 1 : -1);
   }
 
   return (
@@ -75,8 +76,14 @@ export default function Home() {
           ...focusCard,
           borderColor: flowItem?.recovery ? tint(colors.success, 0.42) : tint(flowItem?.accent || colors.brand, 0.38),
         }}
-        onTouchStart={(event) => setTouchStart(event.touches[0]?.clientX ?? null)}
-        onTouchEnd={(event) => finishSwipe(event.changedTouches[0]?.clientX ?? touchStart)}
+        onTouchStart={(event) => {
+          const touch = event.touches[0];
+          setTouchStart(touch ? { x: touch.clientX, y: touch.clientY } : null);
+        }}
+        onTouchEnd={(event) => {
+          const touch = event.changedTouches[0];
+          finishSwipe(touch ? { x: touch.clientX, y: touch.clientY } : touchStart);
+        }}
         onAnimationEnd={() => setFlowMotion("")}
       >
         <div style={flowTop}>

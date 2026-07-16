@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { deleteManualPR, getManualPRs, upsertManualPR } from "../lib/manualPRs";
 import { getWorkouts } from "../lib/workoutStorage";
-import { getBaseExercise, getLiftSets, getWorkoutItems } from "../lib/workoutAnalytics";
+import { getBaseExercise, getLiftSets, getWorkoutItems, normalizeExerciseName } from "../lib/workoutAnalytics";
 import { MUSCLE_GROUPS } from "../lib/muscleGroups";
 
 export default function PRs() {
@@ -88,7 +88,7 @@ export default function PRs() {
           <div style={empty}>No PRs recorded yet.</div>
         ) : (
           groupedPrs.map((group) => {
-            const expanded = openGroups[group.id] !== false;
+            const expanded = openGroups[group.id] === true;
 
             return (
               <section key={group.id} style={groupBlock}>
@@ -172,13 +172,15 @@ function mergePRs(workouts, manualPrs) {
   });
 
   (manualPrs || []).forEach((pr) => {
+    const exercise = normalizeExerciseName(pr.exercise);
     const weight = Number(pr.weight || 0);
-    if (!records[pr.exercise] || weight >= records[pr.exercise].weight) {
-      records[pr.exercise] = {
-        exercise: pr.exercise,
+    if (!exercise) return;
+    if (!records[exercise] || weight >= records[exercise].weight) {
+      records[exercise] = {
+        exercise,
         weight,
         reps: pr.reps || "",
-        muscleGroup: pr.muscleGroup || records[pr.exercise]?.muscleGroup || inferMuscleGroup(pr.exercise),
+        muscleGroup: pr.muscleGroup || records[exercise]?.muscleGroup || inferMuscleGroup(exercise),
         manualId: pr.id,
         source: "manual",
       };

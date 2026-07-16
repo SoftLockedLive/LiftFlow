@@ -9,7 +9,28 @@ export function getLiftSets(lift) {
 }
 
 export function getBaseExercise(lift) {
-  return lift?.baseExercise || lift?.exercise || "";
+  return normalizeExerciseName(lift?.baseExercise || lift?.exercise || "");
+}
+
+export function normalizeExerciseName(exercise) {
+  const raw = String(exercise || "").trim();
+  const name = raw.toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+  if (!name) return "";
+
+  if (/\b(bench|barbell bench|bb bench|flat bench)\b/.test(name) && !/\bincline\b|\bdecline\b|\bdumbbell\b|\bdb\b/.test(name)) {
+    return "Bench Press";
+  }
+  if (/\b(squat|barbell squat|back squat|bb squat)\b/.test(name) && !/\bfront\b|\bhack\b|\bsplit\b|\bgoblet\b/.test(name)) {
+    return "Squat";
+  }
+  if (/\b(deadlift|barbell deadlift|conventional deadlift|bb deadlift)\b/.test(name) && !/\brdl\b|\bromanian\b|\bstiff\b|\bsumo\b|\btrap\b/.test(name)) {
+    return "Deadlift";
+  }
+  if (/\boverhead press\b|\bbarbell overhead press\b|\bstanding press\b|\bmilitary press\b/.test(name)) {
+    return "Overhead Press";
+  }
+
+  return raw.replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 export function calculateLiftVolume(lift) {

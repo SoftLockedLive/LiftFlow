@@ -5,7 +5,7 @@ import { getPRs } from "../lib/engine";
 import { getManualPRs } from "../lib/manualPRs";
 import { getProfile, saveProfile } from "../lib/profile";
 import { getWorkouts } from "../lib/workoutStorage";
-import { getBaseExercise, getLiftSets, getWorkoutItems } from "../lib/workoutAnalytics";
+import { getBaseExercise, getLiftSets, getWorkoutItems, normalizeExerciseName } from "../lib/workoutAnalytics";
 import { colors, liftColors, tint } from "../lib/theme";
 
 export default function Layout({ children }) {
@@ -278,7 +278,7 @@ function getBigThreeBestSets(workouts, manualPrs) {
   });
 
   (manualPrs || []).forEach((pr) => {
-    const key = getBigThreeKey(pr.exercise);
+    const key = getBigThreeKey(normalizeExerciseName(pr.exercise));
     const weight = Number(pr.weight || 0);
     if (key && weight > Number(best[key]?.weight || 0)) {
       best[key] = { weight, reps: pr.reps || "" };
