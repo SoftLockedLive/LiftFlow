@@ -36,6 +36,10 @@ html, body {
   font-weight: 600;
 }
 
+#__next {
+  overflow-x: clip;
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -131,7 +135,7 @@ input:focus, select:focus {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 12px;
-  padding: 14px 24px 32px;
+  padding: 10px 24px 18px;
   margin-bottom: 36px;
   border-bottom: 1px solid rgba(255, 253, 242, 0.08);
 }
@@ -217,7 +221,7 @@ input:focus, select:focus {
   }
 
   .app-hero {
-    padding: 16px 14px 12px;
+    padding: 14px 14px 8px;
     gap: 12px;
     align-items: center;
   }
@@ -229,9 +233,9 @@ input:focus, select:focus {
 
   .app-metrics {
     grid-template-columns: repeat(6, minmax(0, 1fr));
-    padding: 10px 14px 18px;
+    padding: 4px 14px 10px;
     gap: 8px;
-    margin-bottom: 12px;
+    margin-bottom: 4px;
   }
 
   .app-tab-shell {
@@ -287,15 +291,10 @@ input:focus, select:focus {
   }
 
   .home-week-grid {
-    display: flex;
-    overflow-x: auto;
-    scroll-snap-type: x proximity;
-    padding-bottom: 4px;
-  }
-
-  .home-week-grid > article {
-    flex: 0 0 min(76vw, 280px);
-    scroll-snap-align: start;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow-x: visible;
+    padding-bottom: 0;
   }
 
   .history-stats {
@@ -337,6 +336,10 @@ input:focus, select:focus {
 
   .field-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .home-week-grid {
+    grid-template-columns: 1fr;
   }
 
   .section-header {

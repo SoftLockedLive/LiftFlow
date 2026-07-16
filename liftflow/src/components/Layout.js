@@ -359,9 +359,9 @@ const avatarImage = {
 };
 
 const clubGrid = {
-  marginTop: 18,
-  marginBottom: 20,
-  paddingBottom: 20,
+  marginTop: 0,
+  marginBottom: 8,
+  paddingBottom: 12,
 };
 
 const totalStrip = {
