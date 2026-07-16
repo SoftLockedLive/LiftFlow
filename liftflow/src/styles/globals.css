@@ -211,6 +211,43 @@ input:focus, select:focus {
   grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
+.home-flow-next {
+  animation: home-flow-next 180ms ease-out;
+}
+
+.home-flow-prev {
+  animation: home-flow-prev 180ms ease-out;
+}
+
+@keyframes home-flow-next {
+  from {
+    opacity: 0.58;
+    transform: translateX(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes home-flow-prev {
+  from {
+    opacity: 0.58;
+    transform: translateX(-18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-flow-next,
+  .home-flow-prev {
+    animation: none;
+  }
+}
+
 @media (max-width: 980px) {
   html, body {
     font-size: 14px;

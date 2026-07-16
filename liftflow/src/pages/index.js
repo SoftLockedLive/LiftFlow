@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
+import { getPRs } from "../lib/engine";
 import { getPlan } from "../lib/plan";
 import { getTodayName } from "../lib/today";
 import { getWorkouts } from "../lib/workoutStorage";
@@ -16,6 +17,7 @@ export default function Home() {
   const [openRecent, setOpenRecent] = useState("");
   const [flowIndex, setFlowIndex] = useState(0);
   const [touchStart, setTouchStart] = useState(null);
+  const [flowMotion, setFlowMotion] = useState("");
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -50,8 +52,10 @@ export default function Home() {
   const flowItem = week[flowIndex] || week.find((day) => day.isToday) || week[0];
   const flowHasPlan = flowItem?.lifts?.length > 0 || flowItem?.recovery;
   const recentSessions = useMemo(() => buildRecentSessions(workouts).slice(0, 5), [workouts]);
+  const prs = useMemo(() => getPRs(workouts), [workouts]);
 
   function moveFlow(direction) {
+    setFlowMotion(direction > 0 ? "next" : "prev");
     setFlowIndex((current) => (current + direction + DAYS.length) % DAYS.length);
   }
 
@@ -66,13 +70,14 @@ export default function Home() {
   return (
     <div style={homeWrap}>
       <section
-        className="home-focus"
+        className={`home-focus ${flowMotion ? `home-flow-${flowMotion}` : ""}`}
         style={{
           ...focusCard,
           borderColor: flowItem?.recovery ? tint(colors.success, 0.42) : tint(flowItem?.accent || colors.brand, 0.38),
         }}
         onTouchStart={(event) => setTouchStart(event.touches[0]?.clientX ?? null)}
         onTouchEnd={(event) => finishSwipe(event.changedTouches[0]?.clientX ?? touchStart)}
+        onAnimationEnd={() => setFlowMotion("")}
       >
         <div style={flowTop}>
           <div>
@@ -91,9 +96,13 @@ export default function Home() {
 
           <button
             type="button"
-            className={flowHasPlan ? "primary" : ""}
             onClick={() => router.push(flowHasPlan ? `/workout?day=${encodeURIComponent(flowItem.day)}` : "/plan")}
-            style={focusButton}
+            style={{
+              ...focusButton,
+              borderColor: flowHasPlan ? tint(flowItem?.accent || colors.brand, 0.58) : colors.borderSoft,
+              color: flowHasPlan ? flowItem?.accent || colors.brand : colors.muted,
+              background: flowHasPlan ? tint(flowItem?.accent || colors.brand, 0.1) : colors.surfaceSoft,
+            }}
           >
             {flowHasPlan ? "Open" : "Program"}
           </button>
@@ -106,13 +115,13 @@ export default function Home() {
               {flowItem.recovery.notes && <span>{flowItem.recovery.notes}</span>}
             </div>
           ) : flowItem?.lifts?.length > 0 ? (
-            flowItem.lifts.slice(0, 4).map((lift) => (
+            flowItem.lifts.map((lift) => (
               <div key={lift.id || lift.exercise} style={flowLiftRow}>
                 <div>
                   <strong style={flowLiftName}>{lift.exercise}</strong>
                   <p style={flowLiftMeta}>{lift.sets || "--"} sets · {lift.reps || "--"} reps</p>
                 </div>
-                {(lift.note || lift.stretches) && <span style={flowLiftNote}>{lift.note || lift.stretches}</span>}
+                <span style={flowLiftPr}>{getLiftPR(lift, prs)}</span>
               </div>
             ))
           ) : (
@@ -121,7 +130,6 @@ export default function Home() {
               <span>No lifts are scheduled yet.</span>
             </div>
           )}
-          {flowItem?.lifts?.length > 4 && <p style={flowMore}>+{flowItem.lifts.length - 4} more lifts in workout</p>}
         </div>
 
         <div style={flowFooter}>
@@ -199,6 +207,12 @@ function getFlowLabel(day, today) {
   return `${day}'s Flow`;
 }
 
+function getLiftPR(lift, prs) {
+  const base = getBaseExercise(lift);
+  const value = Number(prs[base] || prs[lift?.exercise] || 0);
+  return value > 0 ? `PR ${value} lb` : "No PR yet";
+}
+
 function buildRecentSessions(workouts) {
   return workouts
     .map((session, index) => {
@@ -235,13 +249,13 @@ const homeWrap = {
 };
 
 const focusCard = {
-  minHeight: 282,
+  height: 306,
   border: `1px solid ${tint(colors.brand, 0.22)}`,
   borderRadius: 12,
   background: colors.surface,
   padding: 12,
   display: "grid",
-  alignContent: "space-between",
+  gridTemplateRows: "auto minmax(0, 1fr) auto",
   gap: 10,
   overflow: "hidden",
   touchAction: "pan-y",
@@ -283,9 +297,12 @@ const focusButton = {
 };
 
 const flowBody = {
-  minHeight: 152,
+  minHeight: 0,
   display: "grid",
   gap: 7,
+  overflowY: "auto",
+  paddingRight: 2,
+  alignContent: "start",
 };
 
 const flowLiftRow = {
@@ -310,13 +327,18 @@ const flowLiftMeta = {
   fontSize: 12,
 };
 
-const flowLiftNote = {
-  maxWidth: "46%",
-  color: colors.muted,
-  fontSize: 11,
+const flowLiftPr = {
+  flex: "0 0 auto",
+  color: colors.accent,
+  border: `1px solid ${tint(colors.accent, 0.28)}`,
+  background: tint(colors.accent, 0.06),
+  borderRadius: 999,
+  padding: "4px 7px",
+  fontSize: 10,
+  fontWeight: 900,
   lineHeight: 1.25,
-  textAlign: "right",
-  overflow: "hidden",
+  alignSelf: "flex-start",
+  whiteSpace: "nowrap",
 };
 
 const flowRecovery = {
@@ -325,13 +347,6 @@ const flowRecovery = {
   alignContent: "center",
   gap: 6,
   color: colors.textSoft,
-};
-
-const flowMore = {
-  margin: 0,
-  color: colors.brand,
-  fontSize: 12,
-  fontWeight: 800,
 };
 
 const flowFooter = {
