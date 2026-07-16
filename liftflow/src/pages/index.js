@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
-import { getPRs } from "../lib/engine";
+import { getManualPRs } from "../lib/manualPRs";
 import { getPlan } from "../lib/plan";
+import { buildPRMap, formatPR } from "../lib/prRecords";
 import { getTodayName } from "../lib/today";
 import { getWorkouts } from "../lib/workoutStorage";
 import { calculateLiftVolume, calculateSessionSummary, getBaseExercise, getLiftSets, getWorkoutItems } from "../lib/workoutAnalytics";
@@ -12,6 +13,7 @@ const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
 export default function Home() {
   const router = useRouter();
   const [workouts, setWorkouts] = useState([]);
+  const [manualPrs, setManualPrs] = useState([]);
   const [plan, setPlan] = useState({});
   const [today, setToday] = useState("Monday");
   const [openRecent, setOpenRecent] = useState("");
@@ -22,6 +24,7 @@ export default function Home() {
   useEffect(() => {
     const timer = window.setTimeout(() => {
       setWorkouts(getWorkouts());
+      setManualPrs(getManualPRs());
       setPlan(getPlan());
       const currentDay = getTodayName();
       setToday(currentDay);
@@ -52,7 +55,7 @@ export default function Home() {
   const flowItem = week[flowIndex] || week.find((day) => day.isToday) || week[0];
   const flowHasPlan = flowItem?.lifts?.length > 0 || flowItem?.recovery;
   const recentSessions = useMemo(() => buildRecentSessions(workouts).slice(0, 5), [workouts]);
-  const prs = useMemo(() => getPRs(workouts), [workouts]);
+  const prs = useMemo(() => buildPRMap(workouts, manualPrs), [workouts, manualPrs]);
 
   function moveFlow(direction) {
     setFlowMotion(direction > 0 ? "next" : "prev");
@@ -216,8 +219,7 @@ function getFlowLabel(day, today) {
 
 function getLiftPR(lift, prs) {
   const base = getBaseExercise(lift);
-  const value = Number(prs[base] || prs[lift?.exercise] || 0);
-  return value > 0 ? `PR ${value} lb` : "No PR yet";
+  return formatPR(prs[base] || prs[lift?.exercise]);
 }
 
 function buildRecentSessions(workouts) {

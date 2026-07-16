@@ -1,3 +1,5 @@
+import { normalizeExerciseName } from "./workoutAnalytics";
+
 const KEY = "liftflow_manual_prs";
 
 export function getManualPRs() {
@@ -21,14 +23,15 @@ export function upsertManualPR(pr) {
   const prs = getManualPRs();
   const nextPr = {
     id: pr.id || crypto.randomUUID(),
-    exercise: pr.exercise || "",
+    exercise: normalizeExerciseName(pr.exercise),
     weight: Number(pr.weight || 0),
     reps: pr.reps === "" || pr.reps === undefined ? "" : Number(pr.reps || 0),
     date: pr.date || Date.now(),
   };
-  const exists = prs.some((item) => item.id === nextPr.id);
-  const updated = exists
-    ? prs.map((item) => (item.id === nextPr.id ? nextPr : item))
+  const existing = prs.find((item) => item.id === nextPr.id || normalizeExerciseName(item.exercise) === nextPr.exercise);
+  const savedPr = existing ? { ...nextPr, id: existing.id } : nextPr;
+  const updated = existing
+    ? prs.map((item) => (item.id === existing.id ? savedPr : item))
     : [nextPr, ...prs];
 
   return saveManualPRs(updated);

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { deleteManualPR, getManualPRs, upsertManualPR } from "../lib/manualPRs";
+import { buildPRRecords } from "../lib/prRecords";
 import { getWorkouts } from "../lib/workoutStorage";
-import { getBaseExercise, getLiftSets, getWorkoutItems, normalizeExerciseName } from "../lib/workoutAnalytics";
 import { MUSCLE_GROUPS } from "../lib/muscleGroups";
 
 export default function PRs() {
@@ -22,7 +22,7 @@ export default function PRs() {
     return () => window.clearTimeout(timer);
   }, []);
 
-  const prs = useMemo(() => mergePRs(workouts, manualPrs), [workouts, manualPrs]);
+  const prs = useMemo(() => buildPRRecords(workouts, manualPrs), [workouts, manualPrs]);
   const groupedPrs = useMemo(() => groupPRs(prs, search), [prs, search]);
 
   function savePR() {
@@ -153,43 +153,6 @@ export default function PRs() {
   );
 }
 
-function mergePRs(workouts, manualPrs) {
-  const records = {};
-
-  (workouts || []).forEach((session) => {
-    getWorkoutItems(session).forEach((lift) => {
-      const exercise = getBaseExercise(lift);
-      if (!exercise) return;
-
-      getLiftSets(lift).forEach((set) => {
-        const weight = Number(set.weight || 0);
-        const reps = set.reps === undefined ? "" : Number(set.reps || 0);
-        if (!records[exercise] || weight > records[exercise].weight) {
-          records[exercise] = { exercise, weight, reps, muscleGroup: lift.muscleGroup || inferMuscleGroup(exercise), source: "history" };
-        }
-      });
-    });
-  });
-
-  (manualPrs || []).forEach((pr) => {
-    const exercise = normalizeExerciseName(pr.exercise);
-    const weight = Number(pr.weight || 0);
-    if (!exercise) return;
-    if (!records[exercise] || weight >= records[exercise].weight) {
-      records[exercise] = {
-        exercise,
-        weight,
-        reps: pr.reps || "",
-        muscleGroup: pr.muscleGroup || records[exercise]?.muscleGroup || inferMuscleGroup(exercise),
-        manualId: pr.id,
-        source: "manual",
-      };
-    }
-  });
-
-  return Object.values(records).sort((a, b) => b.weight - a.weight);
-}
-
 function groupPRs(prs, search) {
   const query = search.trim().toLowerCase();
   const visible = query ? prs.filter((pr) => pr.exercise.toLowerCase().includes(query)) : prs;
@@ -198,17 +161,6 @@ function groupPRs(prs, search) {
     ...group,
     items: visible.filter((pr) => (pr.muscleGroup || "other") === group.id),
   })).filter((group) => group.items.length > 0);
-}
-
-function inferMuscleGroup(exercise) {
-  const name = String(exercise || "").toLowerCase();
-  if (/bench|press|fly|chest|pec/.test(name)) return "chest";
-  if (/squat|leg|quad|hamstring|curl|calf|hack|lunge|split/.test(name)) return "legs";
-  if (/deadlift|row|pull|pulldown|lat/.test(name)) return "back";
-  if (/shoulder|overhead|lateral|delt|pec deck/.test(name)) return "shoulders";
-  if (/curl|tricep|bicep|hammer|extension|pushdown/.test(name)) return "arms";
-  if (/ab|crunch|plank|raise|wheel|core/.test(name)) return "core";
-  return "other";
 }
 
 const wrap = {

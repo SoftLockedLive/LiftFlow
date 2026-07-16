@@ -17,7 +17,7 @@ export function normalizeExerciseName(exercise) {
   const name = raw.toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
   if (!name) return "";
 
-  if (/\b(bench|barbell bench|bb bench|flat bench)\b/.test(name) && !/\bincline\b|\bdecline\b|\bdumbbell\b|\bdb\b/.test(name)) {
+  if (/^(barbell |bb |flat )?bench( press)?$/.test(name)) {
     return "Bench Press";
   }
   if (/\b(squat|barbell squat|back squat|bb squat)\b/.test(name) && !/\bfront\b|\bhack\b|\bsplit\b|\bgoblet\b/.test(name)) {

@@ -223,7 +223,10 @@ export const PROGRAM_TEMPLATES = [
     summary: "Weekly powerbuilding routine with bench, squat, deadlift, hypertrophy, recovery, and mobility.",
     days: {
       Monday: day("Upper (Bench Strength)", [
-        lift("Bench Press", "chest", "4", "3-5", "Main strength focus. Keep reps controlled and leave room for progression."),
+        lift("Barbell Bench Press", "chest", "4", "3-5", "Main strength focus. Keep reps controlled and leave room for progression.", {
+          baseExercise: "Bench Press",
+          variations: ["Dumbbell Bench Press"],
+        }),
         lift("Chest-Supported Row", "back", "3", "8-10", "Strict torso position. Pull elbows back, not up."),
         lift("Standing Overhead Press", "shoulders", "3", "6-8", "Brace hard. Avoid turning it into a push press."),
         lift("Lat Pulldown", "back", "3", "8-10", "Drive elbows down and keep shoulders controlled."),
@@ -266,7 +269,10 @@ export const PROGRAM_TEMPLATES = [
       ], recoveryOptions("Recovery emphasis. Keep the session easy and leave fresher than you started.")),
 
       Thursday: day("Push (Bench Volume + Hypertrophy)", [
-        lift("Bench Press", "chest", "4", "8-10", "Volume bench. Keep bar path consistent."),
+        lift("Barbell Bench Press", "chest", "4", "8-10", "Volume bench. Keep bar path consistent.", {
+          baseExercise: "Bench Press",
+          variations: ["Dumbbell Bench Press"],
+        }),
         lift("Mark Presses", "chest", "2", "near failure", "Load light weight on the bar and crank out quick half reps till failure (Mark an ex Marine showed me this one)"),
         lift("Seated Shoulder Press", "shoulders", "3", "8-10", "Keep back tight and reps smooth."),
         lift("Incline Dumbbell Press", "chest", "3", "8-12", "Moderate incline. Drive through chest."),

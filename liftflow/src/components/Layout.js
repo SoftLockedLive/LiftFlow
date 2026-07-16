@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/router";
-import { getPRs } from "../lib/engine";
 import { getManualPRs } from "../lib/manualPRs";
+import { buildPRMap } from "../lib/prRecords";
 import { getProfile, saveProfile } from "../lib/profile";
 import { getWorkouts } from "../lib/workoutStorage";
 import { getBaseExercise, getLiftSets, getWorkoutItems, normalizeExerciseName } from "../lib/workoutAnalytics";
@@ -26,8 +26,9 @@ export default function Layout({ children }) {
   useEffect(() => {
     const loadDashboard = () => {
       const workouts = getWorkouts();
-      setPrs(getPRs(workouts));
-      setBestSets(getBigThreeBestSets(workouts, getManualPRs()));
+      const manualPrs = getManualPRs();
+      setPrs(buildPRMap(workouts, manualPrs));
+      setBestSets(getBigThreeBestSets(workouts, manualPrs));
       setHydrated(true);
       setProfile(getProfile());
     };
@@ -44,9 +45,12 @@ export default function Layout({ children }) {
     document.body.style.overflow = profileOpen ? "hidden" : "auto";
   }, [profileOpen]);
 
-  const bench = Math.max(Number(profile.benchPR || 0), Number(prs["Bench Press"] || 0), Number(bestSets.bench?.weight || 0));
-  const squat = Math.max(Number(profile.squatPR || 0), Number(prs.Squat || 0), Number(bestSets.squat?.weight || 0));
-  const deadlift = Math.max(Number(profile.deadliftPR || 0), Number(prs.Deadlift || 0), Number(bestSets.deadlift?.weight || 0));
+  const benchRecord = prs["Bench Press"];
+  const squatRecord = prs.Squat;
+  const deadliftRecord = prs.Deadlift;
+  const bench = Math.max(Number(profile.benchPR || 0), Number(benchRecord?.weight || 0));
+  const squat = Math.max(Number(profile.squatPR || 0), Number(squatRecord?.weight || 0));
+  const deadlift = Math.max(Number(profile.deadliftPR || 0), Number(deadliftRecord?.weight || 0));
   const total = bench + squat + deadlift;
   const hasTotal = hydrated && total > 0;
   const units = profile.units || "lbs";
@@ -72,9 +76,9 @@ export default function Layout({ children }) {
   ];
 
   const liftCards = [
-    { label: "Bench", value: bench, reps: bestSets.bench?.reps, accent: liftColors.bench },
-    { label: "Squat", value: squat, reps: bestSets.squat?.reps, accent: liftColors.squat },
-    { label: "Dead", value: deadlift, reps: bestSets.deadlift?.reps, accent: liftColors.deadlift },
+    { label: "Bench", value: bench, reps: benchRecord?.reps || bestSets.bench?.reps, accent: liftColors.bench },
+    { label: "Squat", value: squat, reps: squatRecord?.reps || bestSets.squat?.reps, accent: liftColors.squat },
+    { label: "Dead", value: deadlift, reps: deadliftRecord?.reps || bestSets.deadlift?.reps, accent: liftColors.deadlift },
   ];
 
   function navigateTab(path) {
@@ -280,7 +284,7 @@ function getBigThreeBestSets(workouts, manualPrs) {
   (manualPrs || []).forEach((pr) => {
     const key = getBigThreeKey(normalizeExerciseName(pr.exercise));
     const weight = Number(pr.weight || 0);
-    if (key && weight > Number(best[key]?.weight || 0)) {
+    if (key && weight > 0) {
       best[key] = { weight, reps: pr.reps || "" };
     }
   });

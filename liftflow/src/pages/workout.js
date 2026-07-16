@@ -365,6 +365,11 @@ export default function Workout() {
                     </p>
                   </div>
                   <div style={liftHeaderActions}>
+                    {lift.displayPR && (
+                      <span style={prBadge}>
+                        {lift.displayPR}
+                      </span>
+                    )}
                     {lift.suggestedWeight && (
                       <span style={{ ...suggestion, color: dayAccent, borderColor: tint(dayAccent, 0.38), background: colors.surfaceSoft }}>
                         {lift.suggestedWeight} lbs
@@ -982,6 +987,17 @@ const suggestion = {
   fontWeight: 850,
   whiteSpace: "nowrap",
   fontSize: 12,
+};
+
+const prBadge = {
+  border: `1px solid ${tint(colors.accent, 0.32)}`,
+  borderRadius: 999,
+  padding: "6px 8px",
+  color: colors.accent,
+  background: tint(colors.accent, 0.06),
+  fontWeight: 900,
+  whiteSpace: "nowrap",
+  fontSize: 11,
 };
 
 const coachCard = {
