@@ -131,14 +131,15 @@ input:focus, select:focus {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 12px;
-  padding: 14px 24px 18px;
-  margin-bottom: 12px;
+  padding: 14px 24px 32px;
+  margin-bottom: 36px;
+  border-bottom: 1px solid rgba(255, 253, 242, 0.08);
 }
 
 .app-tabs {
   display: flex;
   gap: 8px;
-  padding: 14px 16px 14px;
+  padding: 16px 16px 14px;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -228,9 +229,9 @@ input:focus, select:focus {
 
   .app-metrics {
     grid-template-columns: repeat(6, minmax(0, 1fr));
-    padding: 10px 14px 14px;
+    padding: 10px 14px 30px;
     gap: 8px;
-    margin-bottom: 10px;
+    margin-bottom: 34px;
   }
 
   .app-tabs {

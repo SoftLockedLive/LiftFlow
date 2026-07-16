@@ -351,8 +351,8 @@ const avatarImage = {
 };
 
 const clubGrid = {
-  marginBottom: 22,
-  paddingBottom: 16,
+  marginBottom: 56,
+  paddingBottom: 28,
 };
 
 const totalStrip = {
@@ -416,13 +416,13 @@ const metricHint = {
 
 const tabWrapper = {
   position: "relative",
-  zIndex: 10,
+  zIndex: 1,
   background: "rgba(2, 3, 5, 0.84)",
-  marginTop: 6,
+  marginTop: 0,
   borderTop: `1px solid ${tint(colors.text, 0.06)}`,
   borderBottom: `1px solid ${tint(colors.brand, 0.12)}`,
   backdropFilter: "blur(14px)",
-  boxShadow: `0 12px 26px rgba(2, 3, 5, 0.28)`,
+  boxShadow: "none",
 };
 
 const tabBar = {
@@ -442,7 +442,7 @@ const activeTab = {
   background: `linear-gradient(135deg, ${colors.brand}, ${colors.accent})`,
   borderColor: colors.brand,
   color: colors.inverse,
-  boxShadow: `0 0 20px ${tint(colors.brand, 0.22)}`,
+  boxShadow: "none",
 };
 
 const page = {
