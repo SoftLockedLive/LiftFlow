@@ -70,7 +70,7 @@ export default function Home() {
   return (
     <div style={homeWrap}>
       <section
-        className={`home-focus ${flowMotion ? `home-flow-${flowMotion}` : ""}`}
+        className={flowMotion ? `home-flow-${flowMotion}` : ""}
         style={{
           ...focusCard,
           borderColor: flowItem?.recovery ? tint(colors.success, 0.42) : tint(flowItem?.accent || colors.brand, 0.38),
@@ -255,17 +255,19 @@ const focusCard = {
   background: colors.surface,
   padding: 12,
   display: "grid",
-  gridTemplateRows: "auto minmax(0, 1fr) auto",
+  gridTemplateRows: "86px minmax(0, 1fr) 34px",
   gap: 10,
   overflow: "hidden",
   touchAction: "pan-y",
 };
 
 const flowTop = {
-  display: "flex",
-  alignItems: "flex-start",
-  justifyContent: "space-between",
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) auto",
+  alignItems: "start",
   gap: 12,
+  minWidth: 0,
+  overflow: "hidden",
 };
 
 const eyebrow = {
@@ -279,16 +281,23 @@ const eyebrow = {
 const focusTitle = {
   margin: "4px 0",
   color: colors.text,
-  fontSize: 22,
-  lineHeight: 1,
+  fontSize: 20,
+  lineHeight: 1.05,
+  display: "-webkit-box",
+  WebkitLineClamp: 2,
+  WebkitBoxOrient: "vertical",
+  overflow: "hidden",
 };
 
 const focusCopy = {
-  margin: 0,
+  margin: "4px 0 0",
   color: "#747474",
-  fontSize: 13,
-  lineHeight: 1.4,
+  fontSize: 12,
+  lineHeight: 1.25,
   fontWeight: 700,
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
 };
 
 const focusButton = {
@@ -302,15 +311,17 @@ const flowBody = {
   gap: 7,
   overflowY: "auto",
   paddingRight: 2,
+  paddingTop: 2,
   alignContent: "start",
+  borderTop: `1px solid ${colors.borderSoft}`,
 };
 
 const flowLiftRow = {
   display: "flex",
   justifyContent: "space-between",
   gap: 10,
-  borderTop: `1px solid ${colors.borderSoft}`,
   paddingTop: 7,
+  borderTop: `1px solid ${colors.borderSoft}`,
   minWidth: 0,
 };
 
