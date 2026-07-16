@@ -1,7 +1,7 @@
 {
   "name": "LiftFlow",
   "short_name": "LiftFlow",
-  "description": "Track workouts, PRs, protein, notes, and training history.",
+  "description": "Track workouts, PRs, nutrition, notes, and training history.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

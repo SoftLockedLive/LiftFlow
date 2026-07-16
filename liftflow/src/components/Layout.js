@@ -63,7 +63,7 @@ export default function Layout({ children }) {
     { name: "Program", path: "/plan" },
     { name: "Mobility", path: "/mobility" },
     { name: "Running", path: "/running" },
-    { name: "Nutrition", path: "/protein" },
+    { name: "Nutrition", path: "/nutrition" },
     { name: "Notes", path: "/notes" },
     { name: "History", path: "/history" },
     { name: "Progress", path: "/progress" },
@@ -111,7 +111,7 @@ export default function Layout({ children }) {
         </div>
       </header>
 
-      <nav style={tabWrapper} aria-label="Main navigation">
+      <nav className="app-tab-shell" style={tabWrapper} aria-label="Main navigation">
         <div className="app-tabs" style={tabBar}>
           {tabs.map((tab) => {
             const active = tab.path && router.pathname === tab.path;
