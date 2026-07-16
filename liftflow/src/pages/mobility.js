@@ -72,18 +72,6 @@ export default function Mobility() {
       </header>
 
       <section style={panel}>
-        <p style={label}>Preset Routines</p>
-        <div style={presetGrid}>
-          {MOBILITY_PRESETS.map((preset) => (
-            <button key={preset.id} type="button" onClick={() => applyPreset(preset)} style={presetButton}>
-              <strong>{preset.name}</strong>
-              <span>{preset.goal}</span>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <section style={panel}>
         <div style={panelHeader}>
           <div>
             <p style={label}>Today</p>
@@ -141,6 +129,18 @@ export default function Mobility() {
           <button type="button" onClick={addMovement} style={addBtn}>
             Add
           </button>
+        </div>
+      </section>
+
+      <section style={panel}>
+        <p style={label}>Preset Routines</p>
+        <div style={presetGrid}>
+          {MOBILITY_PRESETS.map((preset) => (
+            <button key={preset.id} type="button" onClick={() => applyPreset(preset)} style={presetButton}>
+              <strong>{preset.name}</strong>
+              <span>{preset.goal}</span>
+            </button>
+          ))}
         </div>
       </section>
 

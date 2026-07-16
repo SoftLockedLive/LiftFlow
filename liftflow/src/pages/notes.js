@@ -238,20 +238,25 @@ const cardTitle = {
 };
 
 const levelGrid = {
-  gap: 8,
+  gap: 6,
 };
 
 const levelButton = {
   display: "flex",
   flexDirection: "column",
   alignItems: "center",
-  gap: 4,
-  padding: "10px 6px",
-  borderRadius: 14,
+  justifyContent: "center",
+  gap: 5,
+  minHeight: 58,
+  padding: "8px 4px",
+  borderRadius: 12,
+  fontSize: 11,
+  lineHeight: 1.05,
+  whiteSpace: "nowrap",
 };
 
 const emoji = {
-  fontSize: 18,
+  fontSize: 17,
   lineHeight: 1,
 };
 

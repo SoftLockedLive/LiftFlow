@@ -57,6 +57,7 @@ export default function Nutrition() {
   const calorieTarget = Number(activeTargets.calorieTarget || 0);
   const proteinTarget = Number(activeTargets.proteinTarget || 0);
   const recentDays = useMemo(() => buildRecentDays(checkIns, proteinLog, activeTargets), [checkIns, proteinLog, activeTargets]);
+  const calorieStreak = useMemo(() => buildCalorieStreak(checkIns, calorieTarget), [checkIns, calorieTarget]);
 
   function updateTargets(nextTargets) {
     const saved = saveProgressTargets(nextTargets);
@@ -95,7 +96,16 @@ export default function Nutrition() {
           <p style={eyebrow}>Nutrition</p>
           <h1 style={title}>Calories + Protein</h1>
         </div>
-        <div style={streakBadge}>{proteinSummary.streak} day protein streak</div>
+        <div style={streakStack}>
+          <div style={{ ...streakBadge, color: CYAN, borderColor: tint(CYAN, 0.38), background: tint(CYAN, 0.09) }}>
+            <strong>{calorieStreak}</strong>
+            <span>cal streak</span>
+          </div>
+          <div style={streakBadge}>
+            <strong>{proteinSummary.streak}</strong>
+            <span>protein streak</span>
+          </div>
+        </div>
       </header>
 
       <section style={dateCard}>
@@ -304,6 +314,21 @@ function getEntryForDate(checkIns, dateKey) {
   return (checkIns || []).find((entry) => entry.date === dateKey) || {};
 }
 
+function buildCalorieStreak(checkIns, target) {
+  const calorieTarget = Number(target || 0);
+  if (calorieTarget <= 0) return 0;
+
+  let streak = 0;
+  for (let i = 0; i < 365; i += 1) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    const entry = getEntryForDate(checkIns, getTodayKey(date));
+    if (Number(entry.calories || 0) < calorieTarget) break;
+    streak += 1;
+  }
+  return streak;
+}
+
 const wrap = {
   maxWidth: 820,
   margin: "0 auto",
@@ -313,8 +338,8 @@ const header = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "flex-start",
-  gap: 16,
-  marginBottom: 18,
+  gap: 12,
+  marginBottom: 14,
 };
 
 const eyebrow = {
@@ -327,18 +352,31 @@ const eyebrow = {
 
 const title = {
   margin: "6px 0 0",
-  fontSize: 34,
+  fontSize: 32,
   lineHeight: 1,
+};
+
+const streakStack = {
+  display: "grid",
+  gap: 6,
+  flex: "0 0 auto",
 };
 
 const streakBadge = {
   border: `1px solid ${tint(colors.success, 0.42)}`,
-  borderRadius: 999,
-  padding: "8px 12px",
+  borderRadius: 10,
+  padding: "6px 8px",
   color: colors.success,
   background: tint(colors.success, 0.11),
   fontWeight: 850,
   boxShadow: `0 0 18px ${tint(colors.success, 0.12)}`,
+  display: "grid",
+  gap: 1,
+  minWidth: 82,
+  textAlign: "center",
+  fontSize: 11,
+  lineHeight: 1.1,
+  textTransform: "uppercase",
 };
 
 const dateCard = {

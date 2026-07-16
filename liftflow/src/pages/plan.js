@@ -384,25 +384,24 @@ export default function Plan() {
       <section style={compactPanel}>
         <div style={currentHeader}>
           <div>
-            <p style={label}>Warmup Routine</p>
-            <h2 style={cardTitle}>{selectedWarmup.length} movements</h2>
+            <p style={label}>Warmup</p>
+            <h2 style={compactTitle}>{selectedWarmup.length ? `${selectedWarmup.length} movements` : "Not set"}</h2>
           </div>
           <button type="button" onClick={() => setBuilderPanel("warmup")} style={editBtn}>
-            Add Warmup
+            Add
           </button>
         </div>
         {selectedWarmup.length === 0 ? (
           <p style={mutedLine}>No warmup set for this day.</p>
         ) : (
-          <div style={libraryList}>
+          <div style={warmupList}>
             {selectedWarmup.map((movement) => (
-              <div key={movement.id} style={libraryItem}>
+              <div key={movement.id} style={warmupItem}>
                 <div>
                   <strong style={{ color: ACCENT }}>{movement.name}</strong>
                   <p style={liftMeta}>{formatWarmupMovement(movement)}</p>
-                  {movement.note && <p style={stretchPreview}>{movement.note}</p>}
                 </div>
-                <div style={actions}>
+                <div style={warmupActions}>
                   <button type="button" onClick={() => startWarmupEdit(movement)} style={editBtn}>
                     Edit
                   </button>
@@ -742,7 +741,7 @@ function formatWarmupMovement(movement) {
   if (movement.mode === "time") return movement.time || "Timed";
   const sets = movement.sets || "--";
   const reps = movement.reps || "--";
-  return `${sets} sets x ${reps} reps`;
+  return `${sets}x${reps}`;
 }
 
 const wrap = {
@@ -811,10 +810,10 @@ const compactPanel = {
   border: "1px solid #242424",
   borderRadius: 12,
   background: "#101010",
-  padding: 12,
-  marginBottom: 14,
+  padding: 10,
+  marginBottom: 12,
   display: "grid",
-  gap: 10,
+  gap: 8,
 };
 
 const templateSection = {
@@ -896,6 +895,11 @@ const cardTitle = {
   fontSize: 22,
 };
 
+const compactTitle = {
+  margin: 0,
+  fontSize: 18,
+};
+
 const fieldRow = {
   gap: 10,
 };
@@ -972,6 +976,26 @@ const activeToolTab = {
 const libraryList = {
   display: "grid",
   gap: 8,
+};
+
+const warmupList = {
+  display: "grid",
+  gap: 6,
+};
+
+const warmupItem = {
+  borderTop: "1px solid #202020",
+  paddingTop: 7,
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 10,
+};
+
+const warmupActions = {
+  display: "flex",
+  gap: 5,
+  flex: "0 0 auto",
 };
 
 const libraryItem = {

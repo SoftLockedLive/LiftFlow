@@ -361,13 +361,28 @@ export default function Workout() {
                     <h2 style={liftTitle}>{lift.exercise}</h2>
                     <p style={liftMeta}>
                       {group.label} · {lift.sets} sets x {lift.reps} reps
+                      {selectedVariation ? ` · ${selectedVariation}` : ""}
                     </p>
                   </div>
-                  {lift.suggestedWeight && (
-                    <span style={{ ...suggestion, color: dayAccent, borderColor: tint(dayAccent, 0.38), background: colors.surfaceSoft }}>
-                      {lift.suggestedWeight} lbs
-                    </span>
-                  )}
+                  <div style={liftHeaderActions}>
+                    {lift.suggestedWeight && (
+                      <span style={{ ...suggestion, color: dayAccent, borderColor: tint(dayAccent, 0.38), background: colors.surfaceSoft }}>
+                        {lift.suggestedWeight} lbs
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => updateVariation(lift.id, { open: !variationDraft.open })}
+                      style={{
+                        ...variationIcon,
+                        ...(selectedVariation ? { color: dayAccent, borderColor: tint(dayAccent, 0.48) } : {}),
+                      }}
+                      aria-label={`Set variation for ${lift.exercise}`}
+                      title="Variation"
+                    >
+                      Alt
+                    </button>
+                  </div>
                 </div>
 
                 {coach && (
@@ -423,50 +438,40 @@ export default function Workout() {
                   </section>
                 )}
 
-                <div style={variationWrap}>
-                  <button
-                    type="button"
-                    onClick={() => updateVariation(lift.id, { open: !variationDraft.open })}
-                    style={variationToggle}
-                  >
-                    Variation: {selectedVariation || "None"}
-                  </button>
-
-                  {variationDraft.open && (
-                    <div style={variationPanel}>
-                      <div style={variationChips}>
+                {variationDraft.open && (
+                  <div style={variationPanel}>
+                    <div style={variationChips}>
+                      <button
+                        type="button"
+                        onClick={() => updateVariation(lift.id, { value: "", custom: "", open: false })}
+                        style={{
+                          ...variationChip,
+                          ...(!selectedVariation ? activeVariationChip : {}),
+                        }}
+                      >
+                        None
+                      </button>
+                      {variationOptions.map((variation) => (
                         <button
+                          key={variation}
                           type="button"
-                          onClick={() => updateVariation(lift.id, { value: "", custom: "", open: false })}
+                          onClick={() => updateVariation(lift.id, { value: variation, custom: "", open: false })}
                           style={{
                             ...variationChip,
-                            ...(!selectedVariation ? activeVariationChip : {}),
+                            ...(selectedVariation === variation ? activeVariationChip : {}),
                           }}
                         >
-                          None
+                          {variation}
                         </button>
-                        {variationOptions.map((variation) => (
-                          <button
-                            key={variation}
-                            type="button"
-                            onClick={() => updateVariation(lift.id, { value: variation, custom: "", open: false })}
-                            style={{
-                              ...variationChip,
-                              ...(selectedVariation === variation ? activeVariationChip : {}),
-                            }}
-                          >
-                            {variation}
-                          </button>
-                        ))}
-                      </div>
-                      <input
-                        placeholder="Custom variation performed"
-                        value={variationDraft.custom}
-                        onChange={(event) => updateVariation(lift.id, { custom: event.target.value, value: "" })}
-                      />
+                      ))}
                     </div>
-                  )}
-                </div>
+                    <input
+                      placeholder="Custom variation performed"
+                      value={variationDraft.custom}
+                      onChange={(event) => updateVariation(lift.id, { custom: event.target.value, value: "" })}
+                    />
+                  </div>
+                )}
 
                 {(lift.note || lift.stretches) && (
                   <div style={stretchBox}>
@@ -950,6 +955,14 @@ const liftHeader = {
   gap: 12,
 };
 
+const liftHeaderActions = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "flex-end",
+  gap: 7,
+  flex: "0 0 auto",
+};
+
 const liftTitle = {
   margin: 0,
   fontSize: 20,
@@ -965,9 +978,10 @@ const liftMeta = {
 const suggestion = {
   border: "1px solid currentColor",
   borderRadius: 999,
-  padding: "6px 10px",
+  padding: "6px 9px",
   fontWeight: 850,
   whiteSpace: "nowrap",
+  fontSize: 12,
 };
 
 const coachCard = {
@@ -1141,19 +1155,15 @@ const stretchBox = {
   marginTop: 10,
 };
 
-const variationWrap = {
-  display: "grid",
-  gap: 6,
-  marginTop: 10,
-};
-
-const variationToggle = {
-  justifySelf: "start",
+const variationIcon = {
+  width: 38,
+  height: 32,
+  padding: 0,
   color: "#32cfff",
   borderColor: "rgba(50, 207, 255, 0.38)",
   background: "rgba(50, 207, 255, 0.1)",
-  padding: "7px 10px",
-  fontSize: 12,
+  fontSize: 11,
+  fontWeight: 900,
 };
 
 const variationPanel = {
@@ -1163,6 +1173,7 @@ const variationPanel = {
   borderRadius: 10,
   background: "#0b0b0b",
   padding: 9,
+  marginTop: 10,
 };
 
 const variationChips = {

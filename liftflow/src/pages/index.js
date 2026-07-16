@@ -49,7 +49,7 @@ export default function Home() {
   const recentSessions = useMemo(() => buildRecentSessions(workouts).slice(0, 5), [workouts]);
 
   return (
-    <div>
+    <div style={homeWrap}>
       <section className="home-focus" style={focusCard}>
         <div>
           <p style={eyebrow}>Today&apos;s Flow</p>
@@ -227,12 +227,17 @@ function formatDate(date) {
   }).format(parsed);
 }
 
+const homeWrap = {
+  display: "grid",
+  gap: 14,
+};
+
 const focusCard = {
-  minHeight: 76,
+  minHeight: 72,
   border: `1px solid ${tint(colors.brand, 0.22)}`,
   borderRadius: 12,
   background: colors.surface,
-  padding: "12px 14px",
+  padding: "11px 12px",
   alignItems: "center",
   justifyContent: "space-between",
   gap: 12,
@@ -266,14 +271,14 @@ const focusButton = {
 };
 
 const section = {
-  marginTop: 16,
+  marginTop: 0,
 };
 
 const sectionHeader = {
   alignItems: "center",
   justifyContent: "space-between",
   gap: 14,
-  marginBottom: 10,
+  marginBottom: 9,
 };
 
 const sectionTitle = {
@@ -298,11 +303,11 @@ const ghostButton = {
 };
 
 const weekGrid = {
-  gap: 8,
+  gap: 9,
 };
 
 const dayCard = {
-  minHeight: 112,
+  minHeight: 108,
   border: "1px solid",
   borderRadius: 12,
   padding: 10,
@@ -383,7 +388,7 @@ const emptyState = {
 
 const recentList = {
   display: "grid",
-  gap: 8,
+  gap: 9,
 };
 
 const recentCard = {
