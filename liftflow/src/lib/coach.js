@@ -62,6 +62,15 @@ export function buildLiveSetRecommendation(lift, loggedSets, coach) {
 
   if (!lastWeight || !lastReps) return null;
 
+  const knownPr = Math.max(Number(lift?.prRecord?.weight || 0), Number(coach.latestTopWeight || 0));
+  if (knownPr > 0 && lastWeight > knownPr) {
+    return {
+      label: `New PR: ${lastWeight} lb`,
+      detail: "You moved more weight than your previous best. Rest longer before deciding whether to repeat it.",
+      tone: "up",
+    };
+  }
+
   if (lastReps > target.max) {
     return {
       label: `Next set: ${roundToNearest(lastWeight + increment, increment)} lb`,

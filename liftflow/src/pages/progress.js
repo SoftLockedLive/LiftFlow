@@ -57,6 +57,8 @@ import {
 } from "../lib/progressPhase2";
 import { getTodayKey } from "../lib/protein";
 import { addNote } from "../lib/notes";
+import { getManualPRs } from "../lib/manualPRs";
+import { buildPRRecords } from "../lib/prRecords";
 import { getWorkouts } from "../lib/workoutStorage";
 import { buildProgressData } from "../lib/workoutAnalytics";
 
@@ -110,6 +112,7 @@ const EMPTY_PHASE_FORM = {
 
 export default function Progress() {
   const [workouts, setWorkouts] = useState([]);
+  const [manualPrs, setManualPrs] = useState([]);
   const [profile, setProfile] = useState({});
   const [checkIns, setCheckIns] = useState([]);
   const [targets, setTargets] = useState(null);
@@ -143,6 +146,7 @@ export default function Progress() {
       const todayEntry = savedCheckIns.find((entry) => entry.date === today);
 
       setWorkouts(getWorkouts());
+      setManualPrs(getManualPRs());
       setProfile(getProfile());
       setTargets(savedTargets);
       setTargetDraft(savedTargets);
@@ -162,7 +166,13 @@ export default function Progress() {
   }, []);
 
   const strengthData = useMemo(() => buildProgressData(workouts), [workouts]);
-  const goals = useMemo(() => buildGoals(profile, strengthData.exerciseBest), [profile, strengthData.exerciseBest]);
+  const strengthPrRecords = useMemo(() => buildPRRecords(workouts, manualPrs), [workouts, manualPrs]);
+  const strengthBest = useMemo(() => buildExerciseBestFromPRs(strengthPrRecords), [strengthPrRecords]);
+  const strengthDisplayData = useMemo(
+    () => ({ ...strengthData, exerciseBest: strengthBest }),
+    [strengthData, strengthBest]
+  );
+  const goals = useMemo(() => buildGoals(profile, strengthBest), [profile, strengthBest]);
   const strengthTrend = useMemo(() => buildTrend(strengthData.sessions), [strengthData.sessions]);
   const activePhase = useMemo(() => getActivePhase(phases), [phases]);
   const activeTargets = useMemo(() => buildPhaseTargets(targets || targetDraft || {}, activePhase), [targets, targetDraft, activePhase]);
@@ -185,8 +195,8 @@ export default function Progress() {
   const phaseProgress = useMemo(() => buildPhaseProgress(activePhase, checkIns), [activePhase, checkIns]);
   const phaseMessage = useMemo(() => buildPhaseOverviewMessage(activePhase, checkIns), [activePhase, checkIns]);
   const relativeStrength = useMemo(
-    () => buildRelativeStrength(workouts, checkIns, trackedLifts, activePhase),
-    [workouts, checkIns, trackedLifts, activePhase]
+    () => buildRelativeStrength(workouts, checkIns, trackedLifts, activePhase, strengthPrRecords),
+    [workouts, checkIns, trackedLifts, activePhase, strengthPrRecords]
   );
   const calorieRecommendation = useMemo(
     () => buildCalorieRecommendation(activePhase, checkIns, recommendations),
@@ -452,7 +462,7 @@ export default function Progress() {
 
       {activeSection === "Strength" && (
         <StrengthSection
-          data={strengthData}
+          data={strengthDisplayData}
           goals={goals}
           trend={strengthTrend}
           relativeStrength={relativeStrength}
@@ -1592,6 +1602,14 @@ function buildGoals(profile, bests) {
       percent: goal.target > 0 ? Math.min(999, Math.round((goal.current / goal.target) * 100)) : 0,
       remaining: goal.target > 0 ? Math.max(0, goal.target - goal.current) : 0,
     }));
+}
+
+function buildExerciseBestFromPRs(prs) {
+  return (prs || []).reduce((best, pr) => {
+    const weight = Number(pr.weight || 0);
+    if (pr.exercise && weight > 0) best[pr.exercise] = weight;
+    return best;
+  }, {});
 }
 
 function findBest(bests, keyword) {

@@ -424,8 +424,9 @@ export function saveTrackedLifts(lifts) {
   return next;
 }
 
-export function buildRelativeStrength(workouts, checkIns, trackedLifts = DEFAULT_TRACKED_LIFTS, activePhase = null) {
+export function buildRelativeStrength(workouts, checkIns, trackedLifts = DEFAULT_TRACKED_LIFTS, activePhase = null, prRecords = []) {
   const weights = getWeightEntries(checkIns);
+  const latestBodyweight = weights[weights.length - 1]?.value || null;
   return trackedLifts.map((liftName) => {
     const sets = [];
     (workouts || []).forEach((session, sessionIndex) => {
@@ -457,16 +458,38 @@ export function buildRelativeStrength(workouts, checkIns, trackedLifts = DEFAULT
     const bestLift = [...sorted].sort((a, b) => b.weight - a.weight)[0] || null;
     const best1rm = [...sorted].sort((a, b) => b.estimated1rm - a.estimated1rm)[0] || null;
     const bestRatio = [...sorted].filter((set) => isNumber(set.e1rmRatio)).sort((a, b) => b.e1rmRatio - a.e1rmRatio)[0] || null;
+    const manualPr = (prRecords || []).find((pr) => pr.source === "manual" && sameLift(pr.exercise, liftName));
+    const manualWeight = Number(manualPr?.weight || 0);
+    const manualReps = Number(manualPr?.reps || 1) || 1;
+    const manualEstimated1rm = manualWeight ? estimate1rm(manualWeight, manualReps) : 0;
+    const manualBest = manualWeight
+      ? {
+          id: `manual-${liftName}`,
+          date: getTodayKey(),
+          lift: liftName,
+          weight: manualWeight,
+          reps: manualReps,
+          estimated1rm: manualEstimated1rm,
+          bodyweight: latestBodyweight,
+          estimatedBodyweight: false,
+          ratio: latestBodyweight ? round2(manualWeight / latestBodyweight) : null,
+          e1rmRatio: latestBodyweight ? round2(manualEstimated1rm / latestBodyweight) : null,
+          source: "manual",
+        }
+      : null;
+    const currentBest = manualBest || bestLift;
+    const currentEstimated1rm = manualBest || best1rm;
+    const currentBestRatio = manualBest?.e1rmRatio ? manualBest : bestRatio;
     const monthStart = addDays(getTodayKey(), -30);
     const monthBase = sorted.find((set) => set.date >= monthStart);
     const phaseBase = activePhase ? sorted.find((set) => set.date >= activePhase.startDate) : null;
     return {
       lift: liftName,
-      currentBest: bestLift,
-      currentEstimated1rm: best1rm,
-      bestRatio,
-      monthChange: best1rm && monthBase ? round1(best1rm.estimated1rm - monthBase.estimated1rm) : null,
-      phaseRatioChange: bestRatio && phaseBase?.e1rmRatio ? round2(bestRatio.e1rmRatio - phaseBase.e1rmRatio) : null,
+      currentBest,
+      currentEstimated1rm,
+      bestRatio: currentBestRatio,
+      monthChange: currentEstimated1rm && monthBase ? round1(currentEstimated1rm.estimated1rm - monthBase.estimated1rm) : null,
+      phaseRatioChange: currentBestRatio && phaseBase?.e1rmRatio ? round2(currentBestRatio.e1rmRatio - phaseBase.e1rmRatio) : null,
       entries: sorted,
     };
   });

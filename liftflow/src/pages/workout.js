@@ -370,11 +370,6 @@ export default function Workout() {
                         {lift.displayPR}
                       </span>
                     )}
-                    {lift.suggestedWeight && (
-                      <span style={{ ...suggestion, color: dayAccent, borderColor: tint(dayAccent, 0.38), background: colors.surfaceSoft }}>
-                        {lift.suggestedWeight} lbs
-                      </span>
-                    )}
                     <button
                       type="button"
                       onClick={() => updateVariation(lift.id, { open: !variationDraft.open })}
@@ -978,15 +973,6 @@ const liftMeta = {
   color: "#777",
   fontWeight: 750,
   fontSize: 13,
-};
-
-const suggestion = {
-  border: "1px solid currentColor",
-  borderRadius: 999,
-  padding: "6px 9px",
-  fontWeight: 850,
-  whiteSpace: "nowrap",
-  fontSize: 12,
 };
 
 const prBadge = {
