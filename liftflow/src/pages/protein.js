@@ -332,18 +332,19 @@ const title = {
 };
 
 const streakBadge = {
-  border: `1px solid ${colors.border}`,
+  border: `1px solid ${tint(colors.success, 0.42)}`,
   borderRadius: 999,
   padding: "8px 12px",
-  color: colors.textSoft,
-  background: colors.surfaceSoft,
+  color: colors.success,
+  background: tint(colors.success, 0.11),
   fontWeight: 850,
+  boxShadow: `0 0 18px ${tint(colors.success, 0.12)}`,
 };
 
 const dateCard = {
-  border: "1px solid #242424",
+  border: `1px solid ${colors.border}`,
   borderRadius: 12,
-  background: "#101010",
+  background: `linear-gradient(180deg, ${colors.surfaceRaised}, ${colors.surface})`,
   padding: 12,
   marginBottom: 14,
 };
@@ -351,14 +352,15 @@ const dateCard = {
 const heroCard = {
   display: "flex",
   flexWrap: "wrap",
-  border: `1px solid ${colors.border}`,
+  border: `1px solid ${tint(colors.brand, 0.36)}`,
   borderRadius: 16,
-  background: "#101010",
+  background: `linear-gradient(135deg, ${tint(colors.brand, 0.12)}, ${tint(colors.accent, 0.06)}), ${colors.surface}`,
   padding: 16,
   justifyContent: "space-between",
   alignItems: "stretch",
   gap: 14,
   marginBottom: 14,
+  boxShadow: `inset 0 1px 0 ${tint(colors.text, 0.06)}, 0 0 28px ${tint(colors.brand, 0.08)}`,
 };
 
 const heroMacro = {
@@ -368,15 +370,15 @@ const heroMacro = {
   alignItems: "center",
   gap: 14,
   minWidth: 0,
-  border: "1px solid #1f1f1f",
+  border: `1px solid ${colors.borderSoft}`,
   borderRadius: 12,
-  background: "#0b0b0b",
+  background: `linear-gradient(180deg, ${colors.surfaceRaised}, ${colors.surfaceSoft})`,
   padding: 12,
 };
 
 const heroLabel = {
   margin: 0,
-  color: "#777",
+  color: colors.muted,
   fontWeight: 850,
   textTransform: "uppercase",
 };
@@ -395,7 +397,7 @@ const heroUnit = {
 
 const muted = {
   margin: "10px 0 0",
-  color: "#777",
+  color: colors.muted,
   fontWeight: 750,
 };
 
@@ -421,11 +423,12 @@ const grid = {
 };
 
 const card = {
-  border: "1px solid #242424",
+  border: `1px solid ${colors.border}`,
   borderRadius: 16,
-  background: "#101010",
+  background: `linear-gradient(180deg, ${colors.surfaceRaised}, ${colors.surface})`,
   padding: 16,
   marginBottom: 14,
+  boxShadow: `inset 0 1px 0 ${tint(colors.text, 0.045)}`,
 };
 
 const cardHeader = {
@@ -447,7 +450,7 @@ const field = {
 };
 
 const fieldLabel = {
-  color: "#777",
+  color: colors.muted,
   fontSize: 12,
   fontWeight: 850,
   textTransform: "uppercase",
@@ -472,7 +475,7 @@ const customRow = {
 
 const addButton = {
   minWidth: 92,
-  color: "#050505",
+  color: colors.inverse,
 };
 
 const targetGrid = {
@@ -494,12 +497,12 @@ const dayRow = {
 };
 
 const dayName = {
-  color: "#f7f7f2",
+  color: colors.text,
 };
 
 const mutedSmall = {
   margin: "4px 0 0",
-  color: "#666",
+  color: colors.mutedStrong,
   fontSize: 13,
   fontWeight: 750,
 };
@@ -512,8 +515,8 @@ const dualBars = {
 const barTrack = {
   height: 8,
   borderRadius: 999,
-  background: "#050505",
-  border: "1px solid #242424",
+  background: colors.surfaceDeep,
+  border: `1px solid ${colors.borderSoft}`,
   overflow: "hidden",
 };
 

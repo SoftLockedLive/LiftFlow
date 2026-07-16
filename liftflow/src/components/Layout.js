@@ -285,11 +285,13 @@ function getBigThreeKey(exercise) {
 
 const shell = {
   minHeight: "100vh",
-  background: colors.bg,
+  background: "transparent",
   color: colors.text,
 };
 
-const hero = {};
+const hero = {
+  position: "relative",
+};
 
 const heroTitleBlock = {
   minWidth: 0,
@@ -304,9 +306,9 @@ const brandLockup = {
 const logoMark = {
   width: 38,
   height: 38,
-  borderRadius: 10,
+  borderRadius: 12,
   objectFit: "cover",
-  boxShadow: `0 0 22px ${tint(colors.brand, 0.18)}`,
+  boxShadow: `0 0 24px ${tint(colors.brand, 0.34)}, 0 0 0 1px ${tint(colors.accent, 0.18)}`,
 };
 
 const brand = {
@@ -315,11 +317,12 @@ const brand = {
   fontSize: "clamp(28px, 5vw, 42px)",
   lineHeight: 1,
   fontWeight: 900,
+  textShadow: `0 0 24px ${tint(colors.brand, 0.34)}`,
 };
 
 const subhead = {
   margin: "5px 0 0",
-  color: "#626262",
+  color: colors.muted,
   fontSize: 13,
   fontWeight: 750,
   whiteSpace: "nowrap",
@@ -332,9 +335,10 @@ const profileButton = {
   height: 42,
   padding: 0,
   borderRadius: "50%",
-  borderColor: "#262626",
-  color: "#777",
-  background: colors.surface,
+  borderColor: tint(colors.brand, 0.32),
+  color: colors.textSoft,
+  background: `linear-gradient(180deg, ${colors.surfaceRaised}, ${colors.surfaceSoft})`,
+  boxShadow: `0 0 18px ${tint(colors.brand, 0.14)}`,
   overflow: "hidden",
 };
 
@@ -354,14 +358,15 @@ const totalStrip = {
   alignItems: "center",
   justifyContent: "space-between",
   minHeight: 44,
-  border: `1px solid ${tint(colors.brand, 0.18)}`,
+  border: `1px solid ${tint(colors.brand, 0.34)}`,
   borderRadius: 14,
-  background: `linear-gradient(135deg, ${tint(colors.brand, 0.1)}, ${tint(colors.accent, 0.04)})`,
+  background: `linear-gradient(135deg, ${tint(colors.brand, 0.16)}, ${tint(colors.accent, 0.09)}), ${colors.surfaceSoft}`,
   padding: "9px 12px",
+  boxShadow: `inset 0 1px 0 ${tint(colors.text, 0.08)}, 0 0 24px ${tint(colors.brand, 0.08)}`,
 };
 
 const totalStripLabel = {
-  color: "#727272",
+  color: colors.muted,
   fontSize: 12,
   fontWeight: 850,
   textTransform: "uppercase",
@@ -371,12 +376,13 @@ const totalStripValue = {
   color: colors.accent,
   fontSize: 20,
   lineHeight: 1,
+  textShadow: `0 0 18px ${tint(colors.accent, 0.28)}`,
 };
 
 const metricCard = {
   gridColumn: "span 2",
   minHeight: 82,
-  background: colors.surface,
+  background: `linear-gradient(180deg, ${colors.surfaceRaised}, ${colors.surface})`,
   border: "1px solid",
   borderRadius: 14,
   display: "flex",
@@ -384,10 +390,11 @@ const metricCard = {
   alignItems: "center",
   justifyContent: "center",
   gap: 6,
+  boxShadow: "inset 0 1px 0 rgba(255, 253, 242, 0.05)",
 };
 
 const metricLabel = {
-  color: "#5f5f5f",
+  color: colors.muted,
   fontSize: 12,
   fontWeight: 800,
   textTransform: "uppercase",
@@ -399,7 +406,7 @@ const metricValue = {
 };
 
 const metricHint = {
-  color: "#454545",
+  color: colors.mutedStrong,
   fontSize: 12,
   fontWeight: 800,
 };
@@ -408,8 +415,9 @@ const tabWrapper = {
   position: "sticky",
   top: 0,
   zIndex: 40,
-  background: colors.bg,
-  borderBottom: `1px solid ${colors.borderSoft}`,
+  background: "rgba(2, 3, 5, 0.84)",
+  borderBottom: `1px solid ${tint(colors.brand, 0.12)}`,
+  backdropFilter: "blur(14px)",
 };
 
 const tabBar = {
@@ -419,16 +427,17 @@ const tabPill = {
   flex: "0 0 auto",
   padding: "9px 15px",
   borderColor: colors.borderSoft,
-  background: colors.surfaceDeep,
-  color: colors.mutedStrong,
+  background: `linear-gradient(180deg, ${colors.surfaceSoft}, ${colors.surfaceDeep})`,
+  color: colors.muted,
   fontSize: 14,
   textTransform: "uppercase",
 };
 
 const activeTab = {
-  background: colors.brand,
+  background: `linear-gradient(135deg, ${colors.brand}, ${colors.accent})`,
   borderColor: colors.brand,
   color: colors.inverse,
+  boxShadow: `0 0 20px ${tint(colors.brand, 0.22)}`,
 };
 
 const page = {

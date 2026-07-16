@@ -4,25 +4,32 @@
 }
 
 :root {
-  --lf-bg: #000000;
-  --lf-surface: #101010;
-  --lf-surface-soft: #0b0b0b;
-  --lf-surface-deep: #050505;
-  --lf-border: #242424;
-  --lf-border-soft: #1d1d1d;
-  --lf-text: #f7f7f2;
-  --lf-muted: #777777;
-  --lf-brand: #32cfff;
-  --lf-accent: #e4ff2f;
-  --lf-success: #32df76;
-  --lf-warning: #ff9b34;
-  --lf-danger: #ff6b2c;
+  --lf-bg: #020305;
+  --lf-surface: #12151a;
+  --lf-surface-soft: #0c0f13;
+  --lf-surface-raised: #171c22;
+  --lf-surface-deep: #06080b;
+  --lf-border: #2f3844;
+  --lf-border-soft: #1d2630;
+  --lf-text: #fffdf2;
+  --lf-text-soft: #e5e1d3;
+  --lf-muted: #9a9689;
+  --lf-brand: #21d9ff;
+  --lf-accent: #efff38;
+  --lf-success: #43f08d;
+  --lf-warning: #ffb238;
+  --lf-danger: #ff7047;
+  --lf-glow-cyan: rgba(33, 217, 255, 0.28);
+  --lf-glow-lime: rgba(239, 255, 56, 0.2);
 }
 
 html, body {
   margin: 0;
   padding: 0;
-  background: var(--lf-bg);
+  background:
+    radial-gradient(circle at 50% -20%, rgba(33, 217, 255, 0.11), transparent 34rem),
+    radial-gradient(circle at 92% 12%, rgba(239, 255, 56, 0.055), transparent 24rem),
+    var(--lf-bg);
   color: var(--lf-text);
   font-family: "Segoe UI Variable", "Aptos", "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   overflow-x: hidden;
@@ -39,7 +46,7 @@ a {
 }
 
 ::selection {
-  background: rgba(50, 207, 255, 0.28);
+  background: rgba(33, 217, 255, 0.32);
 }
 
 h1,
@@ -53,7 +60,7 @@ h3,
 }
 
 .card {
-  background: var(--lf-surface);
+  background: linear-gradient(180deg, var(--lf-surface-raised), var(--lf-surface));
   border: 1px solid var(--lf-border);
   border-radius: 8px;
   padding: 18px;
@@ -65,7 +72,7 @@ button {
   border-radius: 999px;
   padding: 10px 16px;
   font-weight: 750;
-  background: var(--lf-surface);
+  background: linear-gradient(180deg, #171c22, #0d1014);
   color: var(--lf-text);
   cursor: pointer;
 }
@@ -75,9 +82,10 @@ button:active {
 }
 
 button.primary {
-  background: var(--lf-brand);
+  background: linear-gradient(135deg, var(--lf-brand), #7cf0ff);
   color: #050505;
   border-color: var(--lf-brand);
+  box-shadow: 0 0 18px rgba(33, 217, 255, 0.2);
 }
 
 input, select {
@@ -85,14 +93,14 @@ input, select {
   padding: 10px;
   border-radius: 8px;
   border: 1px solid var(--lf-border);
-  background: var(--lf-surface-soft);
+  background: linear-gradient(180deg, #0f1318, var(--lf-surface-soft));
   color: var(--lf-text);
   font-weight: 800;
 }
 
 input:focus, select:focus {
   border-color: var(--lf-brand);
-  box-shadow: 0 0 0 3px rgba(50, 207, 255, 0.12);
+  box-shadow: 0 0 0 3px rgba(33, 217, 255, 0.16), 0 0 18px rgba(33, 217, 255, 0.16);
   outline: none;
 }
 
@@ -131,6 +139,7 @@ input:focus, select:focus {
   gap: 8px;
   padding: 18px 16px 12px;
   overflow-x: auto;
+  scrollbar-width: none;
 }
 
 .app-page {
@@ -292,10 +301,10 @@ input:focus, select:focus {
     bottom: calc(8px + env(safe-area-inset-bottom));
     z-index: 80;
     padding: 7px;
-    border: 1px solid #1e1e1e;
+    border: 1px solid rgba(33, 217, 255, 0.22);
     border-radius: 14px;
-    background: rgba(5, 5, 5, 0.96);
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+    background: rgba(6, 8, 11, 0.96);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45), 0 0 28px rgba(33, 217, 255, 0.1);
   }
 
   .app-tabs button {
