@@ -86,7 +86,12 @@ export default function Layout({ children }) {
     <div style={shell}>
       <header className="app-hero" style={hero}>
         <div style={heroTitleBlock}>
-          <div style={brandLockup}>
+          <button
+            type="button"
+            onClick={() => navigateTab("/")}
+            style={brandButton}
+            aria-label="Go to home"
+          >
             <Image
               src="/icons/icon-192.png"
               alt=""
@@ -96,7 +101,7 @@ export default function Layout({ children }) {
               style={logoMark}
             />
             <h1 style={brand}>LiftFlow</h1>
-          </div>
+          </button>
           <p style={subhead}>{goalLabel} training · {bodyweight}</p>
         </div>
 
@@ -309,6 +314,16 @@ const brandLockup = {
   display: "flex",
   alignItems: "center",
   gap: 9,
+};
+
+const brandButton = {
+  ...brandLockup,
+  padding: 0,
+  border: 0,
+  borderRadius: 0,
+  background: "transparent",
+  boxShadow: "none",
+  textAlign: "left",
 };
 
 const logoMark = {

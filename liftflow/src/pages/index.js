@@ -14,12 +14,16 @@ export default function Home() {
   const [plan, setPlan] = useState({});
   const [today, setToday] = useState("Monday");
   const [openRecent, setOpenRecent] = useState("");
+  const [flowIndex, setFlowIndex] = useState(0);
+  const [touchStart, setTouchStart] = useState(null);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
       setWorkouts(getWorkouts());
       setPlan(getPlan());
-      setToday(getTodayName());
+      const currentDay = getTodayName();
+      setToday(currentDay);
+      setFlowIndex(Math.max(0, DAYS.indexOf(currentDay)));
     }, 0);
 
     return () => window.clearTimeout(timer);
@@ -43,96 +47,91 @@ export default function Home() {
     [plan, today]
   );
 
-  const todaysLifts = week.find((day) => day.isToday)?.lifts || [];
-  const todayItem = week.find((day) => day.isToday);
-  const plannedDays = week.filter((day) => day.lifts.length > 0 || day.recovery).length;
+  const flowItem = week[flowIndex] || week.find((day) => day.isToday) || week[0];
+  const flowHasPlan = flowItem?.lifts?.length > 0 || flowItem?.recovery;
   const recentSessions = useMemo(() => buildRecentSessions(workouts).slice(0, 5), [workouts]);
+
+  function moveFlow(direction) {
+    setFlowIndex((current) => (current + direction + DAYS.length) % DAYS.length);
+  }
+
+  function finishSwipe(endX) {
+    if (touchStart === null) return;
+    const distance = endX - touchStart;
+    setTouchStart(null);
+    if (Math.abs(distance) < 42) return;
+    moveFlow(distance < 0 ? 1 : -1);
+  }
 
   return (
     <div style={homeWrap}>
-      <section className="home-focus" style={focusCard}>
-        <div>
-          <p style={eyebrow}>Today&apos;s Flow</p>
-          <h2 style={focusTitle}>{today}</h2>
-          <p style={focusCopy}>
-            {todayItem?.recovery
-              ? `${todayItem.recovery.activity} · ${todayItem.recovery.duration}`
-              : todaysLifts.length > 0
-              ? `${getDayTitle(todayItem)} · ${todaysLifts.slice(0, 2).map((lift) => lift.exercise).join(", ")}`
-              : "No workout planned. Recovery day."}
-          </p>
-        </div>
-
-        <button
-          type="button"
-          className="primary"
-          onClick={() => router.push(todaysLifts.length > 0 || todayItem?.recovery ? `/workout?day=${encodeURIComponent(today)}` : "/plan")}
-          style={focusButton}
-        >
-          {todaysLifts.length > 0 || todayItem?.recovery ? "View" : "Program"}
-        </button>
-      </section>
-
-      <section style={section}>
-        <div className="section-header" style={sectionHeader}>
+      <section
+        className="home-focus"
+        style={{
+          ...focusCard,
+          borderColor: flowItem?.recovery ? tint(colors.success, 0.42) : tint(flowItem?.accent || colors.brand, 0.38),
+        }}
+        onTouchStart={(event) => setTouchStart(event.touches[0]?.clientX ?? null)}
+        onTouchEnd={(event) => finishSwipe(event.changedTouches[0]?.clientX ?? touchStart)}
+      >
+        <div style={flowTop}>
           <div>
-            <h2 style={sectionTitle}>This Week</h2>
-            <p style={sectionMeta}>{plannedDays} training days set</p>
+            <p style={{ ...eyebrow, color: flowItem?.recovery ? colors.success : flowItem?.accent || colors.brand }}>
+              {getFlowLabel(flowItem?.day, today)}
+            </p>
+            <h2 style={focusTitle}>{getDayTitle(flowItem)}</h2>
+            <p style={focusCopy}>
+              {flowItem?.recovery
+                ? `${flowItem.recovery.activity} · ${flowItem.recovery.duration} · ${flowItem.recovery.intensity || "Easy"}`
+                : flowItem?.lifts?.length > 0
+                ? `${flowItem.day} · ${flowItem.lifts.length} planned lift${flowItem.lifts.length === 1 ? "" : "s"}`
+                : `${flowItem?.day || "Today"} is open. Add work or keep it for recovery.`}
+            </p>
           </div>
-          <button type="button" onClick={() => router.push("/plan")} style={ghostButton}>
-            Edit Split
+
+          <button
+            type="button"
+            className={flowHasPlan ? "primary" : ""}
+            onClick={() => router.push(flowHasPlan ? `/workout?day=${encodeURIComponent(flowItem.day)}` : "/plan")}
+            style={focusButton}
+          >
+            {flowHasPlan ? "Open" : "Program"}
           </button>
         </div>
 
-        <div className="home-week-grid" style={weekGrid}>
-          {week.map((item) => (
-            <article
-              key={item.day}
-              style={{
-                ...dayCard,
-                ...(item.day === "Sunday" ? sundayCard : {}),
-                borderColor: item.recovery ? tint(colors.success, 0.42) : item.isToday ? item.accent : tint(item.accent, 0.34),
-                background: colors.surface,
-              }}
-            >
-              <div style={dayTopline}>
-                <p style={dayMeta}>{item.day.slice(0, 3)}</p>
-                {item.isToday && <span style={{ ...todayBadge, color: item.accent }}>Today</span>}
-              </div>
-
-              <h3 style={{ ...dayTitle, color: item.recovery ? colors.success : item.lifts.length > 0 ? item.accent : colors.mutedStrong }}>
-                {getDayTitle(item)}
-              </h3>
-
-              {item.recovery ? (
-                <p style={restCopy}>{item.recovery.activity} · {item.recovery.duration}</p>
-              ) : item.lifts.length > 0 ? (
-                <div style={liftPreview}>
-                  {item.lifts.slice(0, 3).map((lift) => (
-                    <LiftChip key={lift.id || lift.exercise} lift={lift} />
-                  ))}
-                  {item.lifts.length > 3 && (
-                    <span style={liftChip}>+{item.lifts.length - 3} more</span>
-                  )}
+        <div style={flowBody}>
+          {flowItem?.recovery ? (
+            <div style={flowRecovery}>
+              <strong>{flowItem.recovery.activity}</strong>
+              {flowItem.recovery.notes && <span>{flowItem.recovery.notes}</span>}
+            </div>
+          ) : flowItem?.lifts?.length > 0 ? (
+            flowItem.lifts.slice(0, 4).map((lift) => (
+              <div key={lift.id || lift.exercise} style={flowLiftRow}>
+                <div>
+                  <strong style={flowLiftName}>{lift.exercise}</strong>
+                  <p style={flowLiftMeta}>{lift.sets || "--"} sets · {lift.reps || "--"} reps</p>
                 </div>
-              ) : (
-                <p style={restCopy}>Rest day</p>
-              )}
+                {(lift.note || lift.stretches) && <span style={flowLiftNote}>{lift.note || lift.stretches}</span>}
+              </div>
+            ))
+          ) : (
+            <div style={flowRecovery}>
+              <strong>Recovery or planning day</strong>
+              <span>No lifts are scheduled yet.</span>
+            </div>
+          )}
+          {flowItem?.lifts?.length > 4 && <p style={flowMore}>+{flowItem.lifts.length - 4} more lifts in workout</p>}
+        </div>
 
-              <button
-                type="button"
-                onClick={() => router.push(item.lifts.length > 0 || item.recovery ? `/workout?day=${encodeURIComponent(item.day)}` : "/plan")}
-                style={{
-                  ...openButton,
-                  color: item.recovery ? colors.success : item.accent,
-                  background: colors.surfaceSoft,
-                  borderColor: item.recovery ? tint(colors.success, 0.48) : tint(item.accent, 0.48),
-                }}
-              >
-                {item.lifts.length > 0 || item.recovery ? "Open" : "Add"}
-              </button>
-            </article>
-          ))}
+        <div style={flowFooter}>
+          <button type="button" onClick={() => moveFlow(-1)} style={flowNavButton} aria-label="Previous day">
+            Prev
+          </button>
+          <span style={flowHint}>{flowIndex + 1} / {DAYS.length} · swipe for another day</span>
+          <button type="button" onClick={() => moveFlow(1)} style={flowNavButton} aria-label="Next day">
+            Next
+          </button>
         </div>
       </section>
 
@@ -181,20 +180,23 @@ export default function Home() {
   );
 }
 
-function LiftChip({ lift }) {
-  return (
-    <span style={liftChip}>
-      {lift.exercise} · {lift.sets}x{lift.reps}
-    </span>
-  );
-}
-
 function getDayTitle(day) {
+  if (!day) return "Today";
   if (day.name) return day.name;
   if (day.recovery) return "Recovery";
   if (day.lifts.length === 0) return "Recovery";
   if (day.lifts.length === 1) return day.lifts[0].exercise;
   return `${day.lifts.length} Exercises`;
+}
+
+function getFlowLabel(day, today) {
+  if (!day) return "Today's Flow";
+  const dayIndex = DAYS.indexOf(day);
+  const todayIndex = DAYS.indexOf(today);
+  if (dayIndex === todayIndex) return "Today's Flow";
+  if (dayIndex === (todayIndex + 1) % DAYS.length) return "Tomorrow's Flow";
+  if (dayIndex === (todayIndex + DAYS.length - 1) % DAYS.length) return "Yesterday's Flow";
+  return `${day}'s Flow`;
 }
 
 function buildRecentSessions(workouts) {
@@ -233,12 +235,21 @@ const homeWrap = {
 };
 
 const focusCard = {
-  minHeight: 72,
+  minHeight: 282,
   border: `1px solid ${tint(colors.brand, 0.22)}`,
   borderRadius: 12,
   background: colors.surface,
-  padding: "11px 12px",
-  alignItems: "center",
+  padding: 12,
+  display: "grid",
+  alignContent: "space-between",
+  gap: 10,
+  overflow: "hidden",
+  touchAction: "pan-y",
+};
+
+const flowTop = {
+  display: "flex",
+  alignItems: "flex-start",
   justifyContent: "space-between",
   gap: 12,
 };
@@ -254,7 +265,7 @@ const eyebrow = {
 const focusTitle = {
   margin: "4px 0",
   color: colors.text,
-  fontSize: 20,
+  fontSize: 22,
   lineHeight: 1,
 };
 
@@ -267,7 +278,82 @@ const focusCopy = {
 };
 
 const focusButton = {
-  minWidth: 92,
+  minWidth: 84,
+  flex: "0 0 auto",
+};
+
+const flowBody = {
+  minHeight: 152,
+  display: "grid",
+  gap: 7,
+};
+
+const flowLiftRow = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 10,
+  borderTop: `1px solid ${colors.borderSoft}`,
+  paddingTop: 7,
+  minWidth: 0,
+};
+
+const flowLiftName = {
+  display: "block",
+  color: colors.textSoft,
+  fontSize: 14,
+  lineHeight: 1.1,
+};
+
+const flowLiftMeta = {
+  margin: "3px 0 0",
+  color: colors.mutedStrong,
+  fontSize: 12,
+};
+
+const flowLiftNote = {
+  maxWidth: "46%",
+  color: colors.muted,
+  fontSize: 11,
+  lineHeight: 1.25,
+  textAlign: "right",
+  overflow: "hidden",
+};
+
+const flowRecovery = {
+  minHeight: 96,
+  display: "grid",
+  alignContent: "center",
+  gap: 6,
+  color: colors.textSoft,
+};
+
+const flowMore = {
+  margin: 0,
+  color: colors.brand,
+  fontSize: 12,
+  fontWeight: 800,
+};
+
+const flowFooter = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 8,
+};
+
+const flowHint = {
+  color: colors.mutedStrong,
+  fontSize: 11,
+  fontWeight: 800,
+  textAlign: "center",
+};
+
+const flowNavButton = {
+  padding: "6px 9px",
+  color: colors.muted,
+  background: colors.surfaceSoft,
+  borderColor: colors.borderSoft,
+  fontSize: 11,
 };
 
 const section = {
