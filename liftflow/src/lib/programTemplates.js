@@ -219,21 +219,21 @@ export const PROGRAM_TEMPLATES = [
 
   {
     id: "peyto-split",
-    name: "Peyto Split",
+    name: "Peytonium Powerbuilding Split",
     summary: "Weekly powerbuilding routine with bench, squat, deadlift, hypertrophy, recovery, and mobility.",
     days: {
       Monday: day("Upper (Bench Strength)", [
-        lift("Barbell Bench Press", "chest", "4", "3-5", "Main strength focus. Keep reps controlled and leave room for progression.", {
+        lift("Bench Press", "chest", "4", "3-5", "Main strength focus. Control the descent, then drive explosively. Push it.", {
           baseExercise: "Bench Press",
           variations: ["Dumbbell Bench Press"],
         }),
-        lift("Chest-Supported Row", "back", "3", "8-10", "Strict torso position. Pull elbows back, not up."),
-        lift("Standing Overhead Press", "shoulders", "3", "6-8", "Brace hard. Avoid turning it into a push press."),
-        lift("Lat Pulldown", "back", "3", "8-10", "Drive elbows down and keep shoulders controlled."),
-        lift("Cable Lateral Raise", "shoulders", "2", "15-20", "Slow reps. Keep tension on side delts."),
-        lift("Bayesian Curl", "arms", "3", "10-12", "Let the biceps stretch behind the body."),
-        lift("Overhead Triceps Extension", "arms", "3", "10-12", "Full stretch, controlled lockout."),
-        lift("EZ-Bar Curl", "arms", "2-3", "8-10", "Use clean reps. Do not swing."),
+        lift("Chest-Supported Row", "back", "3", "8-10", "Keep your torso locked in. Pull elbows back hard. Squeeze."),
+        lift("Standing Overhead Press", "shoulders", "3", "6-8", "Brace your core. Press straight overhead. No leg drive."),
+        lift("Lat Pulldown", "back", "3", "8-10", "Drive elbows down. Control your shoulders."),
+        lift("Cable Lateral Raise", "shoulders", "2", "15-20", "Slow, controlled reps. Keep constant tension."),
+        lift("Bayesian Curl", "arms", "3", "10-12", "Allow the biceps to fully stretch. Curl without swinging."),
+        lift("Overhead Triceps Extension", "arms", "3", "10-12", "Get a deep stretch. Lock out under control."),
+        lift("EZ-Bar Curl", "arms", "2-3", "8-10", "Heavy but clean. No body English."),
       ], [
         warmup("Row", "time", "3 min"),
         warmup("Band pull-aparts", "reps", { sets: "1", reps: "20" }),
@@ -242,12 +242,15 @@ export const PROGRAM_TEMPLATES = [
       ]),
 
       Tuesday: day("Lower (Squat Strength)", [
-        lift("Back Squat", "legs", "4", "3-5", "Main lower strength focus. Stay tight out of the hole."),
-        lift("Leg Press", "legs", "3", "8-10", "Controlled depth. Do not bounce the sled."),
-        lift("Leg Curl", "legs", "3", "12-15", "Hamstring control. Pause the squeeze."),
-        lift("Leg Extension", "legs", "3", "8-10", "Hard quad squeeze at the top."),
-        lift("Standing Calf Raise", "legs", "4", "12-15", "Full stretch and full raise."),
-        lift("Forearm Curls / Reverse Forearm Curls", "arms", "2", "alternate weekly", "Alternate weekly between wrist curls and reverse wrist curls."),
+        lift("Back Squat", "legs", "4", "3-5", "Brace before every rep. Hit depth. Drive through the floor."),
+        lift("Leg Press", "legs", "3", "8-10", "Control the negative. Full range of motion."),
+        lift("Leg Curl", "legs", "3", "12-15", "Superset with Leg Extensions. Pause at the squeeze. Slow eccentric."),
+        lift("Leg Extension", "legs", "3", "8-10", "Superset with Leg Curls. Control every rep. Hard contraction."),
+        lift("Cable/Machine Hip Adduction", "legs", "2", "12-15", "Superset with Hip Abduction. Controlled squeeze, do not let the weight yank you open."),
+        lift("Cable/Machine Hip Abduction", "legs", "2", "12-15", "Superset with Hip Adduction. Slow and controlled, no momentum from the hips."),
+        lift("Standing Calf Raise", "legs", "4", "12-15", "Deep stretch. Hard squeeze."),
+        lift("Cable Crunches", "core", "3", "10-15", "Last set to failure. Round your spine. Let your abs do the work."),
+        lift("Hanging Leg Raises", "core", "3", "10-15", "Last set to failure. Control the lowering. No swinging."),
       ], [
         warmup("Incline walk", "time", "3 min"),
         warmup("Leg swings", "reps", { sets: "1", reps: "10/side" }),
@@ -258,29 +261,29 @@ export const PROGRAM_TEMPLATES = [
       ]),
 
       Wednesday: day("Recovery Core + Neck", [
-        lift("Hanging Leg Raises", "core", "3", "10-15", "Controlled reps. Avoid swinging."),
-        lift("Cable Crunches", "core", "3", "12-15", "Round through the abs, not the hips."),
-        lift("Neck Flexion", "neck", "2", "15", "Very light and controlled."),
-        lift("Neck Extension", "neck", "2", "15", "Very light and controlled."),
-        lift("Neck Lateral Flexion", "neck", "2", "15/side", "Smooth range of motion only."),
+        lift("Forearm Curls", "arms", "2", "15", "Full range of motion. Slow eccentric."),
+        lift("Reverse Forearm Curls", "arms", "2", "15", "Control the wrists. No momentum."),
+        lift("Neck Flexion", "neck", "2", "15", "Slow and controlled."),
+        lift("Neck Extension", "neck", "2", "15", "Do not jerk the movement."),
+        lift("Neck Lateral Flexion", "neck", "2", "15/side", "Controlled movement through a comfortable range."),
+        lift("Planks", "core", "3", "45-90 sec", "Brace your abs and glutes. Stay perfectly straight."),
       ], [
-        warmup("Walk", "time", "20-30 min"),
-        warmup("Daily flexibility routine", "time", "15-20 min"),
+        warmup("Zone 2 cardio", "time", "20-30 min", "Recover, do not exhaust yourself."),
+        warmup("Daily flexibility routine", "time", "15-20 min", "Take your time. Improve mobility, do not rush it."),
       ], recoveryOptions("Recovery emphasis. Keep the session easy and leave fresher than you started.")),
 
-      Thursday: day("Push (Bench Volume + Hypertrophy)", [
-        lift("Barbell Bench Press", "chest", "4", "8-10", "Volume bench. Keep bar path consistent.", {
+      Thursday: day("Push (Hypertrophy)", [
+        lift("Bench Press", "chest", "4", "8-10", "Smooth tempo. Own every rep.", {
           baseExercise: "Bench Press",
           variations: ["Dumbbell Bench Press"],
         }),
-        lift("Mark Presses", "chest", "2", "near failure", "Load light weight on the bar and crank out quick half reps till failure (Mark an ex Marine showed me this one)"),
-        lift("Seated Shoulder Press", "shoulders", "3", "8-10", "Keep back tight and reps smooth."),
-        lift("Incline Dumbbell Press", "chest", "3", "8-12", "Moderate incline. Drive through chest."),
-        lift("Skull Crushers", "arms", "3", "8-12", "Keep elbows stable."),
-        lift("Lateral Raises", "shoulders", "3", "12-20", "Use constant tension and controlled reps.", {
+        lift("Mark Presses", "chest", "2", "failure", "Flat bench. Press only the bottom half of the movement with quick, controlled reps until failure. Courtesy of Mark, the ex-Marine."),
+        lift("Seated Shoulder Press", "shoulders", "3", "8-10", "Do not arch your back. Press through your shoulders."),
+        lift("Incline Dumbbell Press", "chest", "3", "8-12", "Stretch at the bottom. Press together at the top."),
+        lift("Skull Crushers", "arms", "3", "8-12", "Keep elbows tucked. Stretch the triceps."),
+        lift("Cable Lateral Raises", "shoulders", "3", "12-20", "Lead with the elbows. No momentum.", {
           variations: ["Cable Lateral Raise", "Dumbbell Lateral Raise", "Machine Lateral Raise"],
         }),
-        lift("Low-to-High Cable Flyes", "chest", "2", "12-15", "Squeeze upper chest. Avoid shoulder takeover."),
       ], [
         warmup("Row", "time", "3 min"),
         warmup("Band pull-aparts", "reps", { sets: "1", reps: "20" }),
@@ -289,14 +292,16 @@ export const PROGRAM_TEMPLATES = [
       ]),
 
       Friday: day("Pull (Deadlift Strength)", [
-        lift("Deadlift", "back", "4", "3-5", "Main pull strength focus. Reset every rep if needed."),
-        lift("Chest-Supported Row", "back", "3", "8-10", "Strict rows. No body English."),
-        lift("Lat Pulldown", "back", "3", "8-10", "Pull elbows down and keep ribs controlled."),
-        lift("Reverse Pec Deck", "shoulders", "3", "12-15", "Rear delt focus. Keep traps quiet."),
-        lift("Face Pulls", "shoulders", "2", "15-20", "Pull toward face with external rotation."),
-        lift("Single-Arm Preacher Hammer Curl", "arms", "3", "10-12", "Keep upper arm pinned."),
-        lift("Barbell Shrugs", "back", "3", "10-12", "Pause at the top."),
-        lift("Griffin Curls", "arms", "2", "burnout", "Seated dumbbell curls till failure then stand up and hammer curl till failure (My friend Griffin showed me this)"),
+        lift("Conventional Deadlift", "back", "4", "3-5", "Take the slack out of the bar. Brace hard. Push the floor away.", {
+          baseExercise: "Deadlift",
+        }),
+        lift("Chest-Supported Row", "back", "3", "8-10", "Pull toward your lower chest. Control the lowering."),
+        lift("Lat Pulldown", "back", "3", "8-10", "Drive elbows down and back."),
+        lift("Reverse Pec Deck", "shoulders", "3", "12-15", "Move with your rear delts, not your traps."),
+        lift("Face Pulls", "shoulders", "2", "15-20", "Pull toward your eyes. Rotate externally."),
+        lift("Single-Arm Preacher Hammer Curl", "arms", "3", "10-12", "Slow eccentric. Full range."),
+        lift("Barbell Shrugs", "back", "3", "10-12", "Straight up and down. Pause at the top."),
+        lift("Griffin Curls", "arms", "2", "burnout", "Start with seated dumbbell curls until failure, then immediately stand up and hammer curl the same dumbbells until failure."),
       ], [
         warmup("Row", "time", "3 min"),
         warmup("Hip hinge drill", "reps", { sets: "1", reps: "10" }),
@@ -305,12 +310,15 @@ export const PROGRAM_TEMPLATES = [
       ]),
 
       Saturday: day("Legs (Hypertrophy)", [
-        lift("Front Squat", "legs", "3", "8-10", "Hypertrophy squat. Stay upright and controlled."),
-        lift("Bulgarian Split Squat", "legs", "3", "8-10/leg", "Control balance and depth."),
-        lift("Leg Press", "legs", "3", "12", "Higher rep quad work. Keep tension."),
-        lift("Leg Curl", "legs", "3", "12-15", "Hamstring squeeze."),
-        lift("Leg Extension", "legs", "3", "12-15", "Quad squeeze. Do not rush reps."),
-        lift("Seated Calf Raise", "legs", "4", "12-15", "Pause stretched and contracted positions."),
+        lift("Front Squat", "legs", "3", "8-10", "Stay upright. Elbows high."),
+        lift("Hip Thrust", "legs", "3", "8-12", "Full lockout, squeeze glutes hard at top. Control the descent."),
+        lift("Bulgarian Split Squat", "legs", "3", "8-10/leg", "Control the descent and drive through the front foot."),
+        lift("Leg Press", "legs", "3", "12", "Deep range. Constant tension."),
+        lift("Leg Curl", "legs", "3", "12-15", "Superset with Leg Extensions. Pause at the squeeze. Slow eccentric."),
+        lift("Leg Extension", "legs", "3", "12-15", "Superset with Leg Curls. Control every rep. Hard contraction."),
+        lift("Seated Calf Raise", "legs", "4", "12-15", "Deep stretch. Hard squeeze."),
+        lift("Cable Crunches", "core", "3", "10-15", "Last set to failure. Round your torso. Do not pull with your arms."),
+        lift("Hanging Leg Raises", "core", "3", "10-15", "Last set to failure. Lift with your abs. Lower under control."),
       ], [
         warmup("Bike", "time", "3 min"),
         warmup("World's Greatest Stretch", "reps", { sets: "1", reps: "5/side" }),
@@ -319,13 +327,7 @@ export const PROGRAM_TEMPLATES = [
         warmup("Cossack squats", "reps", { sets: "1", reps: "6/side" }),
       ]),
 
-      Sunday: day("Recovery Mobility + Core", [
-        lift("Dead Bugs", "core", "3", "10/side", "Home-friendly core work. Keep low back pressed down."),
-        lift("Planks", "core", "2-3", "60 sec", "Brace hard and breathe."),
-        lift("Bird Dogs", "core", "2", "10/side", "Move slowly. Hips stay square."),
-      ], [
-        warmup("Yoga or mobility", "time", "20-30 min"),
-      ], recoveryOptions("Recovery emphasis. Keep intensity low and focus on movement quality.")),
+      Sunday: recovery("Recovery", "Mobility", "20-30 min", "Easy", "Move, breathe, and recover. Prepare for the next week."),
     },
   },
 ];
