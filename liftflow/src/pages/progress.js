@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/router";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { getProfile } from "../lib/profile";
 import {
@@ -111,6 +112,7 @@ const EMPTY_PHASE_FORM = {
 };
 
 export default function Progress() {
+  const router = useRouter();
   const [workouts, setWorkouts] = useState([]);
   const [manualPrs, setManualPrs] = useState([]);
   const [profile, setProfile] = useState({});
@@ -160,10 +162,15 @@ export default function Progress() {
       setRecommendations(getCalorieRecommendations());
       setTargetHistory(getCalorieTargetHistory());
       setTrackedLifts(getTrackedLifts());
+      if (window.location.search.includes("checkIn=1")) {
+        setActiveSection("Body");
+        window.setTimeout(() => document.getElementById("daily-check-in")?.scrollIntoView({ behavior: "smooth" }), 0);
+        router.replace("/progress", undefined, { shallow: true, scroll: false });
+      }
     }, 0);
 
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [router]);
 
   const strengthData = useMemo(() => buildProgressData(workouts), [workouts]);
   const strengthPrRecords = useMemo(() => buildPRRecords(workouts, manualPrs), [workouts, manualPrs]);

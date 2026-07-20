@@ -148,6 +148,10 @@ input:focus, select:focus {
   scrollbar-width: none;
 }
 
+.app-more-menu {
+  top: calc(100% + 8px);
+}
+
 .app-page {
   padding: 24px 24px calc(120px + env(safe-area-inset-bottom));
 }
@@ -286,6 +290,8 @@ input:focus, select:focus {
   }
 
   .app-tabs {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     position: fixed;
     left: 10px;
     right: 10px;
@@ -297,9 +303,16 @@ input:focus, select:focus {
     border-radius: 14px;
     background: rgba(6, 8, 11, 0.96);
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45), 0 0 28px rgba(33, 217, 255, 0.1);
+    overflow: visible;
+  }
+
+  .app-more-menu {
+    top: auto;
+    bottom: calc(100% + 8px);
   }
 
   .app-tabs button {
+    width: 100%;
     padding: 7px 10px;
     font-size: 11px !important;
   }

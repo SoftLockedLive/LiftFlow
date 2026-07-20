@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import { getManualPRs } from "../lib/manualPRs";
 import { getPlan } from "../lib/plan";
+import { getDailyCheckIns } from "../lib/progressTracking";
+import { getTodayKey } from "../lib/protein";
 import { buildPRMap, formatPR } from "../lib/prRecords";
 import { getTodayName } from "../lib/today";
 import { getWorkouts } from "../lib/workoutStorage";
@@ -20,6 +22,7 @@ export default function Home() {
   const [flowIndex, setFlowIndex] = useState(0);
   const [touchStart, setTouchStart] = useState(null);
   const [flowMotion, setFlowMotion] = useState("");
+  const [needsCheckIn, setNeedsCheckIn] = useState(false);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -29,6 +32,7 @@ export default function Home() {
       const currentDay = getTodayName();
       setToday(currentDay);
       setFlowIndex(Math.max(0, DAYS.indexOf(currentDay)));
+      setNeedsCheckIn(!hasCompletedDailyCheckIn(getDailyCheckIns().find((entry) => entry.date === getTodayKey())));
     }, 0);
 
     return () => window.clearTimeout(timer);
@@ -73,6 +77,19 @@ export default function Home() {
 
   return (
     <div style={homeWrap}>
+      {needsCheckIn && (
+        <section style={checkInCard}>
+          <div>
+            <p style={eyebrow}>Daily Check-In</p>
+            <h2 style={checkInTitle}>Log today’s readiness</h2>
+            <p style={checkInCopy}>Bodyweight, sleep, energy, hunger, soreness, and stress keep your trends useful.</p>
+          </div>
+          <button type="button" className="primary" onClick={() => router.push("/progress?checkIn=1")} style={checkInButton}>
+            Check In
+          </button>
+        </section>
+      )}
+
       <section
         className={flowMotion ? `home-flow-${flowMotion}` : ""}
         style={{
@@ -257,9 +274,52 @@ function formatDate(date) {
   }).format(parsed);
 }
 
+function hasCompletedDailyCheckIn(entry) {
+  if (!entry) return false;
+  return [
+    "morningWeight",
+    "sleepHours",
+    "sleepScore",
+    "energy",
+    "hunger",
+    "soreness",
+    "stress",
+  ].some((field) => entry[field] !== undefined && entry[field] !== "");
+}
+
 const homeWrap = {
   display: "grid",
   gap: 14,
+};
+
+const checkInCard = {
+  border: `1px solid ${tint(colors.accent, 0.36)}`,
+  borderRadius: 12,
+  background: `linear-gradient(135deg, ${tint(colors.accent, 0.12)}, ${tint(colors.brand, 0.08)}), ${colors.surface}`,
+  padding: 12,
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 12,
+};
+
+const checkInTitle = {
+  margin: "4px 0 0",
+  color: colors.text,
+  fontSize: 18,
+  lineHeight: 1.1,
+};
+
+const checkInCopy = {
+  margin: "5px 0 0",
+  color: colors.muted,
+  fontSize: 12,
+  lineHeight: 1.35,
+};
+
+const checkInButton = {
+  flex: "0 0 auto",
+  padding: "8px 12px",
 };
 
 const focusCard = {

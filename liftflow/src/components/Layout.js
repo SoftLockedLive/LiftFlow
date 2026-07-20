@@ -22,6 +22,7 @@ export default function Layout({ children }) {
   const [prs, setPrs] = useState({});
   const [bestSets, setBestSets] = useState({});
   const [hydrated, setHydrated] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   useEffect(() => {
     const loadDashboard = () => {
@@ -61,19 +62,23 @@ export default function Layout({ children }) {
     .replace("_", " ")
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 
-  const tabs = [
+  const primaryTabs = [
     { name: "Home", path: "/" },
     { name: "Workout", path: "/workout" },
     { name: "Program", path: "/plan" },
+    { name: "Nutrition", path: "/nutrition" },
+    { name: "Progress", path: "/progress" },
+  ];
+
+  const secondaryTabs = [
     { name: "Mobility", path: "/mobility" },
     { name: "Running", path: "/running" },
-    { name: "Nutrition", path: "/nutrition" },
     { name: "Notes", path: "/notes" },
     { name: "History", path: "/history" },
-    { name: "Progress", path: "/progress" },
     { name: "PRs", path: "/prs" },
     { name: "Profile", path: "/profile" },
   ];
+  const moreActive = secondaryTabs.some((tab) => tab.path === router.pathname);
 
   const liftCards = [
     { label: "Bench", value: bench, reps: benchRecord?.reps || bestSets.bench?.reps, accent: liftColors.bench },
@@ -83,6 +88,7 @@ export default function Layout({ children }) {
 
   function navigateTab(path) {
     if (!path || router.pathname === path) return;
+    setMoreOpen(false);
     router.push(path, undefined, { scroll: false });
   }
 
@@ -122,7 +128,7 @@ export default function Layout({ children }) {
 
       <nav className="app-tab-shell" style={tabWrapper} aria-label="Main navigation">
         <div className="app-tabs" style={tabBar}>
-          {tabs.map((tab) => {
+          {primaryTabs.map((tab) => {
             const active = tab.path && router.pathname === tab.path;
 
             return (
@@ -139,6 +145,40 @@ export default function Layout({ children }) {
               </button>
             );
           })}
+          <div style={moreWrap}>
+            <button
+              type="button"
+              onClick={() => setMoreOpen((open) => !open)}
+              style={{
+                ...tabPill,
+                ...(moreActive ? activeTab : {}),
+              }}
+              aria-expanded={moreOpen}
+              aria-haspopup="menu"
+            >
+              More
+            </button>
+            {moreOpen && (
+              <div className="app-more-menu" style={moreMenu} role="menu">
+                {secondaryTabs.map((tab) => {
+                  const active = tab.path && router.pathname === tab.path;
+                  return (
+                    <button
+                      key={tab.name}
+                      type="button"
+                      onClick={() => navigateTab(tab.path)}
+                      style={{
+                        ...moreItem,
+                        ...(active ? moreItemActive : {}),
+                      }}
+                    >
+                      {tab.name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </nav>
 
@@ -456,6 +496,11 @@ const tabWrapper = {
 const tabBar = {
 };
 
+const moreWrap = {
+  position: "relative",
+  flex: "0 0 auto",
+};
+
 const tabPill = {
   flex: "0 0 auto",
   padding: "9px 15px",
@@ -471,6 +516,38 @@ const activeTab = {
   borderColor: colors.brand,
   color: colors.inverse,
   boxShadow: "none",
+};
+
+const moreMenu = {
+  position: "absolute",
+  right: 0,
+  zIndex: 90,
+  minWidth: 150,
+  border: `1px solid ${colors.border}`,
+  borderRadius: 12,
+  background: colors.surface,
+  padding: 6,
+  display: "grid",
+  gap: 4,
+  boxShadow: "0 18px 32px rgba(0, 0, 0, 0.42)",
+};
+
+const moreItem = {
+  width: "100%",
+  borderRadius: 8,
+  padding: "8px 10px",
+  color: colors.textSoft,
+  background: colors.surfaceSoft,
+  borderColor: colors.borderSoft,
+  textAlign: "left",
+  textTransform: "uppercase",
+  fontSize: 12,
+};
+
+const moreItemActive = {
+  color: colors.inverse,
+  background: colors.brand,
+  borderColor: colors.brand,
 };
 
 const page = {
