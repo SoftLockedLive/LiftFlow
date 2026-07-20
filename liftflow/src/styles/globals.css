@@ -297,8 +297,8 @@ input:focus, select:focus {
     right: 10px;
     bottom: calc(8px + env(safe-area-inset-bottom));
     z-index: 80;
-    padding: 7px;
-    gap: 7px;
+    padding: 6px;
+    gap: 4px;
     border: 1px solid rgba(33, 217, 255, 0.22);
     border-radius: 14px;
     background: rgba(6, 8, 11, 0.96);
@@ -312,9 +312,19 @@ input:focus, select:focus {
   }
 
   .app-tabs button {
+    min-width: 0;
     width: 100%;
-    padding: 7px 10px;
-    font-size: 11px !important;
+    height: 40px;
+    padding: 0 3px;
+    font-size: 10px !important;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .app-page {

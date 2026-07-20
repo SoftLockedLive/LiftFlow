@@ -498,7 +498,7 @@ const tabBar = {
 
 const moreWrap = {
   position: "relative",
-  flex: "0 0 auto",
+  minWidth: 0,
 };
 
 const tabPill = {
@@ -509,6 +509,7 @@ const tabPill = {
   color: colors.muted,
   fontSize: 14,
   textTransform: "uppercase",
+  textAlign: "center",
 };
 
 const activeTab = {
