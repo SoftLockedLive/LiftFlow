@@ -1,4 +1,4 @@
-import { getLiftSets, getWorkoutItems } from "./workoutAnalytics";
+import { getBaseExercise, getLiftSets, getWorkoutItems, normalizeExerciseName } from "./workoutAnalytics";
 import {
   averageDaily,
   getCurrentRollingAverage,
@@ -432,7 +432,7 @@ export function buildRelativeStrength(workouts, checkIns, trackedLifts = DEFAULT
     (workouts || []).forEach((session, sessionIndex) => {
       const date = dateKeyFromMs(session.date || Date.now());
       getWorkoutItems(session).forEach((lift) => {
-        if (!sameLift(lift.exercise, liftName)) return;
+        if (!sameLift(getBaseExercise(lift), liftName)) return;
         getLiftSets(lift).forEach((set, setIndex) => {
           const weight = Number(set.weight || 0);
           const reps = Number(set.reps || 0);
@@ -725,12 +725,9 @@ function buildWeeklySummaryLines(review) {
 }
 
 function sameLift(exercise, target) {
-  const source = String(exercise || "").toLowerCase();
-  const wanted = String(target || "").toLowerCase();
-  if (!source || !wanted) return false;
-  if (wanted === "bench press") return source.includes("bench");
-  if (wanted === "overhead press") return source.includes("overhead") || source.includes("shoulder press");
-  return source.includes(wanted.replace(" press", ""));
+  const source = normalizeExerciseName(exercise);
+  const wanted = normalizeExerciseName(target);
+  return Boolean(source && wanted && source === wanted);
 }
 
 function estimate1rm(weight, reps) {

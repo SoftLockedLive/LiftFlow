@@ -665,6 +665,9 @@ function getVariationOptions(lift) {
   if (name.includes("deadlift")) {
     options.push("Conventional Deadlift", "Romanian Deadlift", "Sumo Deadlift", "Trap Bar Deadlift");
   }
+  if (name.includes("overhead press") || name.includes("shoulder press")) {
+    options.push("Standing Overhead Press", "Seated Shoulder Press", "Dumbbell Shoulder Press", "Machine Shoulder Press");
+  }
   if (name.includes("lateral raise")) {
     options.push("Dumbbell Lateral Raise", "Cable Lateral Raise", "Machine Lateral Raise");
   }

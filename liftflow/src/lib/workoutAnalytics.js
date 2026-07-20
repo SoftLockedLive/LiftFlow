@@ -17,7 +17,7 @@ export function normalizeExerciseName(exercise) {
   const name = raw.toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
   if (!name) return "";
 
-  if (/^(barbell |bb |flat )?bench( press)?$/.test(name)) {
+  if (/^(flat )?(barbell |bb )?bench( press)?$/.test(name) || /^(barbell |bb )?flat bench( press)?$/.test(name)) {
     return "Bench Press";
   }
   if (/\b(squat|barbell squat|back squat|bb squat)\b/.test(name) && !/\bfront\b|\bhack\b|\bsplit\b|\bgoblet\b/.test(name)) {
@@ -26,7 +26,7 @@ export function normalizeExerciseName(exercise) {
   if (/\b(deadlift|barbell deadlift|conventional deadlift|bb deadlift)\b/.test(name) && !/\brdl\b|\bromanian\b|\bstiff\b|\bsumo\b|\btrap\b/.test(name)) {
     return "Deadlift";
   }
-  if (/\boverhead press\b|\bbarbell overhead press\b|\bstanding press\b|\bmilitary press\b/.test(name)) {
+  if (/\bohp\b|\boverhead press\b|\bbarbell overhead press\b|\bstanding press\b|\bmilitary press\b/.test(name)) {
     return "Overhead Press";
   }
 

@@ -469,7 +469,7 @@ export default function Progress() {
           onGenerateReview={generateReview}
           onCheckIn={() => {
             setActiveSection("Body");
-            window.setTimeout(() => document.getElementById("daily-check-in")?.scrollIntoView({ behavior: "smooth" }), 0);
+            window.setTimeout(() => document.getElementById("morning-check-in")?.scrollIntoView({ behavior: "smooth" }), 0);
           }}
         />
       )}
@@ -1432,8 +1432,8 @@ function ProgressBar({ label, value, target, suffix = "" }) {
 function MetricRow({ label, value, accent }) {
   return (
     <div style={compactRow}>
-      <span>{label}</span>
-      <strong style={accent ? { color: accent } : null}>{value}</strong>
+      <span style={metricLabelText}>{label}</span>
+      <strong style={{ ...metricValueText, ...(accent ? { color: accent } : {}) }}>{value}</strong>
     </div>
   );
 }
@@ -1717,7 +1717,7 @@ const saveButton = { minWidth: 150, minHeight: 42 };
 const rangeTabs = { display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" };
 const rangeButton = { padding: "7px 10px", borderRadius: 999, color: "#b8b3a4", background: "#0c0f13" };
 const rangeButtonActive = { color: "#050505", background: YELLOW, borderColor: YELLOW };
-const targetGrid = { display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10, marginTop: 12 };
+const targetGrid = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, marginTop: 12 };
 const saveTargetsButton = { width: "100%", marginTop: 12 };
 const summaryStack = { display: "grid", gap: 10, marginTop: 12 };
 const progressWrap = { display: "grid", gap: 2 };
@@ -1740,6 +1740,8 @@ const ratioStack = { display: "grid", gap: 2, textAlign: "right", minWidth: 84 }
 const timeline = { display: "grid", gap: 10 };
 const timelineItem = { border: "1px solid #26313d", borderRadius: 10, background: "linear-gradient(180deg, #11161c, #0a0d11)", overflow: "hidden" };
 const activeTimelineItem = { borderColor: "rgba(239, 255, 56, 0.52)", boxShadow: "0 0 0 1px rgba(239, 255, 56, 0.12), 0 0 24px rgba(239, 255, 56, 0.08)" };
-const timelineHeader = { width: "100%", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 10, alignItems: "center", border: 0, borderRadius: 0, background: "transparent", textAlign: "left", padding: 12 };
+const metricLabelText = { minWidth: 0, overflowWrap: "anywhere" };
+const metricValueText = { minWidth: 0, textAlign: "right", overflowWrap: "anywhere" };
+const timelineHeader = { width: "100%", display: "grid", gridTemplateColumns: "auto minmax(0, 1fr) auto", gap: 10, alignItems: "center", border: 0, borderRadius: 0, background: "transparent", textAlign: "left", padding: 12 };
 const timelineDot = { width: 10, height: 10, borderRadius: "50%", background: YELLOW, boxShadow: "0 0 16px rgba(239, 255, 56, 0.42)" };
 const timelineDetails = { borderTop: "1px solid #1d2630", padding: 12 };
