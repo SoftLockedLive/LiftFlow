@@ -308,8 +308,10 @@ input:focus, select:focus {
   }
 
   .app-more-menu {
+    position: fixed !important;
     top: auto;
-    bottom: calc(100% + 8px);
+    right: 12px !important;
+    bottom: calc(64px + env(safe-area-inset-bottom));
   }
 
   .app-tabs button {
