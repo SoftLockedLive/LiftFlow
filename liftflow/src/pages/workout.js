@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { getMuscleGroup, tint } from "../lib/muscleGroups";
+import { getManualPRs } from "../lib/manualPRs";
 import { getPlan } from "../lib/plan";
+import { buildPRMap, formatPR } from "../lib/prRecords";
 import { buildTodaysWorkout } from "../lib/trainingEngine";
 import { getTodayName } from "../lib/today";
 import { getWorkouts, saveWorkout } from "../lib/workoutStorage";
-import { calculateSessionSummary, detectPRs } from "../lib/workoutAnalytics";
-import { buildLiveSetRecommendation } from "../lib/coach";
+import { calculateSessionSummary, detectPRs, normalizeExerciseName } from "../lib/workoutAnalytics";
+import { buildCoachRecommendation, buildLiveSetRecommendation } from "../lib/coach";
 import { colors, dayColors } from "../lib/theme";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -167,18 +169,24 @@ export default function Workout() {
 
   function finishWorkout() {
     const previousWorkouts = getWorkouts();
-    const completedWorkout = program.map((lift) => ({
-      exercise: lift.baseExercise || lift.exercise,
-      variation: getSelectedVariation(session.__variations?.[lift.id]),
-      muscleGroup: lift.muscleGroup || "other",
-      plannedSets: lift.sets || "",
-      plannedReps: lift.reps || "",
-      sets: getLoggedSets(session[lift.id]),
-      date: Date.now(),
-      suggestedWeight: lift.suggestedWeight || null,
-      note: lift.note || lift.stretches || "",
-      stretches: lift.stretches || "",
-    }));
+    const completedWorkout = program.map((lift) => {
+      const performedExercise = getPerformedExercise(lift, session.__variations?.[lift.id]);
+      const swapped = performedExercise !== lift.exercise;
+
+      return {
+        exercise: performedExercise,
+        baseExercise: normalizeExerciseName(performedExercise),
+        variation: swapped ? `Planned: ${lift.exercise}` : "",
+        muscleGroup: lift.muscleGroup || "other",
+        plannedSets: lift.sets || "",
+        plannedReps: lift.reps || "",
+        sets: getLoggedSets(session[lift.id]),
+        date: Date.now(),
+        suggestedWeight: lift.suggestedWeight || null,
+        note: lift.note || lift.stretches || "",
+        stretches: lift.stretches || "",
+      };
+    });
     const workoutSummary = calculateSessionSummary(completedWorkout);
     const prs = detectPRs(previousWorkouts, completedWorkout);
 
@@ -210,6 +218,7 @@ export default function Workout() {
   const warmup = Array.isArray(plan.__meta?.[selectedDay]?.warmup) ? plan.__meta[selectedDay].warmup : [];
   const emphasis = plan.__meta?.[selectedDay]?.emphasis || "";
   const actionCards = Array.isArray(plan.__meta?.[selectedDay]?.actionCards) ? plan.__meta[selectedDay].actionCards : [];
+  const prMap = buildPRMap(getWorkouts(), getManualPRs());
 
   return (
     <div style={wrap}>
@@ -344,8 +353,14 @@ export default function Workout() {
             const variationOptions = getVariationOptions(lift);
             const variationDraft = normalizeVariationDraft(session.__variations?.[lift.id]);
             const selectedVariation = getSelectedVariation(variationDraft);
-            const coach = lift.coachRecommendation;
-            const liveCoach = buildLiveSetRecommendation(lift, session[lift.id] || [], coach);
+            const performedExercise = getPerformedExercise(lift, variationDraft);
+            const swapped = performedExercise !== lift.exercise;
+            const activeLift = swapped
+              ? { ...lift, exercise: performedExercise, baseExercise: normalizeExerciseName(performedExercise) }
+              : lift;
+            const activePr = swapped ? prMap[normalizeExerciseName(performedExercise)] : lift.prRecord;
+            const coach = swapped ? buildCoachRecommendation(activeLift, getWorkouts()) : lift.coachRecommendation;
+            const liveCoach = buildLiveSetRecommendation(activeLift, session[lift.id] || [], coach);
 
             return (
               <article
@@ -358,16 +373,16 @@ export default function Workout() {
               >
                 <div style={liftHeader}>
                   <div>
-                    <h2 style={liftTitle}>{lift.exercise}</h2>
+                    <h2 style={liftTitle}>{performedExercise}</h2>
                     <p style={liftMeta}>
                       {group.label} · {lift.sets} sets x {lift.reps} reps
-                      {selectedVariation ? ` · ${selectedVariation}` : ""}
+                      {swapped ? ` · planned ${lift.exercise}` : ""}
                     </p>
                   </div>
                   <div style={liftHeaderActions}>
-                    {lift.displayPR && (
+                    {activePr && (
                       <span style={prBadge}>
-                        {lift.displayPR}
+                        {formatPR(activePr)}
                       </span>
                     )}
                     <button
@@ -377,10 +392,10 @@ export default function Workout() {
                         ...variationIcon,
                         ...(selectedVariation ? { color: dayAccent, borderColor: tint(dayAccent, 0.48) } : {}),
                       }}
-                      aria-label={`Set variation for ${lift.exercise}`}
-                      title="Variation"
+                      aria-label={`Swap exercise for ${lift.exercise}`}
+                      title="Swap exercise"
                     >
-                      Alt
+                      Swap
                     </button>
                   </div>
                 </div>
@@ -449,7 +464,7 @@ export default function Workout() {
                           ...(!selectedVariation ? activeVariationChip : {}),
                         }}
                       >
-                        None
+                        Keep {lift.exercise}
                       </button>
                       {variationOptions.map((variation) => (
                         <button
@@ -466,7 +481,7 @@ export default function Workout() {
                       ))}
                     </div>
                     <input
-                      placeholder="Custom variation performed"
+                      placeholder="Custom exercise performed"
                       value={variationDraft.custom}
                       onChange={(event) => updateVariation(lift.id, { custom: event.target.value, value: "" })}
                     />
@@ -638,22 +653,30 @@ function formatWarmupMovement(movement) {
 
 function getVariationOptions(lift) {
   const configured = Array.isArray(lift.variations) ? lift.variations.filter(Boolean) : [];
-  if (configured.length > 0) return configured;
-
   const name = String(lift.exercise || "").toLowerCase();
+  const options = [...configured];
+  if (name.includes("squat")) {
+    options.push("Back Squat", "Front Squat", "Hack Squat", "Goblet Squat");
+  }
+  if (name.includes("bench")) {
+    options.push("Bench Press", "Dumbbell Bench Press", "Incline Dumbbell Press", "Close-Grip Bench");
+  }
+  if (name.includes("deadlift")) {
+    options.push("Conventional Deadlift", "Romanian Deadlift", "Sumo Deadlift", "Trap Bar Deadlift");
+  }
   if (name.includes("lateral raise")) {
-    return ["Dumbbell Lateral Raise", "Cable Lateral Raise", "Machine Lateral Raise"];
+    options.push("Dumbbell Lateral Raise", "Cable Lateral Raise", "Machine Lateral Raise");
   }
   if (name.includes("pulldown")) {
-    return ["Lat Pulldown", "Neutral-Grip Pulldown", "Single-Arm Pulldown"];
+    options.push("Lat Pulldown", "Neutral-Grip Pulldown", "Single-Arm Pulldown");
   }
   if (name.includes("row")) {
-    return ["Chest-Supported Row", "Cable Row", "Dumbbell Row", "Machine Row"];
+    options.push("Chest-Supported Row", "Cable Row", "Dumbbell Row", "Machine Row");
   }
   if (name.includes("curl")) {
-    return ["EZ-Bar Curl", "Dumbbell Curl", "Cable Curl"];
+    options.push("EZ-Bar Curl", "Dumbbell Curl", "Cable Curl");
   }
-  return [];
+  return Array.from(new Set(options.filter((option) => option && option !== lift.exercise)));
 }
 
 function normalizeVariationDraft(value) {
@@ -669,6 +692,10 @@ function normalizeVariationDraft(value) {
 function getSelectedVariation(draft) {
   const normalized = normalizeVariationDraft(draft);
   return normalized.custom.trim() || normalized.value || "";
+}
+
+function getPerformedExercise(lift, draft) {
+  return getSelectedVariation(draft) || lift.exercise;
 }
 
 const wrap = {
@@ -1158,9 +1185,9 @@ const stretchBox = {
 };
 
 const variationIcon = {
-  width: 38,
+  minWidth: 52,
   height: 32,
-  padding: 0,
+  padding: "0 10px",
   color: "#32cfff",
   borderColor: "rgba(50, 207, 255, 0.38)",
   background: "rgba(50, 207, 255, 0.1)",

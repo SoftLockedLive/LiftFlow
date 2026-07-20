@@ -1,10 +1,10 @@
 import { getWorkouts } from "./workoutStorage";
-import { getBaseExercise, getLiftSets, getWorkoutItems } from "./workoutAnalytics";
+import { getBaseExercise, getLiftSets, getWorkoutItems, normalizeExerciseName } from "./workoutAnalytics";
 
 const BAR_WEIGHT = 45;
 
 export function buildCoachRecommendation(lift, workouts = getWorkouts()) {
-  const baseExercise = lift.baseExercise || lift.exercise;
+  const baseExercise = getBaseExercise(lift);
   const history = collectLiftHistory(workouts, baseExercise);
   const target = parseRepTarget(lift.reps);
   const increment = getIncrement(lift);
@@ -97,13 +97,14 @@ export function buildLiveSetRecommendation(lift, loggedSets, coach) {
 }
 
 function collectLiftHistory(workouts, baseExercise) {
+  const targetExercise = normalizeExerciseName(baseExercise);
   return (workouts || [])
     .slice()
     .reverse()
     .flatMap((session) => {
       const date = session?.date || null;
       return getWorkoutItems(session)
-        .filter((lift) => getBaseExercise(lift) === baseExercise)
+        .filter((lift) => getBaseExercise(lift) === targetExercise)
         .map((lift) => ({
           date,
           target: parseRepTarget(lift.reps || lift.plannedReps),
