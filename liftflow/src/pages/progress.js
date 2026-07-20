@@ -162,9 +162,10 @@ export default function Progress() {
       setRecommendations(getCalorieRecommendations());
       setTargetHistory(getCalorieTargetHistory());
       setTrackedLifts(getTrackedLifts());
-      if (window.location.search.includes("checkIn=1")) {
+      if (window.location.search.includes("checkIn=")) {
+        const targetId = window.location.search.includes("checkIn=night") ? "daily-check-in" : "morning-check-in";
         setActiveSection("Body");
-        window.setTimeout(() => document.getElementById("daily-check-in")?.scrollIntoView({ behavior: "smooth" }), 0);
+        window.setTimeout(() => document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth" }), 0);
         router.replace("/progress", undefined, { shallow: true, scroll: false });
       }
     }, 0);
@@ -866,7 +867,7 @@ function BodySection({
 
   return (
     <>
-      <section style={panel}>
+      <section id="morning-check-in" style={panel}>
         <div style={sectionHeaderRow}>
           <div>
             <p style={eyebrow}>Morning</p>

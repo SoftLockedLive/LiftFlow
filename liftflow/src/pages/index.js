@@ -22,7 +22,7 @@ export default function Home() {
   const [flowIndex, setFlowIndex] = useState(0);
   const [touchStart, setTouchStart] = useState(null);
   const [flowMotion, setFlowMotion] = useState("");
-  const [needsCheckIn, setNeedsCheckIn] = useState(false);
+  const [checkInPrompt, setCheckInPrompt] = useState(null);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -32,7 +32,7 @@ export default function Home() {
       const currentDay = getTodayName();
       setToday(currentDay);
       setFlowIndex(Math.max(0, DAYS.indexOf(currentDay)));
-      setNeedsCheckIn(!hasCompletedDailyCheckIn(getDailyCheckIns().find((entry) => entry.date === getTodayKey())));
+      setCheckInPrompt(getCheckInPrompt(getDailyCheckIns().find((entry) => entry.date === getTodayKey())));
     }, 0);
 
     return () => window.clearTimeout(timer);
@@ -77,14 +77,14 @@ export default function Home() {
 
   return (
     <div style={homeWrap}>
-      {needsCheckIn && (
+      {checkInPrompt && (
         <section style={checkInCard}>
           <div>
-            <p style={eyebrow}>Daily Check-In</p>
-            <h2 style={checkInTitle}>Log today’s readiness</h2>
-            <p style={checkInCopy}>Bodyweight, sleep, energy, hunger, soreness, and stress keep your trends useful.</p>
+            <p style={eyebrow}>{checkInPrompt.eyebrow}</p>
+            <h2 style={checkInTitle}>{checkInPrompt.title}</h2>
+            <p style={checkInCopy}>{checkInPrompt.copy}</p>
           </div>
-          <button type="button" className="primary" onClick={() => router.push("/progress?checkIn=1")} style={checkInButton}>
+          <button type="button" className="primary" onClick={() => router.push(`/progress?checkIn=${checkInPrompt.target}`)} style={checkInButton}>
             Check In
           </button>
         </section>
@@ -274,7 +274,33 @@ function formatDate(date) {
   }).format(parsed);
 }
 
-function hasCompletedDailyCheckIn(entry) {
+function getCheckInPrompt(entry) {
+  const hour = new Date().getHours();
+  const morningMissing = !hasMorningCheckIn(entry);
+  const nightMissing = !hasNightCheckIn(entry);
+
+  if (hour >= 17 && nightMissing) {
+    return {
+      target: "night",
+      eyebrow: "Night Check-In",
+      title: "Wrap up today",
+      copy: "Log steps, resting HR, active minutes, workout minutes, and notes before the day closes.",
+    };
+  }
+
+  if (morningMissing) {
+    return {
+      target: "morning",
+      eyebrow: "Morning Check-In",
+      title: "Log today’s readiness",
+      copy: "Bodyweight, sleep, energy, hunger, soreness, and stress keep your trends useful.",
+    };
+  }
+
+  return null;
+}
+
+function hasMorningCheckIn(entry) {
   if (!entry) return false;
   return [
     "morningWeight",
@@ -284,6 +310,17 @@ function hasCompletedDailyCheckIn(entry) {
     "hunger",
     "soreness",
     "stress",
+  ].some((field) => entry[field] !== undefined && entry[field] !== "");
+}
+
+function hasNightCheckIn(entry) {
+  if (!entry) return false;
+  return [
+    "steps",
+    "restingHeartRate",
+    "activeMinutes",
+    "workoutDurationMinutes",
+    "notes",
   ].some((field) => entry[field] !== undefined && entry[field] !== "");
 }
 
