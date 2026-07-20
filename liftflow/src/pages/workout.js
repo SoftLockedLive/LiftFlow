@@ -211,6 +211,7 @@ export default function Workout() {
     setPlan(getPlan());
     setProgram(buildTodaysWorkout(selectedDay));
     setSession({});
+    router.push("/notes", undefined, { scroll: false });
   }
 
   const focusName = plan.__meta?.[selectedDay]?.name || selectedDay;

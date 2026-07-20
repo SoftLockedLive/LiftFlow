@@ -18,7 +18,7 @@ import { buildPhaseTargets, getActivePhase, getPhases } from "../lib/progressPha
 import { colors, tint } from "../lib/theme";
 
 const PROTEIN_QUICK_AMOUNTS = [2.5, 5, 10, 25];
-const CALORIE_QUICK_AMOUNTS = [100, 250, 500];
+const CALORIE_QUICK_AMOUNTS = [100, 250, 500, 750];
 const ACCENT = colors.success;
 const CYAN = colors.brand;
 const YELLOW = colors.accent;

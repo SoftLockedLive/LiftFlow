@@ -239,6 +239,12 @@ export default function Progress() {
     const next = saveDailyCheckIn({
       date: form.date || getTodayKey(),
       morningWeight: form.morningWeight,
+      sleepHours: form.sleepHours,
+      sleepScore: form.sleepScore,
+      energy: form.energy,
+      hunger: form.hunger,
+      soreness: form.soreness,
+      stress: form.stress,
     });
     refreshCheckIns(next);
     setDeletedEntry(null);
@@ -709,16 +715,16 @@ function StrengthSection({ data, goals, trend, relativeStrength, trackedLifts, t
     <>
       <section style={heroPanel}>
         <div>
-          <p style={heroLabel}>Main Target</p>
+          <p style={heroLabel}>Top Strength Target</p>
           <h2 style={heroTitle}>{leadGoal.label}</h2>
           <p style={muted}>
             {leadGoal.current} / {leadGoal.target} lb · {leadGoal.remaining > 0 ? `${leadGoal.remaining} lb left` : "Goal hit"}
           </p>
         </div>
         <div style={heroTrend}>
-          <span style={heroLabel}>Trend</span>
+          <span style={heroLabel}>Volume Trend</span>
           <strong style={{ ...heroTrendValue, color: trend.color }}>{trend.label}</strong>
-          <span style={heroMini}>{data.sessions.length} workouts logged</span>
+          <span style={heroMini}>Last 3 vs previous 3 workouts</span>
         </div>
       </section>
 
@@ -741,10 +747,11 @@ function StrengthSection({ data, goals, trend, relativeStrength, trackedLifts, t
       <section style={grid}>
         <section style={panel}>
           <p style={eyebrow}>Recent Work</p>
-          <h2 style={sectionTitle}>Training Trend</h2>
+          <h2 style={sectionTitle}>Recent Volume</h2>
           <div style={trendBox}>
             <strong style={{ ...trendValue, color: trend.color }}>{trend.label}</strong>
             <p style={muted}>{trend.copy}</p>
+            <p style={mutedSmall}>{trend.source}</p>
           </div>
         </section>
 
@@ -856,15 +863,24 @@ function BodySection({
         <div style={sectionHeaderRow}>
           <div>
             <p style={eyebrow}>Morning</p>
-            <h2 style={sectionTitle}>Bodyweight</h2>
+            <h2 style={sectionTitle}>Bodyweight + Readiness</h2>
           </div>
           <span style={saveHint}>Best after waking</span>
         </div>
         <form onSubmit={saveMorningWeight} style={morningGrid}>
           <Field label="Date" type="date" value={form.date} onChange={(value) => updateForm("date", value)} />
           <Field label={`Morning bodyweight (${targets.weightUnit || "lb"})`} type="number" value={form.morningWeight} onChange={(value) => updateForm("morningWeight", value)} step="0.1" />
+          <Field label="Sleep hours" type="number" value={form.sleepHours} onChange={(value) => updateForm("sleepHours", value)} step="0.25" />
+          <Field label="Sleep score" type="number" value={form.sleepScore} onChange={(value) => updateForm("sleepScore", value)} />
+          <ScaleField label="Energy" value={form.energy} onChange={(value) => updateForm("energy", value)} />
+          <ScaleField label="Hunger" value={form.hunger} onChange={(value) => updateForm("hunger", value)} />
+          <ScaleField label="Soreness" value={form.soreness} onChange={(value) => updateForm("soreness", value)} />
+          <ScaleField label="Stress" value={form.stress} onChange={(value) => updateForm("stress", value)} />
+          <p style={morningHint}>
+            Log sleep and bodyweight after waking. Energy, hunger, stress, and soreness work best before training or around midday once you know how you feel.
+          </p>
           <button type="submit" className="primary" style={saveButton}>
-            Save Weight
+            Save Morning Check-In
           </button>
         </form>
       </section>
@@ -880,13 +896,7 @@ function BodySection({
         <form onSubmit={saveForm} style={formGrid}>
           <Field label="Date" type="date" value={form.date} onChange={(value) => updateForm("date", value)} full />
           <Field label="Steps" type="number" value={form.steps} onChange={(value) => updateForm("steps", value)} />
-          <Field label="Sleep hours" type="number" value={form.sleepHours} onChange={(value) => updateForm("sleepHours", value)} step="0.25" />
-          <Field label="Sleep score" type="number" value={form.sleepScore} onChange={(value) => updateForm("sleepScore", value)} />
           <Field label="Resting HR" type="number" value={form.restingHeartRate} onChange={(value) => updateForm("restingHeartRate", value)} />
-          <ScaleField label="Energy" value={form.energy} onChange={(value) => updateForm("energy", value)} />
-          <ScaleField label="Hunger" value={form.hunger} onChange={(value) => updateForm("hunger", value)} />
-          <ScaleField label="Soreness" value={form.soreness} onChange={(value) => updateForm("soreness", value)} />
-          <ScaleField label="Stress" value={form.stress} onChange={(value) => updateForm("stress", value)} />
           <Field label="Active minutes" type="number" value={form.activeMinutes} onChange={(value) => updateForm("activeMinutes", value)} />
           <Field
             label="Workout minutes"
@@ -1623,17 +1633,25 @@ function findBest(bests, keyword) {
 
 function buildTrend(sessions) {
   if (sessions.length < 2) {
-    return { label: "Building baseline", color: "#777", copy: "Log a few workouts and this will compare your recent volume." };
+    return { label: "Building baseline", color: "#777", copy: "Log a few workouts and this will compare recent total volume.", source: "Needs at least two logged workouts." };
   }
 
   const recent = sessions.slice(-3).reduce((sum, session) => sum + session.volume, 0);
   const previous = sessions.slice(-6, -3).reduce((sum, session) => sum + session.volume, 0);
-  if (!previous) return { label: "Baseline set", color: ACCENT, copy: `${recent.toLocaleString()} lb lifted across your latest sessions.` };
+  if (!previous) {
+    return {
+      label: "Baseline set",
+      color: ACCENT,
+      copy: `${recent.toLocaleString()} lb lifted across your latest sessions.`,
+      source: "Needs at least six workouts for a last-3 vs previous-3 comparison.",
+    };
+  }
 
   const change = Math.round(((recent - previous) / previous) * 100);
-  if (change > 5) return { label: `Up ${change}%`, color: GREEN, copy: "Your recent training volume is trending up." };
-  if (change < -5) return { label: `Down ${Math.abs(change)}%`, color: ORANGE, copy: "Recent volume is lower. That may be recovery or a lighter week." };
-  return { label: "Steady", color: ACCENT, copy: "Your recent volume is holding steady." };
+  const source = `Last 3 workouts: ${recent.toLocaleString()} lb. Previous 3: ${previous.toLocaleString()} lb.`;
+  if (change > 5) return { label: `Up ${change}%`, color: GREEN, copy: "Recent total workout volume is trending up.", source };
+  if (change < -5) return { label: `Down ${Math.abs(change)}%`, color: ORANGE, copy: "Recent total workout volume is lower. This may reflect recovery, fewer sets, or lighter sessions.", source };
+  return { label: "Steady", color: ACCENT, copy: "Recent total workout volume is holding steady.", source };
 }
 
 const wrap = { maxWidth: 980, margin: "0 auto" };
@@ -1685,6 +1703,7 @@ const scaleRow = { display: "grid", gridTemplateColumns: "repeat(5, minmax(0, 1f
 const scaleButton = { padding: "9px 0", borderRadius: 8, background: "#0c0f13", color: "#b8b3a4" };
 const scaleButtonActive = { background: ACCENT, borderColor: ACCENT, color: "#050505" };
 const saveHint = { color: "#9a9689", fontSize: 12, fontWeight: 850 };
+const morningHint = { gridColumn: "1 / -1", margin: 0, color: "#9a9689", fontSize: 12, fontWeight: 750, lineHeight: 1.35 };
 const stickyActions = { gridColumn: "1 / -1", position: "sticky", bottom: 78, zIndex: 10, display: "flex", justifyContent: "flex-end", paddingTop: 4 };
 const saveButton = { minWidth: 150, minHeight: 42 };
 const rangeTabs = { display: "flex", gap: 6, flexWrap: "wrap", justifyContent: "flex-end" };
