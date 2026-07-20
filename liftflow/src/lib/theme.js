@@ -14,6 +14,7 @@ export const colors = {
   brand: "#21d9ff",
   accent: "#efff38",
   success: "#43f08d",
+  recovery: "#f472b6",
   warning: "#ffb238",
   danger: "#ff7047",
   violet: "#b985ff",
@@ -34,7 +35,7 @@ export const dayColors = {
   Friday: "#ffb238",
   Saturday: "#43f08d",
   Sunday: "#fffdf2",
-  recovery: "#43f08d",
+  recovery: colors.recovery,
   today: "#21d9ff",
 };
 

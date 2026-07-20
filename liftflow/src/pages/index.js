@@ -77,7 +77,7 @@ export default function Home() {
         className={flowMotion ? `home-flow-${flowMotion}` : ""}
         style={{
           ...focusCard,
-          borderColor: flowItem?.recovery ? tint(colors.success, 0.42) : tint(flowItem?.accent || colors.brand, 0.38),
+          borderColor: tint(getFlowAccent(flowItem), 0.42),
         }}
         onTouchStart={(event) => {
           const touch = event.touches[0];
@@ -91,7 +91,7 @@ export default function Home() {
       >
         <div style={flowTop}>
           <div>
-            <p style={{ ...eyebrow, color: flowItem?.recovery ? colors.success : flowItem?.accent || colors.brand }}>
+            <p style={{ ...eyebrow, color: getFlowAccent(flowItem) }}>
               {getFlowLabel(flowItem?.day, today)}
             </p>
             <h2 style={focusTitle}>{getDayTitle(flowItem)}</h2>
@@ -109,9 +109,9 @@ export default function Home() {
             onClick={() => router.push(flowHasPlan ? `/workout?day=${encodeURIComponent(flowItem.day)}` : "/plan")}
             style={{
               ...focusButton,
-              borderColor: flowHasPlan ? tint(flowItem?.accent || colors.brand, 0.58) : colors.borderSoft,
-              color: flowHasPlan ? flowItem?.accent || colors.brand : colors.muted,
-              background: flowHasPlan ? tint(flowItem?.accent || colors.brand, 0.1) : colors.surfaceSoft,
+              borderColor: flowHasPlan ? tint(getFlowAccent(flowItem), 0.58) : colors.borderSoft,
+              color: flowHasPlan ? getFlowAccent(flowItem) : colors.muted,
+              background: flowHasPlan ? tint(getFlowAccent(flowItem), 0.1) : colors.surfaceSoft,
             }}
           >
             {flowHasPlan ? "Open" : "Program"}
@@ -215,6 +215,11 @@ function getFlowLabel(day, today) {
   if (dayIndex === (todayIndex + 1) % DAYS.length) return "Tomorrow's Flow";
   if (dayIndex === (todayIndex + DAYS.length - 1) % DAYS.length) return "Yesterday's Flow";
   return `${day}'s Flow`;
+}
+
+function getFlowAccent(day) {
+  if (day?.recovery) return dayColors.recovery;
+  return day?.accent || colors.brand;
 }
 
 function getLiftPR(lift, prs) {
