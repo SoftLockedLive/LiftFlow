@@ -1,3 +1,5 @@
+import { getLoadProfile } from "./loadProfiles";
+
 export const PROGRAM_TEMPLATES = [
   {
     id: "upper-lower-4",
@@ -630,6 +632,7 @@ function defaultWarmupFor(dayName) {
 }
 
 function lift(exercise, muscleGroup, sets, reps, note = "", options = {}) {
+  const loadProfile = getLoadProfile({ exercise, loadType: options.loadType, minimumLoad: options.minimumLoad });
   return {
     exercise,
     muscleGroup,
@@ -640,5 +643,7 @@ function lift(exercise, muscleGroup, sets, reps, note = "", options = {}) {
     baseExercise: options.baseExercise || exercise,
     defaultVariation: options.defaultVariation || "",
     variations: options.variations || [],
+    loadType: loadProfile.type,
+    minimumLoad: loadProfile.minimumLoad,
   };
 }

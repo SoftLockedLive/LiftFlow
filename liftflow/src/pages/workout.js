@@ -9,6 +9,7 @@ import { getTodayName } from "../lib/today";
 import { getWorkouts, saveWorkout } from "../lib/workoutStorage";
 import { calculateSessionSummary, detectPRs, normalizeExerciseName } from "../lib/workoutAnalytics";
 import { buildCoachRecommendation, buildLiveSetRecommendation } from "../lib/coach";
+import { getLoadProfile } from "../lib/loadProfiles";
 import { colors, dayColors } from "../lib/theme";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -185,10 +186,13 @@ export default function Workout() {
     const completedWorkout = program.map((lift) => {
       const performedExercise = getPerformedExercise(lift, session.__variations?.[lift.id]);
       const swapped = performedExercise !== lift.exercise;
+      const loadProfile = getLoadProfile(swapped ? { exercise: performedExercise } : lift);
 
       return {
         exercise: performedExercise,
         baseExercise: normalizeExerciseName(performedExercise),
+        loadType: loadProfile.type,
+        minimumLoad: loadProfile.minimumLoad,
         variation: swapped ? `Planned: ${lift.exercise}` : "",
         muscleGroup: lift.muscleGroup || "other",
         plannedSets: lift.sets || "",
@@ -368,9 +372,10 @@ export default function Workout() {
             const selectedVariation = getSelectedVariation(variationDraft);
             const performedExercise = getPerformedExercise(lift, variationDraft);
             const swapped = performedExercise !== lift.exercise;
+            const loadProfile = getLoadProfile(swapped ? { exercise: performedExercise } : lift);
             const activeLift = swapped
-              ? { ...lift, exercise: performedExercise, baseExercise: normalizeExerciseName(performedExercise) }
-              : lift;
+              ? { ...lift, exercise: performedExercise, baseExercise: normalizeExerciseName(performedExercise), ...loadProfile }
+              : { ...lift, ...loadProfile };
             const activePr = swapped ? prMap[normalizeExerciseName(performedExercise)] : lift.prRecord;
             const coach = swapped ? buildCoachRecommendation(activeLift, getWorkouts()) : lift.coachRecommendation;
             const liveCoach = buildLiveSetRecommendation(activeLift, session[lift.id] || [], coach);

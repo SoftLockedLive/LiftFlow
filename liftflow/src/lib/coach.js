@@ -1,15 +1,14 @@
 import { getWorkouts } from "./workoutStorage";
 import { getBaseExercise, getLiftSets, getWorkoutItems, normalizeExerciseName } from "./workoutAnalytics";
-
-const BAR_WEIGHT = 45;
-const MIN_MACHINE_LOAD = 5;
+import { BAR_WEIGHT, getLoadProfile } from "./loadProfiles";
 
 export function buildCoachRecommendation(lift, workouts = getWorkouts()) {
   const baseExercise = getBaseExercise(lift);
   const history = collectLiftHistory(workouts, baseExercise);
   const target = parseRepTarget(lift.reps);
   const increment = getIncrement(lift);
-  const minimumLoad = getMinimumLoad(lift);
+  const loadProfile = getLoadProfile(lift);
+  const minimumLoad = loadProfile.minimumLoad;
 
   if (history.length === 0) {
     return {
@@ -37,7 +36,7 @@ export function buildCoachRecommendation(lift, workouts = getWorkouts()) {
     status: "ready",
     headline: `${workingWeight} lb`,
     detail: buildDetail(direction, latestTopWeight, grade, target, context),
-    warmups: buildWarmupRamp(workingWeight, target, minimumLoad),
+    warmups: buildWarmupRamp(workingWeight, target, loadProfile),
     warmupLabel: "Ramp-up sets",
     workingWeight,
     latestTopWeight,
@@ -45,6 +44,7 @@ export function buildCoachRecommendation(lift, workouts = getWorkouts()) {
     grade,
     increment,
     minimumLoad,
+    loadType: loadProfile.type,
     confidence: context.confidence,
     contextNotes: context.notes,
     workingSetPlan: "Flat sets by default. Adjust only if reps fall off or it is clearly too light.",
@@ -58,7 +58,7 @@ export function buildLiveSetRecommendation(lift, loggedSets, coach) {
 
   const target = coach.target || parseRepTarget(lift.reps);
   const increment = coach.increment || getIncrement(lift);
-  const minimumLoad = coach.minimumLoad || getMinimumLoad(lift);
+  const minimumLoad = coach.minimumLoad || getLoadProfile(lift).minimumLoad;
   const last = sets[sets.length - 1];
   const lastWeight = Number(last.weight || 0);
   const lastReps = Number(last.reps || 0);
@@ -138,24 +138,24 @@ function recommendWorkingWeight(latestWeight, grade, increment, context, minimum
   return roundToNearest(latestWeight, increment);
 }
 
-function buildWarmupRamp(workingWeight, target, minimumLoad) {
+function buildWarmupRamp(workingWeight, target, loadProfile) {
   if (!workingWeight || workingWeight < 50) return [];
 
   const ramp = [];
-  const barbellRamp = minimumLoad === BAR_WEIGHT && workingWeight >= 95;
+  const barbellRamp = loadProfile.type === "barbell" && workingWeight >= 95;
 
   if (barbellRamp) {
     ramp.push({ weight: BAR_WEIGHT, reps: "8-10" });
   } else {
-    ramp.push({ weight: rampWeight(workingWeight, minimumLoad, 0.5), reps: "8-10" });
+    ramp.push({ weight: rampWeight(workingWeight, loadProfile.minimumLoad, 0.5), reps: "8-10" });
   }
 
   if (workingWeight >= 100) {
-    ramp.push({ weight: rampWeight(workingWeight, minimumLoad, barbellRamp ? 0.6 : 0.7), reps: target.max <= 5 ? 3 : 5 });
+    ramp.push({ weight: rampWeight(workingWeight, loadProfile.minimumLoad, barbellRamp ? 0.6 : 0.7), reps: target.max <= 5 ? 3 : 5 });
   }
 
   if (workingWeight >= 185 || target.max <= 5) {
-    ramp.push({ weight: rampWeight(workingWeight, minimumLoad, 0.85), reps: "2-3" });
+    ramp.push({ weight: rampWeight(workingWeight, loadProfile.minimumLoad, 0.85), reps: "2-3" });
   }
 
   return dedupeWarmups(ramp.filter((set) => set.weight < workingWeight));
@@ -230,24 +230,6 @@ function getProgressionJump(latestWeight, grade, target) {
 
 function getIncrement(lift) {
   return 5;
-}
-
-function getMinimumLoad(lift) {
-  const name = String(lift?.exercise || lift?.baseExercise || "").toLowerCase();
-  const barbellFloor = [
-    "bench press",
-    "back squat",
-    "front squat",
-    "deadlift",
-    "overhead press",
-    "standing overhead press",
-    "barbell",
-    "ez-bar",
-  ];
-  const nonBarbell = ["cable", "dumbbell", "machine", "lat pulldown", "pec deck", "leg curl", "leg extension"];
-
-  if (nonBarbell.some((item) => name.includes(item))) return MIN_MACHINE_LOAD;
-  return barbellFloor.some((item) => name.includes(item)) ? BAR_WEIGHT : MIN_MACHINE_LOAD;
 }
 
 function roundToNearest(value, increment) {
