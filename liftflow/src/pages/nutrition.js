@@ -2,8 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import {
   addProtein,
   getProteinLog,
-  getProteinSummary,
-  getProteinTarget,
   getTodayKey,
   saveProteinTarget,
   setProteinForDay,
@@ -48,16 +46,13 @@ export default function Nutrition() {
   const dateKey = selectedDate || getTodayKey();
   const entry = useMemo(() => getEntryForDate(checkIns, dateKey), [checkIns, dateKey]);
   const activeTargets = useMemo(() => buildPhaseTargets(targets, activePhase), [targets, activePhase]);
-  const proteinSummary = useMemo(
-    () => getProteinSummary(proteinLog, Number(activeTargets.proteinTarget || getProteinTarget())),
-    [proteinLog, activeTargets.proteinTarget]
-  );
   const caloriesToday = Number(entry.calories || 0);
   const proteinToday = Number(entry.protein ?? proteinLog[dateKey] ?? 0);
   const calorieTarget = Number(activeTargets.calorieTarget || 0);
   const proteinTarget = Number(activeTargets.proteinTarget || 0);
   const recentDays = useMemo(() => buildRecentDays(checkIns, proteinLog, activeTargets), [checkIns, proteinLog, activeTargets]);
-  const calorieStreak = useMemo(() => buildCalorieStreak(checkIns, calorieTarget), [checkIns, calorieTarget]);
+  const proteinStreak = useMemo(() => buildProteinStreak(checkIns, proteinLog, proteinTarget), [checkIns, proteinLog, proteinTarget]);
+  const calorieStreak = useMemo(() => buildCalorieStreak(checkIns, activeTargets, activePhase), [checkIns, activeTargets, activePhase]);
 
   function updateTargets(nextTargets) {
     const saved = saveProgressTargets(nextTargets);
@@ -102,7 +97,7 @@ export default function Nutrition() {
             <span>cal streak</span>
           </div>
           <div style={streakBadge}>
-            <strong>{proteinSummary.streak}</strong>
+            <strong>{proteinStreak}</strong>
             <span>protein streak</span>
           </div>
         </div>
@@ -314,19 +309,58 @@ function getEntryForDate(checkIns, dateKey) {
   return (checkIns || []).find((entry) => entry.date === dateKey) || {};
 }
 
-function buildCalorieStreak(checkIns, target) {
-  const calorieTarget = Number(target || 0);
+function buildProteinStreak(checkIns, proteinLog, target) {
+  const proteinTarget = Number(target || 0);
+  if (proteinTarget <= 0) return 0;
+
+  let streak = 0;
+  for (let i = 0; i < 365; i += 1) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    const key = getTodayKey(date);
+    const entry = getEntryForDate(checkIns, key);
+    const protein = Number(entry.protein ?? proteinLog[key] ?? 0);
+    if (protein < proteinTarget) break;
+    streak += 1;
+  }
+  return streak;
+}
+
+function buildCalorieStreak(checkIns, targets, activePhase) {
+  const calorieTarget = Number(targets?.calorieTarget || 0);
   if (calorieTarget <= 0) return 0;
+  const window = getCalorieWindow(calorieTarget, targets, activePhase);
 
   let streak = 0;
   for (let i = 0; i < 365; i += 1) {
     const date = new Date();
     date.setDate(date.getDate() - i);
     const entry = getEntryForDate(checkIns, getTodayKey(date));
-    if (Number(entry.calories || 0) < calorieTarget) break;
+    const calories = Number(entry.calories || 0);
+    if (!calories || calories < window.min || calories > window.max) break;
     streak += 1;
   }
   return streak;
+}
+
+function getCalorieWindow(target, targets, activePhase) {
+  const tolerance = Math.max(150, Math.round(target * 0.05));
+  const phaseType = activePhase?.type || targets?.goalType || "maintenance";
+  const minRate = Number(targets?.targetWeeklyWeightChangeMin ?? 0);
+  const maxRate = Number(targets?.targetWeeklyWeightChangeMax ?? 0);
+  const inferredType = phaseType === "custom"
+    ? maxRate < 0 ? "cut" : minRate > 0 ? "bulk" : "maintenance"
+    : phaseType;
+
+  if (["lean-bulk", "bulk", "strength-block"].includes(inferredType)) {
+    return { min: target - tolerance, max: target + tolerance * 2 };
+  }
+
+  if (["mini-cut", "full-cut", "cut"].includes(inferredType)) {
+    return { min: target - tolerance * 2, max: target };
+  }
+
+  return { min: target - tolerance, max: target + tolerance };
 }
 
 const wrap = {
