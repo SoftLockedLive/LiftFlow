@@ -142,10 +142,16 @@ function buildWarmupRamp(workingWeight, target, minimumLoad) {
   if (!workingWeight || workingWeight < 50) return [];
 
   const ramp = [];
-  ramp.push({ weight: rampWeight(workingWeight, minimumLoad, 0.5), reps: "8-10" });
+  const barbellRamp = minimumLoad === BAR_WEIGHT && workingWeight >= 95;
+
+  if (barbellRamp) {
+    ramp.push({ weight: BAR_WEIGHT, reps: "8-10" });
+  } else {
+    ramp.push({ weight: rampWeight(workingWeight, minimumLoad, 0.5), reps: "8-10" });
+  }
 
   if (workingWeight >= 100) {
-    ramp.push({ weight: rampWeight(workingWeight, minimumLoad, 0.7), reps: target.max <= 5 ? 3 : 5 });
+    ramp.push({ weight: rampWeight(workingWeight, minimumLoad, barbellRamp ? 0.6 : 0.7), reps: target.max <= 5 ? 3 : 5 });
   }
 
   if (workingWeight >= 185 || target.max <= 5) {
