@@ -36,8 +36,7 @@ export function getNextLoad(exerciseName, currentWeight = 0) {
   successRate = completedSets / totalSets;
 
   // 🔥 SIMPLE PROGRESSION RULES
-  if (successRate >= 0.9) return currentWeight + 5;
-  if (successRate >= 0.75) return currentWeight + 2.5;
+  if (successRate >= 0.75) return currentWeight + 5;
 
   return currentWeight; // hold
 }

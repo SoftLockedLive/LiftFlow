@@ -29,6 +29,15 @@ export function normalizeExerciseName(exercise) {
   if (/\bohp\b|\boverhead press\b|\bbarbell overhead press\b|\bstanding press\b|\bmilitary press\b/.test(name)) {
     return "Overhead Press";
   }
+  if (/\bcable lateral raises?\b/.test(name)) {
+    return "Cable Lateral Raise";
+  }
+  if (/\bdumbbell lateral raises?\b|\bdb lateral raises?\b/.test(name)) {
+    return "Dumbbell Lateral Raise";
+  }
+  if (/\bmachine lateral raises?\b/.test(name)) {
+    return "Machine Lateral Raise";
+  }
 
   return raw.replace(/\b\w/g, (letter) => letter.toUpperCase());
 }

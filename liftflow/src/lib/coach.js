@@ -2,12 +2,14 @@ import { getWorkouts } from "./workoutStorage";
 import { getBaseExercise, getLiftSets, getWorkoutItems, normalizeExerciseName } from "./workoutAnalytics";
 
 const BAR_WEIGHT = 45;
+const MIN_MACHINE_LOAD = 5;
 
 export function buildCoachRecommendation(lift, workouts = getWorkouts()) {
   const baseExercise = getBaseExercise(lift);
   const history = collectLiftHistory(workouts, baseExercise);
   const target = parseRepTarget(lift.reps);
   const increment = getIncrement(lift);
+  const minimumLoad = getMinimumLoad(lift);
 
   if (history.length === 0) {
     return {
@@ -30,7 +32,7 @@ export function buildCoachRecommendation(lift, workouts = getWorkouts()) {
     : 0;
   const context = buildHistoryContext(latest, target);
 
-  const workingWeight = recommendWorkingWeight(latestTopWeight, avgReps, target, increment, context);
+  const workingWeight = recommendWorkingWeight(latestTopWeight, avgReps, target, increment, context, minimumLoad);
   const direction = workingWeight > latestTopWeight ? "increase" : workingWeight < latestTopWeight ? "reduce" : "hold";
 
   return {
@@ -43,6 +45,7 @@ export function buildCoachRecommendation(lift, workouts = getWorkouts()) {
     latestTopWeight,
     target,
     increment,
+    minimumLoad,
     confidence: context.confidence,
     contextNotes: context.notes,
     workingSetPlan: "Flat sets by default. Adjust only if reps fall off or it is clearly too light.",
@@ -56,6 +59,7 @@ export function buildLiveSetRecommendation(lift, loggedSets, coach) {
 
   const target = coach.target || parseRepTarget(lift.reps);
   const increment = coach.increment || getIncrement(lift);
+  const minimumLoad = coach.minimumLoad || getMinimumLoad(lift);
   const last = sets[sets.length - 1];
   const lastWeight = Number(last.weight || 0);
   const lastReps = Number(last.reps || 0);
@@ -81,7 +85,7 @@ export function buildLiveSetRecommendation(lift, loggedSets, coach) {
 
   if (lastReps < target.min) {
     return {
-      label: `Next set: ${Math.max(BAR_WEIGHT, roundToNearest(lastWeight - increment, increment))} lb`,
+      label: `Next set: ${Math.max(minimumLoad, roundToNearest(lastWeight - increment, increment))} lb`,
       detail: `You missed the low end of the range. Reduce slightly or rest longer.`,
       tone: "down",
     };
@@ -117,14 +121,14 @@ function collectLiftHistory(workouts, baseExercise) {
     .slice(0, 6);
 }
 
-function recommendWorkingWeight(latestWeight, avgReps, target, increment, context) {
+function recommendWorkingWeight(latestWeight, avgReps, target, increment, context, minimumLoad) {
   if (!latestWeight) return null;
   if (avgReps >= target.max) {
     return context.confidence === "high"
       ? roundToNearest(latestWeight + increment, increment)
       : roundToNearest(latestWeight, increment);
   }
-  if (avgReps < target.min) return Math.max(BAR_WEIGHT, roundToNearest(latestWeight - increment, increment));
+  if (avgReps < target.min) return Math.max(minimumLoad, roundToNearest(latestWeight - increment, increment));
   return roundToNearest(latestWeight, increment);
 }
 
@@ -186,7 +190,25 @@ function parseRepTarget(reps) {
 }
 
 function getIncrement(lift) {
-  return ["arms", "shoulders"].includes(lift.muscleGroup) ? 2.5 : 5;
+  return 5;
+}
+
+function getMinimumLoad(lift) {
+  const name = String(lift?.exercise || lift?.baseExercise || "").toLowerCase();
+  const barbellFloor = [
+    "bench press",
+    "back squat",
+    "front squat",
+    "deadlift",
+    "overhead press",
+    "standing overhead press",
+    "barbell",
+    "ez-bar",
+  ];
+  const nonBarbell = ["cable", "dumbbell", "machine", "lat pulldown", "pec deck", "leg curl", "leg extension"];
+
+  if (nonBarbell.some((item) => name.includes(item))) return MIN_MACHINE_LOAD;
+  return barbellFloor.some((item) => name.includes(item)) ? BAR_WEIGHT : MIN_MACHINE_LOAD;
 }
 
 function roundToNearest(value, increment) {
