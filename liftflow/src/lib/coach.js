@@ -142,18 +142,21 @@ function buildWarmupRamp(workingWeight, target, minimumLoad) {
   if (!workingWeight || workingWeight < 50) return [];
 
   const ramp = [];
+  ramp.push({ weight: rampWeight(workingWeight, minimumLoad, 0.5), reps: "8-10" });
+
   if (workingWeight >= 100) {
-    ramp.push({ weight: minimumLoad, reps: minimumLoad === BAR_WEIGHT ? "8-10" : "10-12" });
-    ramp.push({ weight: roundToNearest(workingWeight * 0.6, 5), reps: target.max <= 5 ? 3 : 5 });
-  } else {
-    ramp.push({ weight: Math.max(minimumLoad, roundToNearest(workingWeight * 0.5, 5)), reps: "8-10" });
+    ramp.push({ weight: rampWeight(workingWeight, minimumLoad, 0.7), reps: target.max <= 5 ? 3 : 5 });
   }
 
   if (workingWeight >= 185 || target.max <= 5) {
-    ramp.push({ weight: roundToNearest(workingWeight * 0.8, 5), reps: "2-3" });
+    ramp.push({ weight: rampWeight(workingWeight, minimumLoad, 0.85), reps: "2-3" });
   }
 
   return dedupeWarmups(ramp.filter((set) => set.weight < workingWeight));
+}
+
+function rampWeight(workingWeight, minimumLoad, percent) {
+  return Math.max(minimumLoad, roundToNearest(workingWeight * percent, 5));
 }
 
 function dedupeWarmups(sets) {
