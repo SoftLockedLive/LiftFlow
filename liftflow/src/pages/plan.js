@@ -3,7 +3,7 @@ import ConfirmDialog from "../components/ConfirmDialog";
 import { deleteCustomExercise, getCustomExercises, upsertCustomExercise } from "../lib/customExercises";
 import { getMuscleGroup, MUSCLE_GROUPS, tint } from "../lib/muscleGroups";
 import { getLoadProfile, LOAD_TYPES } from "../lib/loadProfiles";
-import { getPlan, savePlan } from "../lib/plan";
+import { deleteSavedSplit, getPlan, getSavedSplits, saveCurrentSplit, savePlan } from "../lib/plan";
 import { colors, dayColors } from "../lib/theme";
 import {
   DAY_TEMPLATES,
@@ -39,6 +39,9 @@ export default function Plan() {
   const [editingCustomId, setEditingCustomId] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null);
   const [builderPanel, setBuilderPanel] = useState("");
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [templatePreview, setTemplatePreview] = useState(null);
+  const [savedSplits, setSavedSplits] = useState([]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -46,6 +49,7 @@ export default function Plan() {
       setPlan(savedPlan);
       setDayName(savedPlan.__meta?.Monday?.name || "");
       setCustomExercises(getCustomExercises());
+      setSavedSplits(getSavedSplits());
     }, 0);
 
     return () => window.clearTimeout(timer);
@@ -118,6 +122,7 @@ export default function Plan() {
     setPlan(updated);
     savePlan(updated);
     clearForm();
+    setEditorOpen(false);
   }
 
   function addExerciseToDay(lift) {
@@ -167,12 +172,14 @@ export default function Plan() {
 
     setCustomExercises(updated);
     clearForm();
+    setEditorOpen(false);
     setEditingCustomId(null);
   }
 
   function clearForm() {
     setEditingId(null);
     setEditingCustomId(null);
+    setEditorOpen(false);
     setExercise("");
     setSets("");
     setReps("");
@@ -193,7 +200,7 @@ export default function Plan() {
 
   function startCustomEdit(lift) {
     setEditingCustomId(lift.id);
-    setBuilderPanel("editor");
+    setEditorOpen(true);
     setExercise(lift.exercise || "");
     setSets(String(lift.sets || ""));
     setReps(String(lift.reps || ""));
@@ -204,7 +211,7 @@ export default function Plan() {
 
   function startEdit(lift) {
     setEditingId(lift.id);
-    setBuilderPanel("editor");
+    setEditorOpen(true);
     setExercise(lift.exercise || "");
     setSets(String(lift.sets || ""));
     setReps(String(lift.reps || ""));
@@ -285,16 +292,11 @@ export default function Plan() {
     setSelectedDay("Monday");
     setDayName(templatePlan.__meta?.Monday?.name || "");
     clearForm();
+    setTemplatePreview(null);
   }
 
-  function requestApplyTemplate(templateId) {
-    setConfirmAction({
-      title: "Replace Current Split?",
-      message: "Your current workout split will be replaced with this template. This may remove your existing split configuration.",
-      confirmLabel: "Replace Split",
-      danger: true,
-      onConfirm: () => applyTemplateNow(templateId),
-    });
+  function previewSplitTemplate(template) {
+    setTemplatePreview({ kind: "split", template });
   }
 
   function applyDayTemplateNow(templateId, recoveryTemplate = false) {
@@ -314,23 +316,58 @@ export default function Plan() {
     savePlan(updated);
     setDayName(template.meta.name || "");
     clearForm();
+    setTemplatePreview(null);
   }
 
-  function requestApplyDayTemplate(templateId, recoveryTemplate = false) {
-    const hasExisting = todayPlan.length > 0 || plan.__meta?.[selectedDay]?.recovery;
+  function previewDayTemplate(template, recoveryTemplate = false) {
+    setTemplatePreview({ kind: "day", template, recoveryTemplate });
+  }
 
-    if (!hasExisting) {
-      applyDayTemplateNow(templateId, recoveryTemplate);
-      return;
-    }
+  function applyTemplateDayToSelected(dayName, config) {
+    const updated = {
+      ...plan,
+      __meta: {
+        ...(plan.__meta || {}),
+        [selectedDay]: {
+          name: config.name || dayName,
+          type: config.type || "training",
+          recovery: config.recovery || null,
+          warmup: (config.warmup || []).map((item) => ({ ...item, id: crypto.randomUUID() })),
+          emphasis: config.emphasis || "",
+          actionCards: config.actionCards || [],
+        },
+      },
+      [selectedDay]: (config.lifts || []).map((lift) => ({ ...lift, id: crypto.randomUUID() })),
+    };
+    setPlan(updated);
+    savePlan(updated);
+    setDayName(updated.__meta?.[selectedDay]?.name || "");
+    clearForm();
+    setTemplatePreview(null);
+  }
 
-    setConfirmAction({
-      title: "Replace This Day?",
-      message: `${selectedDay} already has saved work. Applying this template will replace the exercises or recovery details for this day.`,
-      confirmLabel: "Replace Day",
-      danger: true,
-      onConfirm: () => applyDayTemplateNow(templateId, recoveryTemplate),
-    });
+  function saveCurrentSplitSnapshot() {
+    const name = window.prompt("Name this saved split", plan.__meta?.Monday?.name ? `${plan.__meta.Monday.name} Split` : "My Split");
+    if (name === null) return;
+    setSavedSplits(saveCurrentSplit(plan, name));
+  }
+
+  function saveCurrentThenApply(templateId) {
+    setSavedSplits(saveCurrentSplit(plan, "Before Template Swap"));
+    applyTemplateNow(templateId);
+  }
+
+  function restoreSavedSplit(split) {
+    if (!split?.plan) return;
+    setPlan(split.plan);
+    savePlan(split.plan);
+    setSelectedDay("Monday");
+    setDayName(split.plan.__meta?.Monday?.name || "");
+    clearForm();
+  }
+
+  function removeSavedSplit(id) {
+    setSavedSplits(deleteSavedSplit(id));
   }
 
   function confirmDeleteExercise(id) {
@@ -435,7 +472,14 @@ export default function Plan() {
             <p style={label}>Current Day</p>
             <h2 style={cardTitle}>{selectedMeta.name || selectedDay}</h2>
           </div>
-          <button type="button" onClick={() => setBuilderPanel("editor")} style={editBtn}>
+          <button
+            type="button"
+            onClick={() => {
+              clearForm();
+              setEditorOpen(true);
+            }}
+            style={editBtn}
+          >
             Add Lift
           </button>
         </div>
@@ -513,10 +557,20 @@ export default function Plan() {
         </button>
         <button
           type="button"
-          onClick={() => setBuilderPanel(builderPanel === "editor" ? "" : "editor")}
-          style={{ ...toolTab, ...(builderPanel === "editor" ? activeToolTab : {}) }}
+          onClick={() => {
+            clearForm();
+            setEditorOpen(true);
+          }}
+          style={toolTab}
         >
           Create / Edit
+        </button>
+        <button
+          type="button"
+          onClick={() => setBuilderPanel(builderPanel === "saved" ? "" : "saved")}
+          style={{ ...toolTab, ...(builderPanel === "saved" ? activeToolTab : {}) }}
+        >
+          Saved Splits
         </button>
       </section>
 
@@ -533,8 +587,8 @@ export default function Plan() {
               <article key={template.id} style={templateCard}>
                 <h3 style={templateName}>{template.name}</h3>
                 <p style={templateSummary}>{template.summary}</p>
-                <button type="button" onClick={() => requestApplyTemplate(template.id)} style={templateButton}>
-                  Use Template
+                <button type="button" onClick={() => previewSplitTemplate(template)} style={templateButton}>
+                  Preview Split
                 </button>
               </article>
             ))}
@@ -547,7 +601,7 @@ export default function Plan() {
           <p style={label}>Workout Day Templates</p>
           <div style={chipGrid}>
             {DAY_TEMPLATES.map((template) => (
-              <button key={template.id} type="button" onClick={() => requestApplyDayTemplate(template.id)} style={smallTemplateBtn}>
+              <button key={template.id} type="button" onClick={() => previewDayTemplate(template)} style={smallTemplateBtn}>
                 {template.name}
               </button>
             ))}
@@ -555,7 +609,7 @@ export default function Plan() {
           <p style={{ ...label, marginTop: 14 }}>Recovery Templates</p>
           <div style={chipGrid}>
             {RECOVERY_TEMPLATES.map((template) => (
-              <button key={template.id} type="button" onClick={() => requestApplyDayTemplate(template.id, true)} style={recoveryTemplateBtn}>
+              <button key={template.id} type="button" onClick={() => previewDayTemplate(template, true)} style={recoveryTemplateBtn}>
                 {template.name}
               </button>
             ))}
@@ -563,68 +617,38 @@ export default function Plan() {
         </section>
       )}
 
-      {builderPanel === "editor" && (
-        <section style={card}>
-          <h2 style={cardTitle}>{editingId ? "Edit Day Exercise" : editingCustomId ? "Edit Custom Exercise" : "Create Custom Exercise"}</h2>
-          <input
-            placeholder="Exercise"
-            value={exercise}
-            onChange={(event) => setExercise(event.target.value)}
-          />
-
-          <div className="field-row" style={fieldRow}>
-            <input
-              placeholder="Sets, e.g. 3"
-              inputMode="numeric"
-              value={sets}
-              onChange={(event) => setSets(event.target.value)}
-            />
-            <input
-              placeholder="Reps or range, e.g. 8-12"
-              inputMode="numeric"
-              value={reps}
-              onChange={(event) => setReps(event.target.value)}
-            />
+      {builderPanel === "saved" && (
+        <section style={templateSection}>
+          <div style={templateHeader}>
+            <div>
+              <p style={label}>Saved Splits</p>
+              <h2 style={cardTitle}>Fallback Plans</h2>
+            </div>
+            <button type="button" onClick={saveCurrentSplitSnapshot} style={editBtn}>
+              Save Current
+            </button>
           </div>
-
-          <label style={label}>Muscle Group</label>
-          <select value={muscleGroup} onChange={(event) => setMuscleGroup(event.target.value)}>
-            {MUSCLE_GROUPS.map((group) => (
-              <option key={group.id} value={group.id}>
-                {group.label}
-              </option>
-            ))}
-          </select>
-
-          <label style={label}>Load Type</label>
-          <select value={loadType} onChange={(event) => setLoadType(event.target.value)}>
-            {LOAD_TYPES.map((type) => (
-              <option key={type} value={type}>
-                {formatLoadType(type)}
-              </option>
-            ))}
-          </select>
-
-          <label style={label}>Lift Note</label>
-          <textarea
-            placeholder="Cue, setup note, tempo, injury reminder..."
-            value={stretches}
-            onChange={(event) => setStretches(event.target.value)}
-            style={textarea}
-          />
-
-          <button type="button" className="primary" onClick={handleSaveExercise} style={fullButton}>
-            {editingId ? "Save Exercise" : "Add Exercise"}
-          </button>
-          {!editingId && (
-            <button type="button" onClick={saveCustomExercise} style={templateButton}>
-              {editingCustomId ? "Save Custom Exercise" : "Save to Custom Exercises"}
-            </button>
-          )}
-          {(editingId || editingCustomId) && (
-            <button type="button" onClick={clearForm} style={cancelBtn}>
-              Cancel Edit
-            </button>
+          {savedSplits.length === 0 ? (
+            <div style={empty}>No saved splits yet.</div>
+          ) : (
+            <div style={libraryList}>
+              {savedSplits.map((split) => (
+                <div key={split.id} style={libraryItem}>
+                  <div>
+                    <strong style={libraryLiftName}>{split.name}</strong>
+                    <p style={liftMeta}>{formatSavedSplitMeta(split.plan)}</p>
+                  </div>
+                  <div style={actions}>
+                    <button type="button" onClick={() => restoreSavedSplit(split)} style={editBtn}>
+                      Restore
+                    </button>
+                    <button type="button" onClick={() => removeSavedSplit(split.id)} style={removeBtn}>
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </section>
       )}
@@ -755,6 +779,86 @@ export default function Plan() {
           setConfirmAction(null);
         }}
       />
+
+      {editorOpen && (
+        <div style={modalOverlay} onClick={clearForm}>
+          <section style={modalPanel} onClick={(event) => event.stopPropagation()}>
+            <div style={modalHeader}>
+              <h2 style={modalTitle}>{editingId ? "Edit Day Exercise" : editingCustomId ? "Edit Custom Exercise" : "Create Custom Exercise"}</h2>
+              <button type="button" onClick={clearForm} style={closeBtn}>X</button>
+            </div>
+            <div style={modalBody}>
+              {renderExerciseEditor({
+                exercise,
+                setExercise,
+                sets,
+                setSets,
+                reps,
+                setReps,
+                muscleGroup,
+                setMuscleGroup,
+                loadType,
+                setLoadType,
+                stretches,
+                setStretches,
+                editingId,
+                editingCustomId,
+                handleSaveExercise,
+                saveCustomExercise,
+                clearForm,
+              })}
+            </div>
+          </section>
+        </div>
+      )}
+
+      {templatePreview && (
+        <div style={modalOverlay} onClick={() => setTemplatePreview(null)}>
+          <section style={previewPanel} onClick={(event) => event.stopPropagation()}>
+            <div style={modalHeader}>
+              <h2 style={modalTitle}>{templatePreview.template.name}</h2>
+              <button type="button" onClick={() => setTemplatePreview(null)} style={closeBtn}>X</button>
+            </div>
+            <div style={modalBody}>
+              {templatePreview.kind === "split" ? (
+                <>
+                  <p style={templateSummary}>{templatePreview.template.summary}</p>
+                  <div style={previewList}>
+                    {Object.entries(templatePreview.template.days).map(([dayName, config]) => (
+                      <PreviewDay
+                        key={dayName}
+                        dayName={dayName}
+                        config={config}
+                        onUseDay={() => applyTemplateDayToSelected(dayName, config)}
+                      />
+                    ))}
+                  </div>
+                  <div style={modalActions}>
+                    <button type="button" onClick={() => saveCurrentThenApply(templatePreview.template.id)} style={templateButton}>
+                      Save Current + Apply
+                    </button>
+                    <button type="button" className="primary" onClick={() => applyTemplateNow(templatePreview.template.id)}>
+                      Apply Full Split
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <PreviewDay dayName={selectedDay} config={templatePreview.template.config} />
+                  <button
+                    type="button"
+                    className="primary"
+                    onClick={() => applyDayTemplateNow(templatePreview.template.id, templatePreview.recoveryTemplate)}
+                    style={fullButton}
+                  >
+                    Use For {selectedDay}
+                  </button>
+                </>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }
@@ -772,6 +876,128 @@ function formatWarmupMovement(movement) {
 
 function formatLoadType(type) {
   return String(type || "free").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function formatSavedSplitMeta(plan) {
+  const days = DAYS.filter((day) => Array.isArray(plan?.[day]) && plan[day].length > 0).length;
+  const lifts = DAYS.reduce((sum, day) => sum + (Array.isArray(plan?.[day]) ? plan[day].length : 0), 0);
+  return `${days} days · ${lifts} lifts`;
+}
+
+function renderExerciseEditor({
+  exercise,
+  setExercise,
+  sets,
+  setSets,
+  reps,
+  setReps,
+  muscleGroup,
+  setMuscleGroup,
+  loadType,
+  setLoadType,
+  stretches,
+  setStretches,
+  editingId,
+  editingCustomId,
+  handleSaveExercise,
+  saveCustomExercise,
+  clearForm,
+}) {
+  return (
+    <>
+      <input
+        placeholder="Exercise"
+        value={exercise}
+        onChange={(event) => setExercise(event.target.value)}
+      />
+
+      <div className="field-row" style={fieldRow}>
+        <input
+          placeholder="Sets, e.g. 3"
+          inputMode="numeric"
+          value={sets}
+          onChange={(event) => setSets(event.target.value)}
+        />
+        <input
+          placeholder="Reps or range, e.g. 8-12"
+          inputMode="numeric"
+          value={reps}
+          onChange={(event) => setReps(event.target.value)}
+        />
+      </div>
+
+      <label style={label}>Muscle Group</label>
+      <select value={muscleGroup} onChange={(event) => setMuscleGroup(event.target.value)}>
+        {MUSCLE_GROUPS.map((group) => (
+          <option key={group.id} value={group.id}>
+            {group.label}
+          </option>
+        ))}
+      </select>
+
+      <label style={label}>Load Type</label>
+      <select value={loadType} onChange={(event) => setLoadType(event.target.value)}>
+        {LOAD_TYPES.map((type) => (
+          <option key={type} value={type}>
+            {formatLoadType(type)}
+          </option>
+        ))}
+      </select>
+
+      <label style={label}>Lift Note</label>
+      <textarea
+        placeholder="Cue, setup note, tempo, injury reminder..."
+        value={stretches}
+        onChange={(event) => setStretches(event.target.value)}
+        style={textarea}
+      />
+
+      <button type="button" className="primary" onClick={handleSaveExercise} style={fullButton}>
+        {editingId ? "Save Exercise" : "Add Exercise"}
+      </button>
+      {!editingId && (
+        <button type="button" onClick={saveCustomExercise} style={templateButton}>
+          {editingCustomId ? "Save Custom Exercise" : "Save to Custom Exercises"}
+        </button>
+      )}
+      {(editingId || editingCustomId) && (
+        <button type="button" onClick={clearForm} style={cancelBtn}>
+          Cancel Edit
+        </button>
+      )}
+    </>
+  );
+}
+
+function PreviewDay({ dayName, config, onUseDay }) {
+  const lifts = config?.lifts || [];
+  return (
+    <article style={previewDayCard}>
+      <div style={previewDayHeader}>
+        <div>
+          <strong style={libraryLiftName}>{dayName} · {config?.name || "Training"}</strong>
+          <p style={liftMeta}>
+            {config?.recovery ? `${config.recovery.activity} · ${config.recovery.duration}` : `${lifts.length} lifts`}
+          </p>
+        </div>
+        {onUseDay && (
+          <button type="button" onClick={onUseDay} style={editBtn}>
+            Use This Day
+          </button>
+        )}
+      </div>
+      {lifts.length > 0 && (
+        <div style={previewLiftList}>
+          {lifts.map((lift) => (
+            <div key={`${dayName}-${lift.exercise}-${lift.sets}-${lift.reps}`} style={previewLiftRow}>
+              <span>{lift.exercise}</span>
+              <strong>{lift.sets} x {lift.reps}</strong>
+            </div>
+          ))}
+        </div>
+      )}
+    </article>
+  );
 }
 
 const wrap = {
@@ -1105,4 +1331,98 @@ const removeBtn = {
   background: "rgba(255, 107, 44, 0.12)",
   padding: "7px 10px",
   fontSize: 12,
+};
+
+const modalOverlay = {
+  position: "fixed",
+  inset: 0,
+  zIndex: 210,
+  background: "rgba(0, 0, 0, 0.78)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: 18,
+};
+
+const modalPanel = {
+  width: "min(460px, 100%)",
+  maxHeight: "88vh",
+  overflow: "auto",
+  border: `1px solid ${colors.border}`,
+  borderRadius: 14,
+  background: colors.surface,
+};
+
+const previewPanel = {
+  ...modalPanel,
+  width: "min(620px, 100%)",
+};
+
+const modalHeader = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 12,
+  padding: 16,
+  borderBottom: "1px solid #222",
+};
+
+const modalTitle = {
+  margin: 0,
+  color: ACCENT,
+  fontSize: 22,
+};
+
+const closeBtn = {
+  width: 36,
+  height: 36,
+  padding: 0,
+};
+
+const modalBody = {
+  display: "grid",
+  gap: 12,
+  padding: 16,
+};
+
+const modalActions = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+  gap: 10,
+};
+
+const previewList = {
+  display: "grid",
+  gap: 10,
+};
+
+const previewDayCard = {
+  border: "1px solid #242424",
+  borderRadius: 12,
+  background: "#0b0b0b",
+  padding: 12,
+};
+
+const previewDayHeader = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 10,
+  alignItems: "flex-start",
+};
+
+const previewLiftList = {
+  display: "grid",
+  gap: 6,
+  marginTop: 10,
+};
+
+const previewLiftRow = {
+  display: "flex",
+  justifyContent: "space-between",
+  gap: 10,
+  color: "#bdbdb8",
+  fontSize: 12,
+  fontWeight: 750,
+  borderTop: "1px solid #202020",
+  paddingTop: 6,
 };
