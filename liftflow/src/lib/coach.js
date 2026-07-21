@@ -26,24 +26,23 @@ export function buildCoachRecommendation(lift, workouts = getWorkouts()) {
   const latest = history[0];
   const latestSets = latest.sets;
   const latestTopWeight = Math.max(...latestSets.map((set) => Number(set.weight || 0)), 0);
-  const sameWeightSets = latestSets.filter((set) => Number(set.weight || 0) === latestTopWeight);
-  const avgReps = sameWeightSets.length
-    ? sameWeightSets.reduce((sum, set) => sum + Number(set.reps || 0), 0) / sameWeightSets.length
-    : 0;
   const context = buildHistoryContext(latest, target);
+  const setCount = parseSetCount(lift.sets);
+  const grade = gradeLatestSession(latestSets, latestTopWeight, target, setCount);
 
-  const workingWeight = recommendWorkingWeight(latestTopWeight, avgReps, target, increment, context, minimumLoad);
+  const workingWeight = recommendWorkingWeight(latestTopWeight, grade, increment, context, minimumLoad);
   const direction = workingWeight > latestTopWeight ? "increase" : workingWeight < latestTopWeight ? "reduce" : "hold";
 
   return {
     status: "ready",
     headline: `${workingWeight} lb`,
-    detail: buildDetail(direction, latestTopWeight, avgReps, target, context),
+    detail: buildDetail(direction, latestTopWeight, grade, target, context),
     warmups: buildWarmupRamp(workingWeight, target, minimumLoad),
     warmupLabel: "Ramp-up sets",
     workingWeight,
     latestTopWeight,
     target,
+    grade,
     increment,
     minimumLoad,
     confidence: context.confidence,
@@ -121,26 +120,36 @@ function collectLiftHistory(workouts, baseExercise) {
     .slice(0, 6);
 }
 
-function recommendWorkingWeight(latestWeight, avgReps, target, increment, context, minimumLoad) {
+function recommendWorkingWeight(latestWeight, grade, increment, context, minimumLoad) {
   if (!latestWeight) return null;
-  if (avgReps >= target.max) {
-    return context.confidence === "high"
-      ? roundToNearest(latestWeight + increment, increment)
-      : roundToNearest(latestWeight, increment);
+  if (context.confidence !== "high") return roundToNearest(latestWeight, increment);
+
+  if (grade.result === "strong-pass") {
+    const jump = getProgressionJump(latestWeight, grade, target);
+    return roundToNearest(latestWeight + jump, increment);
   }
-  if (avgReps < target.min) return Math.max(minimumLoad, roundToNearest(latestWeight - increment, increment));
+
+  if (grade.result === "pass") {
+    const jump = latestWeight >= 50 ? increment : 0;
+    return roundToNearest(latestWeight + jump, increment);
+  }
+
+  if (grade.result === "miss") return Math.max(minimumLoad, roundToNearest(latestWeight - increment, increment));
   return roundToNearest(latestWeight, increment);
 }
 
 function buildWarmupRamp(workingWeight, target, minimumLoad) {
-  if (!workingWeight || workingWeight <= minimumLoad) return [];
+  if (!workingWeight || workingWeight < 50) return [];
 
-  const ramp = [
-    { weight: minimumLoad, reps: minimumLoad === BAR_WEIGHT ? "8-10" : "10-12" },
-    { weight: roundToNearest(workingWeight * 0.6, 5), reps: target.max <= 5 ? 3 : 5 },
-  ];
+  const ramp = [];
+  if (workingWeight >= 100) {
+    ramp.push({ weight: minimumLoad, reps: minimumLoad === BAR_WEIGHT ? "8-10" : "10-12" });
+    ramp.push({ weight: roundToNearest(workingWeight * 0.6, 5), reps: target.max <= 5 ? 3 : 5 });
+  } else {
+    ramp.push({ weight: Math.max(minimumLoad, roundToNearest(workingWeight * 0.5, 5)), reps: "8-10" });
+  }
 
-  if (workingWeight >= 225 || target.max <= 5) {
+  if (workingWeight >= 185 || target.max <= 5) {
     ramp.push({ weight: roundToNearest(workingWeight * 0.8, 5), reps: "2-3" });
   }
 
@@ -164,6 +173,50 @@ function parseRepTarget(reps) {
 
   if (numbers.length === 0) return { min: 1, max: 1 };
   return { min: Math.min(...numbers), max: Math.max(...numbers) };
+}
+
+function parseSetCount(sets) {
+  const numbers = String(sets || "")
+    .match(/\d+/g)
+    ?.map((value) => Number(value))
+    .filter((value) => Number.isFinite(value) && value > 0) || [];
+  return numbers[0] || 0;
+}
+
+function gradeLatestSession(sets, latestWeight, target, setCount) {
+  const latestSets = sets.filter((set) => Number(set.weight || 0) === latestWeight);
+  const evaluatedSets = setCount > 0 ? sets.slice(0, setCount) : sets;
+  const fullSetCount = setCount === 0 || evaluatedSets.length >= setCount;
+  const allAtTopWeight = evaluatedSets.length > 0 && evaluatedSets.every((set) => Number(set.weight || 0) === latestWeight);
+  const reps = latestSets.map((set) => Number(set.reps || 0));
+  const evaluatedReps = evaluatedSets.map((set) => Number(set.reps || 0));
+  const avgReps = reps.length ? round1(reps.reduce((sum, value) => sum + value, 0) / reps.length) : 0;
+  const lowestRep = reps.length ? Math.min(...reps) : 0;
+  const lowestEvaluatedRep = evaluatedReps.length ? Math.min(...evaluatedReps) : 0;
+  const completedTopSets = latestSets.length;
+  const requiredSets = setCount || completedTopSets;
+
+  if (!fullSetCount || !allAtTopWeight || lowestEvaluatedRep < target.min) {
+    return {
+      result: lowestEvaluatedRep && lowestEvaluatedRep < target.min ? "miss" : "hold",
+      completedTopSets,
+      requiredSets,
+      avgReps,
+      lowestRep: lowestEvaluatedRep || lowestRep,
+    };
+  }
+
+  if (lowestRep >= target.max) {
+    return { result: "strong-pass", completedTopSets, requiredSets, avgReps, lowestRep };
+  }
+
+  return { result: "pass", completedTopSets, requiredSets, avgReps, lowestRep };
+}
+
+function getProgressionJump(latestWeight, grade, target) {
+  if (latestWeight >= 100) return 10;
+  if (latestWeight >= 25) return 5;
+  return grade.lowestRep >= target.max + 2 ? 5 : 0;
 }
 
 function getIncrement(lift) {
@@ -192,6 +245,10 @@ function roundToNearest(value, increment) {
   return Math.round(Number(value || 0) / increment) * increment;
 }
 
+function round1(value) {
+  return Math.round(Number(value || 0) * 10) / 10;
+}
+
 function buildHistoryContext(latest, currentTarget) {
   const notes = [];
   let confidence = "high";
@@ -213,12 +270,12 @@ function sameRepTarget(a, b) {
   return Number(a?.min || 0) === Number(b?.min || 0) && Number(a?.max || 0) === Number(b?.max || 0);
 }
 
-function buildDetail(direction, latestWeight, avgReps, target, context) {
-  const reps = Math.round(avgReps * 10) / 10;
+function buildDetail(direction, latestWeight, grade, target, context) {
   const confidence = context.confidence === "high" ? "" : " Treat this as an estimate.";
-  if (direction === "increase") return `Last time you averaged ${reps} reps at ${latestWeight} lb, above the ${target.min}-${target.max} target.${confidence}`;
-  if (direction === "reduce") return `Last time you averaged ${reps} reps at ${latestWeight} lb, below the ${target.min}-${target.max} target.${confidence}`;
-  return `Last time you averaged ${reps} reps at ${latestWeight} lb against today's ${target.min}-${target.max} target.${confidence}`;
+  const setSummary = `${grade.completedTopSets}/${grade.requiredSets} top sets, lowest ${grade.lowestRep || "--"} reps`;
+  if (direction === "increase") return `Last time: ${setSummary} at ${latestWeight} lb against ${target.min}-${target.max}. Progress by the smallest useful jump.${confidence}`;
+  if (direction === "reduce") return `Last time: ${setSummary} at ${latestWeight} lb, below the ${target.min}-${target.max} target. Reduce slightly and rebuild.${confidence}`;
+  return `Last time: ${setSummary} at ${latestWeight} lb against ${target.min}-${target.max}. Hold until every set is clean.${confidence}`;
 }
 
 function buildNextAction(workingWeight, lift) {

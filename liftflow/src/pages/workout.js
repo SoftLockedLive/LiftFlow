@@ -195,7 +195,6 @@ export default function Workout() {
         plannedReps: lift.reps || "",
         sets: getLoggedSets(session[lift.id]),
         date: Date.now(),
-        suggestedWeight: lift.suggestedWeight || null,
         note: lift.note || lift.stretches || "",
         stretches: lift.stretches || "",
       };
