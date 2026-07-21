@@ -320,6 +320,7 @@ function buildProteinStreak(checkIns, proteinLog, target) {
     const key = getTodayKey(date);
     const entry = getEntryForDate(checkIns, key);
     const protein = Number(entry.protein ?? proteinLog[key] ?? 0);
+    if (i === 0 && protein < proteinTarget) continue;
     if (protein < proteinTarget) break;
     streak += 1;
   }
@@ -337,6 +338,7 @@ function buildCalorieStreak(checkIns, targets, activePhase) {
     date.setDate(date.getDate() - i);
     const entry = getEntryForDate(checkIns, getTodayKey(date));
     const calories = Number(entry.calories || 0);
+    if (i === 0 && (!calories || calories < window.min)) continue;
     if (!calories || calories < window.min || calories > window.max) break;
     streak += 1;
   }
