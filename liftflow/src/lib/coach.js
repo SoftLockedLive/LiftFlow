@@ -39,7 +39,7 @@ export function buildCoachRecommendation(lift, workouts = getWorkouts()) {
     status: "ready",
     headline: `${workingWeight} lb`,
     detail: buildDetail(direction, latestTopWeight, avgReps, target, context),
-    warmups: buildWarmupRamp(workingWeight, target, lift),
+    warmups: buildWarmupRamp(workingWeight, target, minimumLoad),
     warmupLabel: "Ramp-up sets",
     workingWeight,
     latestTopWeight,
@@ -132,18 +132,12 @@ function recommendWorkingWeight(latestWeight, avgReps, target, increment, contex
   return roundToNearest(latestWeight, increment);
 }
 
-function buildWarmupRamp(workingWeight, target, lift) {
-  if (!workingWeight || workingWeight <= BAR_WEIGHT) {
-    return needsFullRamp(lift) ? [{ weight: BAR_WEIGHT, reps: "10-12" }] : [];
-  }
-
-  if (!needsFullRamp(lift)) {
-    return [];
-  }
+function buildWarmupRamp(workingWeight, target, minimumLoad) {
+  if (!workingWeight || workingWeight <= minimumLoad) return [];
 
   const ramp = [
-    { weight: BAR_WEIGHT, reps: "10-12" },
-    { weight: roundToNearest(workingWeight * 0.6, 5), reps: 5 },
+    { weight: minimumLoad, reps: minimumLoad === BAR_WEIGHT ? "8-10" : "10-12" },
+    { weight: roundToNearest(workingWeight * 0.6, 5), reps: target.max <= 5 ? 3 : 5 },
   ];
 
   if (workingWeight >= 225 || target.max <= 5) {
@@ -151,23 +145,6 @@ function buildWarmupRamp(workingWeight, target, lift) {
   }
 
   return dedupeWarmups(ramp.filter((set) => set.weight < workingWeight));
-}
-
-function needsFullRamp(lift) {
-  const name = String(lift?.exercise || lift?.baseExercise || "").toLowerCase();
-  const fullRampExercises = [
-    "bench",
-    "squat",
-    "deadlift",
-    "romanian deadlift",
-    "overhead press",
-    "shoulder press",
-    "leg press",
-    "hack squat",
-    "front squat",
-  ];
-
-  return fullRampExercises.some((exercise) => name.includes(exercise));
 }
 
 function dedupeWarmups(sets) {

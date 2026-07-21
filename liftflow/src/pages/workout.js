@@ -147,6 +147,19 @@ export default function Workout() {
     });
   }
 
+  function toggleCoachDetails(exerciseId) {
+    setSession((prev) => {
+      const coachState = { ...(prev.__coach || {}) };
+      coachState[exerciseId] = !coachState[exerciseId];
+
+      const copy = { ...prev, __coach: coachState };
+      const updatedDrafts = { ...drafts, [selectedDay]: copy };
+      setDrafts(updatedDrafts);
+      saveWorkoutDrafts(updatedDrafts);
+      return copy;
+    });
+  }
+
   function updateVariation(exerciseId, patch) {
     setSession((prev) => {
       const variations = { ...(prev.__variations || {}) };
@@ -362,6 +375,7 @@ export default function Workout() {
             const activePr = swapped ? prMap[normalizeExerciseName(performedExercise)] : lift.prRecord;
             const coach = swapped ? buildCoachRecommendation(activeLift, getWorkouts()) : lift.coachRecommendation;
             const liveCoach = buildLiveSetRecommendation(activeLift, session[lift.id] || [], coach);
+            const coachDetailsOpen = Boolean(session.__coach?.[lift.id]);
 
             return (
               <article
@@ -403,15 +417,20 @@ export default function Workout() {
 
                 {coach && (
                   <section style={coachCard}>
-                    <div style={coachHeader}>
+                    <button
+                      type="button"
+                      onClick={() => toggleCoachDetails(lift.id)}
+                      style={coachToggle}
+                      aria-expanded={coachDetailsOpen}
+                    >
                       <div>
                         <span style={coachLabel}>Coach</span>
                         <strong style={coachTitle}>{coach.headline}</strong>
                       </div>
-                      <span style={coachBadge}>Flat sets</span>
-                    </div>
+                      <span style={coachBadge}>{coachDetailsOpen ? "Hide ramp" : "Show ramp"}</span>
+                    </button>
                     <p style={coachDetail}>{coach.detail}</p>
-                    {coach.warmups?.length > 0 && (
+                    {coachDetailsOpen && coach.warmups?.length > 0 && (
                       <div style={coachWarmupBlock}>
                         <span style={coachWarmupLabel}>{coach.warmupLabel || "Optional ramp"}</span>
                         <div style={coachWarmups}>
@@ -437,6 +456,9 @@ export default function Workout() {
                           })}
                         </div>
                       </div>
+                    )}
+                    {coachDetailsOpen && coach.warmups?.length === 0 && (
+                      <p style={coachContextNote}>No ramp needed before this working weight.</p>
                     )}
                     {coach.contextNotes?.map((note) => (
                       <p key={note} style={coachContextNote}>{note}</p>
@@ -1027,11 +1049,18 @@ const coachCard = {
   gap: 6,
 };
 
-const coachHeader = {
+const coachToggle = {
+  width: "100%",
   display: "flex",
   justifyContent: "space-between",
   gap: 12,
   alignItems: "flex-start",
+  textAlign: "left",
+  border: 0,
+  borderRadius: 8,
+  background: "transparent",
+  padding: 0,
+  color: "inherit",
 };
 
 const coachLabel = {
