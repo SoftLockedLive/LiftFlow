@@ -1,5 +1,6 @@
 export const BAR_WEIGHT = 45;
 export const MIN_LOAD = 5;
+export const LOAD_TYPES = ["barbell", "machine", "dumbbell", "bodyweight", "free"];
 
 export function getLoadProfile(lift = {}) {
   const inferredType = inferLoadType(lift.exercise || lift.baseExercise);
@@ -27,5 +28,5 @@ export function inferLoadType(exercise) {
 
 export function normalizeLoadType(value) {
   const type = String(value || "").toLowerCase();
-  return ["barbell", "machine", "dumbbell", "bodyweight", "free"].includes(type) ? type : "";
+  return LOAD_TYPES.includes(type) ? type : "";
 }

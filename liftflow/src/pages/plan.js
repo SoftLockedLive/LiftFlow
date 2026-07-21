@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { deleteCustomExercise, getCustomExercises, upsertCustomExercise } from "../lib/customExercises";
 import { getMuscleGroup, MUSCLE_GROUPS, tint } from "../lib/muscleGroups";
+import { getLoadProfile, LOAD_TYPES } from "../lib/loadProfiles";
 import { getPlan, savePlan } from "../lib/plan";
 import { colors, dayColors } from "../lib/theme";
 import {
@@ -24,6 +25,7 @@ export default function Plan() {
   const [sets, setSets] = useState("");
   const [reps, setReps] = useState("");
   const [stretches, setStretches] = useState("");
+  const [loadType, setLoadType] = useState("free");
   const [warmupName, setWarmupName] = useState("");
   const [warmupMode, setWarmupMode] = useState("reps");
   const [warmupSets, setWarmupSets] = useState("");
@@ -78,6 +80,7 @@ export default function Plan() {
 
     const updated = { ...plan };
     const dayPlan = Array.isArray(updated[selectedDay]) ? updated[selectedDay] : [];
+    const loadProfile = getLoadProfile({ exercise, loadType });
 
     if (editingId) {
       updated[selectedDay] = dayPlan.map((lift) =>
@@ -86,6 +89,8 @@ export default function Plan() {
               ...lift,
               exercise,
               muscleGroup,
+              loadType: loadProfile.type,
+              minimumLoad: loadProfile.minimumLoad,
               sets,
               reps,
               note: stretches,
@@ -100,6 +105,8 @@ export default function Plan() {
           id: crypto.randomUUID(),
           exercise,
           muscleGroup,
+          loadType: loadProfile.type,
+          minimumLoad: loadProfile.minimumLoad,
           sets,
           reps,
           note: stretches,
@@ -116,12 +123,15 @@ export default function Plan() {
   function addExerciseToDay(lift) {
     const updated = { ...plan };
     const dayPlan = Array.isArray(updated[selectedDay]) ? updated[selectedDay] : [];
+    const loadProfile = getLoadProfile(lift);
     updated[selectedDay] = [
       ...dayPlan,
       {
         id: crypto.randomUUID(),
         exercise: lift.exercise,
         muscleGroup: lift.muscleGroup || "other",
+        loadType: loadProfile.type,
+        minimumLoad: loadProfile.minimumLoad,
         sets: lift.sets || "3",
         reps: lift.reps || "8-12",
         note: lift.note || lift.stretches || "",
@@ -148,6 +158,7 @@ export default function Plan() {
       id: editingCustomId,
       exercise,
       muscleGroup,
+      loadType,
       sets,
       reps,
       note: stretches,
@@ -166,6 +177,7 @@ export default function Plan() {
     setSets("");
     setReps("");
     setStretches("");
+    setLoadType("free");
     setMuscleGroup("chest");
   }
 
@@ -186,6 +198,7 @@ export default function Plan() {
     setSets(String(lift.sets || ""));
     setReps(String(lift.reps || ""));
     setStretches(lift.note || lift.stretches || "");
+    setLoadType(getLoadProfile(lift).type);
     setMuscleGroup(lift.muscleGroup || "other");
   }
 
@@ -196,6 +209,7 @@ export default function Plan() {
     setSets(String(lift.sets || ""));
     setReps(String(lift.reps || ""));
     setStretches(lift.note || lift.stretches || "");
+    setLoadType(getLoadProfile(lift).type);
     setMuscleGroup(lift.muscleGroup || "other");
   }
 
@@ -439,6 +453,7 @@ export default function Plan() {
         ) : (
           todayPlan.map((lift) => {
             const group = getMuscleGroup(lift.muscleGroup);
+            const profile = getLoadProfile(lift);
 
             return (
             <article
@@ -448,7 +463,7 @@ export default function Plan() {
               <div>
                 <h3 style={liftName}>{lift.exercise}</h3>
                 <p style={liftMeta}>
-                  {group.label} · {lift.sets} sets x {lift.reps} reps
+                  {group.label} · {formatLoadType(profile.type)} · {lift.sets} sets x {lift.reps} reps
                 </p>
                 {(lift.note || lift.stretches) && <p style={stretchPreview}>{lift.note || lift.stretches}</p>}
               </div>
@@ -581,6 +596,15 @@ export default function Plan() {
             ))}
           </select>
 
+          <label style={label}>Load Type</label>
+          <select value={loadType} onChange={(event) => setLoadType(event.target.value)}>
+            {LOAD_TYPES.map((type) => (
+              <option key={type} value={type}>
+                {formatLoadType(type)}
+              </option>
+            ))}
+          </select>
+
           <label style={label}>Lift Note</label>
           <textarea
             placeholder="Cue, setup note, tempo, injury reminder..."
@@ -668,11 +692,12 @@ export default function Plan() {
             <div style={libraryList}>
               {DEFAULT_EXERCISES.map((lift) => {
                 const group = getMuscleGroup(lift.muscleGroup);
+                const profile = getLoadProfile(lift);
                 return (
                   <div key={`${lift.exercise}-${lift.muscleGroup}`} style={libraryItem}>
                     <div>
                       <strong style={libraryLiftName}>{lift.exercise}</strong>
-                      <p style={liftMeta}>{group.label} · {lift.sets} sets x {lift.reps} reps</p>
+                      <p style={liftMeta}>{group.label} · {formatLoadType(profile.type)} · {lift.sets} sets x {lift.reps} reps</p>
                     </div>
                     <button type="button" onClick={() => addExerciseToDay(lift)} style={editBtn}>
                       Add
@@ -691,11 +716,12 @@ export default function Plan() {
               <div style={libraryList}>
                 {customExercises.map((lift) => {
                   const group = getMuscleGroup(lift.muscleGroup);
+                  const profile = getLoadProfile(lift);
                   return (
                     <div key={lift.id} style={libraryItem}>
                       <div>
                         <strong style={libraryLiftName}>{lift.exercise}</strong>
-                        <p style={liftMeta}>{group.label} · {lift.sets} sets x {lift.reps} reps</p>
+                        <p style={liftMeta}>{group.label} · {formatLoadType(profile.type)} · {lift.sets} sets x {lift.reps} reps</p>
                       </div>
                       <div style={actions}>
                         <button type="button" onClick={() => addExerciseToDay(lift)} style={editBtn}>
@@ -742,6 +768,10 @@ function formatWarmupMovement(movement) {
   const sets = movement.sets || "--";
   const reps = movement.reps || "--";
   return `${sets}x${reps}`;
+}
+
+function formatLoadType(type) {
+  return String(type || "free").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 const wrap = {
