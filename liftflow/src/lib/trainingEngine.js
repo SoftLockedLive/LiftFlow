@@ -9,8 +9,8 @@ import { getBaseExercise } from "./workoutAnalytics";
  * CORE SYSTEM:
  * Produces today's recommended workout
  */
-export function buildTodaysWorkout(day) {
-  const plan = getPlan();
+export function buildTodaysWorkout(day, providedPlan = null) {
+  const plan = providedPlan || getPlan();
   const history = getWorkouts();
 
   const baseWorkout = plan[day] || [];

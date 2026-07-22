@@ -20,7 +20,6 @@ export default function Workout() {
   const router = useRouter();
   const [plan, setPlan] = useState({});
   const [selectedDay, setSelectedDay] = useState("Monday");
-  const [program, setProgram] = useState([]);
   const [session, setSession] = useState({});
   const [drafts, setDrafts] = useState({});
   const [restSeconds, setRestSeconds] = useState(0);
@@ -49,7 +48,6 @@ export default function Workout() {
 
       setPlan(savedPlan);
       setSelectedDay(initialDay);
-      setProgram(buildTodaysWorkout(initialDay));
       setDrafts(savedDrafts);
       setSession(savedDrafts[initialDay] || {});
     }, 0);
@@ -60,7 +58,6 @@ export default function Workout() {
   function chooseDay(day) {
     setSelectedDay(day);
     saveLastWorkoutDay(day);
-    setProgram(buildTodaysWorkout(day));
     setSession(drafts[day] || {});
 
     if (router.query.day) {
@@ -225,11 +222,11 @@ export default function Workout() {
       prs,
     });
     setPlan(getPlan());
-    setProgram(buildTodaysWorkout(selectedDay));
     setSession({});
     router.push("/notes", undefined, { scroll: false });
   }
 
+  const program = buildTodaysWorkout(selectedDay, plan);
   const focusName = plan.__meta?.[selectedDay]?.name || selectedDay;
   const recovery = plan.__meta?.[selectedDay]?.recovery;
   const warmup = Array.isArray(plan.__meta?.[selectedDay]?.warmup) ? plan.__meta[selectedDay].warmup : [];
