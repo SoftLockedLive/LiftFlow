@@ -13,7 +13,11 @@ export function saveProteinTarget(target) {
 
 export function getProteinLog() {
   if (typeof window === "undefined") return {};
-  return JSON.parse(localStorage.getItem(KEY) || "{}");
+  try {
+    return JSON.parse(localStorage.getItem(KEY) || "{}");
+  } catch {
+    return {};
+  }
 }
 
 export function saveProteinLog(log) {

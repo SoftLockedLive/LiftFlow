@@ -10,7 +10,11 @@ export const NOTE_LEVELS = [
 
 export function getNotes() {
   if (typeof window === "undefined") return [];
-  return JSON.parse(localStorage.getItem(KEY) || "[]");
+  try {
+    return JSON.parse(localStorage.getItem(KEY) || "[]");
+  } catch {
+    return [];
+  }
 }
 
 export function saveNotes(notes) {

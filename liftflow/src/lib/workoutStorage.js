@@ -2,7 +2,11 @@ const KEY = "liftflow_workouts";
 
 export function getWorkouts() {
   if (typeof window === "undefined") return [];
-  return JSON.parse(localStorage.getItem(KEY) || "[]");
+  try {
+    return JSON.parse(localStorage.getItem(KEY) || "[]");
+  } catch {
+    return [];
+  }
 }
 
 export function saveWorkout(workout, metadata = {}) {

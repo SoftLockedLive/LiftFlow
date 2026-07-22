@@ -35,11 +35,15 @@ export function getProfile() {
   if (typeof window === "undefined")
     return DEFAULT_PROFILE;
 
-  const data = localStorage.getItem(KEY);
+  try {
+    const data = localStorage.getItem(KEY);
 
-  return data
-    ? JSON.parse(data)
-    : DEFAULT_PROFILE;
+    return data
+      ? { ...DEFAULT_PROFILE, ...JSON.parse(data) }
+      : DEFAULT_PROFILE;
+  } catch {
+    return DEFAULT_PROFILE;
+  }
 }
 
 export function saveProfile(profile) {

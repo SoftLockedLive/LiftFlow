@@ -22,6 +22,8 @@ export default function Workout() {
   const [selectedDay, setSelectedDay] = useState("Monday");
   const [session, setSession] = useState({});
   const [drafts, setDrafts] = useState({});
+  const [workouts, setWorkouts] = useState([]);
+  const [manualPrs, setManualPrs] = useState([]);
   const [restSeconds, setRestSeconds] = useState(0);
   const [restPreset, setRestPreset] = useState(90);
   const [summary, setSummary] = useState(null);
@@ -50,6 +52,8 @@ export default function Workout() {
       setSelectedDay(initialDay);
       setDrafts(savedDrafts);
       setSession(savedDrafts[initialDay] || {});
+      setWorkouts(getWorkouts());
+      setManualPrs(getManualPRs());
     }, 0);
 
     return () => window.clearTimeout(timer);
@@ -222,17 +226,19 @@ export default function Workout() {
       prs,
     });
     setPlan(getPlan());
+    setWorkouts(getWorkouts());
+    setManualPrs(getManualPRs());
     setSession({});
     router.push("/notes", undefined, { scroll: false });
   }
 
-  const program = buildTodaysWorkout(selectedDay, plan);
+  const program = buildTodaysWorkout(selectedDay, plan, workouts, manualPrs);
   const focusName = plan.__meta?.[selectedDay]?.name || selectedDay;
   const recovery = plan.__meta?.[selectedDay]?.recovery;
   const warmup = Array.isArray(plan.__meta?.[selectedDay]?.warmup) ? plan.__meta[selectedDay].warmup : [];
   const emphasis = plan.__meta?.[selectedDay]?.emphasis || "";
   const actionCards = Array.isArray(plan.__meta?.[selectedDay]?.actionCards) ? plan.__meta[selectedDay].actionCards : [];
-  const prMap = buildPRMap(getWorkouts(), getManualPRs());
+  const prMap = buildPRMap(workouts, manualPrs);
 
   return (
     <div style={wrap}>

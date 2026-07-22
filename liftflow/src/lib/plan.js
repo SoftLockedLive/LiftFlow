@@ -6,8 +6,12 @@ const SAVED_SPLITS_KEY = "liftflow_saved_splits";
  */
 export function getPlan() {
   if (typeof window === "undefined") return {};
-  const data = localStorage.getItem(STORAGE_KEY);
-  return data ? JSON.parse(data) : {};
+  try {
+    const data = localStorage.getItem(STORAGE_KEY);
+    return data ? JSON.parse(data) : {};
+  } catch {
+    return {};
+  }
 }
 
 /**
