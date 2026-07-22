@@ -8,7 +8,8 @@ export function getPlan() {
   if (typeof window === "undefined") return {};
   try {
     const data = localStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : {};
+    const parsed = data ? JSON.parse(data) : {};
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
   } catch {
     return {};
   }
@@ -25,7 +26,8 @@ export function savePlan(plan) {
 export function getSavedSplits() {
   if (typeof window === "undefined") return [];
   try {
-    return JSON.parse(localStorage.getItem(SAVED_SPLITS_KEY) || "[]");
+    const parsed = JSON.parse(localStorage.getItem(SAVED_SPLITS_KEY) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }

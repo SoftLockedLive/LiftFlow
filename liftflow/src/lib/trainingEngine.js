@@ -11,7 +11,7 @@ import { getBaseExercise } from "./workoutAnalytics";
  */
 export function buildTodaysWorkout(day, providedPlan = null, providedHistory = null, providedManualPrs = null) {
   const plan = providedPlan || getPlan();
-  const history = providedHistory || getWorkouts();
+  const history = Array.isArray(providedHistory) ? providedHistory : getWorkouts();
 
   const baseWorkout = Array.isArray(plan?.[day]) ? plan[day].filter(Boolean) : [];
 
@@ -28,7 +28,7 @@ export function buildTodaysWorkout(day, providedPlan = null, providedHistory = n
       // coach layer (soft suggestions only)
       displayPR: formatPR(prRecord),
       prRecord,
-      coachRecommendation: buildCoachRecommendation(safeLift, history),
+      coachRecommendation: buildSafeCoachRecommendation(safeLift, history),
 
       // user always overrides this
       userOverride: null,
@@ -37,16 +37,33 @@ export function buildTodaysWorkout(day, providedPlan = null, providedHistory = n
 }
 
 function normalizeWorkoutLift(lift, day, index) {
+  const source = lift && typeof lift === "object" ? lift : { exercise: lift };
   return {
-    ...lift,
-    id: lift.id || `${day}-${index}-${String(lift.exercise || "lift").replace(/[^a-z0-9]+/gi, "-")}`,
-    exercise: stringifyField(lift.exercise, "Exercise"),
-    muscleGroup: stringifyField(lift.muscleGroup, "other"),
-    sets: stringifyField(lift.sets, ""),
-    reps: stringifyField(lift.reps, ""),
-    note: stringifyField(lift.note || lift.stretches, ""),
-    stretches: stringifyField(lift.stretches || lift.note, ""),
+    ...source,
+    id: source.id || `${day}-${index}-${String(source.exercise || "lift").replace(/[^a-z0-9]+/gi, "-")}`,
+    exercise: stringifyField(source.exercise, "Exercise"),
+    muscleGroup: stringifyField(source.muscleGroup, "other"),
+    sets: stringifyField(source.sets, ""),
+    reps: stringifyField(source.reps, ""),
+    note: stringifyField(source.note || source.stretches, ""),
+    stretches: stringifyField(source.stretches || source.note, ""),
   };
+}
+
+function buildSafeCoachRecommendation(lift, history) {
+  try {
+    return buildCoachRecommendation(lift, history);
+  } catch {
+    return {
+      status: "empty",
+      headline: "Set starting weight",
+      detail: "Log this lift once and coach recommendations will use your history.",
+      warmups: [],
+      workingWeight: null,
+      workingSetPlan: "Flat sets by default.",
+      nextAction: "Choose a weight you can control for the programmed reps.",
+    };
+  }
 }
 
 function stringifyField(value, fallback) {

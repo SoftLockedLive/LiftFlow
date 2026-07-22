@@ -4,7 +4,7 @@ import { getBaseExercise, getLiftSets, getWorkoutItems, normalizeExerciseName } 
 export function buildPRRecords(workouts = [], manualPrs = getManualPRs()) {
   const records = {};
 
-  (workouts || []).forEach((session) => {
+  (Array.isArray(workouts) ? workouts : []).forEach((session) => {
     getWorkoutItems(session).forEach((lift) => {
       const exercise = getBaseExercise(lift);
       if (!exercise) return;
@@ -25,7 +25,7 @@ export function buildPRRecords(workouts = [], manualPrs = getManualPRs()) {
     });
   });
 
-  (manualPrs || []).forEach((pr) => {
+  (Array.isArray(manualPrs) ? manualPrs : []).forEach((pr) => {
     const exercise = normalizeExerciseName(pr.exercise);
     const weight = Number(pr.weight || 0);
     if (!exercise || weight <= 0) return;

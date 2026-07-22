@@ -51,7 +51,7 @@ export default function Workout() {
       setPlan(savedPlan);
       setSelectedDay(initialDay);
       setDrafts(savedDrafts);
-      setSession(savedDrafts[initialDay] || {});
+      setSession(getSafeSession(savedDrafts[initialDay]));
       setWorkouts(getWorkouts());
       setManualPrs(getManualPRs());
     }, 0);
@@ -62,7 +62,7 @@ export default function Workout() {
   function chooseDay(day) {
     setSelectedDay(day);
     saveLastWorkoutDay(day);
-    setSession(drafts[day] || {});
+    setSession(getSafeSession(drafts[day]));
 
     if (router.query.day) {
       router.replace("/workout", undefined, { shallow: true, scroll: false });
@@ -71,9 +71,9 @@ export default function Workout() {
 
   function updateSet(exerciseId, setIndex, field, value) {
     setSession((prev) => {
-      const copy = { ...prev };
+      const copy = { ...getSafeSession(prev) };
 
-      if (!copy[exerciseId]) {
+      if (!Array.isArray(copy[exerciseId])) {
         copy[exerciseId] = [];
       }
 
@@ -96,8 +96,9 @@ export default function Workout() {
 
   function addSet(exerciseId) {
     setSession((prev) => {
-      const nextSets = [...(prev[exerciseId] || []), {}];
-      const copy = { ...prev, [exerciseId]: nextSets };
+      const current = getSafeSession(prev);
+      const nextSets = [...(Array.isArray(current[exerciseId]) ? current[exerciseId] : []), {}];
+      const copy = { ...current, [exerciseId]: nextSets };
       const updatedDrafts = { ...drafts, [selectedDay]: copy };
       setDrafts(updatedDrafts);
       saveWorkoutDrafts(updatedDrafts);
@@ -107,9 +108,10 @@ export default function Workout() {
 
   function removeSet(exerciseId, setIndex) {
     setSession((prev) => {
-      const nextSets = [...(prev[exerciseId] || [])];
+      const current = getSafeSession(prev);
+      const nextSets = [...(Array.isArray(current[exerciseId]) ? current[exerciseId] : [])];
       nextSets.splice(setIndex, 1);
-      const copy = { ...prev };
+      const copy = { ...current };
       if (nextSets.length > 0) {
         copy[exerciseId] = nextSets;
       } else {
@@ -124,9 +126,10 @@ export default function Workout() {
 
   function toggleWarmup(movementId) {
     setSession((prev) => {
-      const warmupState = { ...(prev.__warmup || {}) };
+      const current = getSafeSession(prev);
+      const warmupState = { ...(isPlainObject(current.__warmup) ? current.__warmup : {}) };
       warmupState[movementId] = !warmupState[movementId];
-      const copy = { ...prev, __warmup: warmupState };
+      const copy = { ...current, __warmup: warmupState };
       const updatedDrafts = { ...drafts, [selectedDay]: copy };
       setDrafts(updatedDrafts);
       saveWorkoutDrafts(updatedDrafts);
@@ -136,12 +139,13 @@ export default function Workout() {
 
   function toggleRampSet(exerciseId, setIndex) {
     setSession((prev) => {
-      const rampState = { ...(prev.__ramp || {}) };
-      const liftRamp = { ...(rampState[exerciseId] || {}) };
+      const current = getSafeSession(prev);
+      const rampState = { ...(isPlainObject(current.__ramp) ? current.__ramp : {}) };
+      const liftRamp = { ...(isPlainObject(rampState[exerciseId]) ? rampState[exerciseId] : {}) };
       liftRamp[setIndex] = !liftRamp[setIndex];
       rampState[exerciseId] = liftRamp;
 
-      const copy = { ...prev, __ramp: rampState };
+      const copy = { ...current, __ramp: rampState };
       const updatedDrafts = { ...drafts, [selectedDay]: copy };
       setDrafts(updatedDrafts);
       saveWorkoutDrafts(updatedDrafts);
@@ -151,10 +155,11 @@ export default function Workout() {
 
   function toggleCoachDetails(exerciseId) {
     setSession((prev) => {
-      const coachState = { ...(prev.__coach || {}) };
+      const current = getSafeSession(prev);
+      const coachState = { ...(isPlainObject(current.__coach) ? current.__coach : {}) };
       coachState[exerciseId] = !coachState[exerciseId];
 
-      const copy = { ...prev, __coach: coachState };
+      const copy = { ...current, __coach: coachState };
       const updatedDrafts = { ...drafts, [selectedDay]: copy };
       setDrafts(updatedDrafts);
       saveWorkoutDrafts(updatedDrafts);
@@ -164,9 +169,10 @@ export default function Workout() {
 
   function updateVariation(exerciseId, patch) {
     setSession((prev) => {
-      const variations = { ...(prev.__variations || {}) };
-      const current = normalizeVariationDraft(variations[exerciseId]);
-      const next = { ...current, ...patch };
+      const currentSession = getSafeSession(prev);
+      const variations = { ...(isPlainObject(currentSession.__variations) ? currentSession.__variations : {}) };
+      const currentDraft = normalizeVariationDraft(variations[exerciseId]);
+      const next = { ...currentDraft, ...patch };
 
       if (!next.open && !next.value && !next.custom) {
         delete variations[exerciseId];
@@ -174,7 +180,7 @@ export default function Workout() {
         variations[exerciseId] = next;
       }
 
-      const copy = { ...prev, __variations: variations };
+      const copy = { ...currentSession, __variations: variations };
       const updatedDrafts = { ...drafts, [selectedDay]: copy };
       setDrafts(updatedDrafts);
       saveWorkoutDrafts(updatedDrafts);
@@ -184,8 +190,9 @@ export default function Workout() {
 
   function finishWorkout() {
     const previousWorkouts = getWorkouts();
+    const currentSession = getSafeSession(session);
     const completedWorkout = program.map((lift) => {
-      const performedExercise = getPerformedExercise(lift, session.__variations?.[lift.id]);
+      const performedExercise = getPerformedExercise(lift, currentSession.__variations?.[lift.id]);
       const swapped = performedExercise !== lift.exercise;
       const loadProfile = getLoadProfile(swapped ? { exercise: performedExercise } : lift);
 
@@ -198,7 +205,7 @@ export default function Workout() {
         muscleGroup: lift.muscleGroup || "other",
         plannedSets: lift.sets || "",
         plannedReps: lift.reps || "",
-        sets: getLoggedSets(session[lift.id]),
+        sets: getLoggedSets(currentSession[lift.id]),
         date: Date.now(),
         note: lift.note || lift.stretches || "",
         stretches: lift.stretches || "",
@@ -233,6 +240,7 @@ export default function Workout() {
   }
 
   const program = buildTodaysWorkout(selectedDay, plan, workouts, manualPrs);
+  const safeSession = getSafeSession(session);
   const focusName = plan.__meta?.[selectedDay]?.name || selectedDay;
   const recovery = plan.__meta?.[selectedDay]?.recovery;
   const warmup = Array.isArray(plan.__meta?.[selectedDay]?.warmup) ? plan.__meta[selectedDay].warmup.filter(Boolean) : [];
@@ -313,7 +321,7 @@ export default function Workout() {
               <div style={warmupList}>
                 {warmup.map((movement, index) => {
                   const movementId = movement.id || `${formatText(movement.name, "movement")}-${index}`;
-                  const done = Boolean(session.__warmup?.[movementId]);
+                  const done = Boolean(safeSession.__warmup?.[movementId]);
 
                   return (
                     <button
@@ -369,9 +377,9 @@ export default function Workout() {
           {program.map((lift) => {
             const group = getMuscleGroup(lift.muscleGroup);
             const dayAccent = getDayAccent(selectedDay, plan);
-            const workingSets = Array.isArray(session[lift.id]) ? session[lift.id] : [];
+            const workingSets = Array.isArray(safeSession[lift.id]) ? safeSession[lift.id] : [];
             const variationOptions = getVariationOptions(lift);
-            const variationDraft = normalizeVariationDraft(session.__variations?.[lift.id]);
+            const variationDraft = normalizeVariationDraft(safeSession.__variations?.[lift.id]);
             const selectedVariation = getSelectedVariation(variationDraft);
             const performedExercise = getPerformedExercise(lift, variationDraft);
             const swapped = performedExercise !== lift.exercise;
@@ -380,9 +388,9 @@ export default function Workout() {
               ? { ...lift, exercise: performedExercise, baseExercise: normalizeExerciseName(performedExercise), ...loadProfile }
               : { ...lift, ...loadProfile };
             const activePr = swapped ? prMap[normalizeExerciseName(performedExercise)] : lift.prRecord;
-            const coach = swapped ? buildCoachRecommendation(activeLift, getWorkouts()) : lift.coachRecommendation;
-            const liveCoach = buildLiveSetRecommendation(activeLift, session[lift.id] || [], coach);
-            const coachDetailsOpen = Boolean(session.__coach?.[lift.id]);
+            const coach = swapped ? buildCoachRecommendation(activeLift, workouts) : lift.coachRecommendation;
+            const liveCoach = buildLiveSetRecommendation(activeLift, workingSets, coach);
+            const coachDetailsOpen = Boolean(safeSession.__coach?.[lift.id]);
 
             return (
               <article
@@ -442,7 +450,7 @@ export default function Workout() {
                         <span style={coachWarmupLabel}>{coach.warmupLabel || "Optional ramp"}</span>
                         <div style={coachWarmups}>
                           {coach.warmups.map((set, index) => {
-                            const done = Boolean(session.__ramp?.[lift.id]?.[index]);
+                            const done = Boolean(safeSession.__ramp?.[lift.id]?.[index]);
 
                             return (
                               <button
@@ -541,13 +549,13 @@ export default function Workout() {
                       <input
                         type="number"
                         placeholder={`Set ${i + 1} weight`}
-                        value={session[lift.id]?.[i]?.weight || ""}
+                        value={workingSets[i]?.weight || ""}
                         onChange={(event) => updateSet(lift.id, i, "weight", event.target.value)}
                       />
                       <input
                         type="number"
                         placeholder={`Set ${i + 1} reps`}
-                        value={session[lift.id]?.[i]?.reps || ""}
+                        value={workingSets[i]?.reps || ""}
                         onChange={(event) => updateSet(lift.id, i, "reps", event.target.value)}
                       />
                       <button
@@ -634,11 +642,20 @@ function getLoggedSets(sets) {
   });
 }
 
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function getSafeSession(value) {
+  return isPlainObject(value) ? value : {};
+}
+
 function getWorkoutDrafts() {
   if (typeof window === "undefined") return {};
 
   try {
-    return JSON.parse(localStorage.getItem(DRAFT_KEY) || "{}");
+    const parsed = JSON.parse(localStorage.getItem(DRAFT_KEY) || "{}");
+    return isPlainObject(parsed) ? parsed : {};
   } catch {
     return {};
   }

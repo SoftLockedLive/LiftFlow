@@ -29,7 +29,7 @@ export function buildCoachRecommendation(lift, workouts = getWorkouts()) {
   const setCount = parseSetCount(lift.sets);
   const grade = gradeLatestSession(latestSets, latestTopWeight, target, setCount);
 
-  const workingWeight = recommendWorkingWeight(latestTopWeight, grade, increment, context, minimumLoad);
+  const workingWeight = recommendWorkingWeight(latestTopWeight, grade, increment, context, minimumLoad, target);
   const direction = workingWeight > latestTopWeight ? "increase" : workingWeight < latestTopWeight ? "reduce" : "hold";
 
   return {
@@ -101,7 +101,7 @@ export function buildLiveSetRecommendation(lift, loggedSets, coach) {
 
 function collectLiftHistory(workouts, baseExercise) {
   const targetExercise = normalizeExerciseName(baseExercise);
-  return (workouts || [])
+  return (Array.isArray(workouts) ? workouts : [])
     .slice()
     .reverse()
     .flatMap((session) => {
@@ -120,7 +120,7 @@ function collectLiftHistory(workouts, baseExercise) {
     .slice(0, 6);
 }
 
-function recommendWorkingWeight(latestWeight, grade, increment, context, minimumLoad) {
+function recommendWorkingWeight(latestWeight, grade, increment, context, minimumLoad, target) {
   if (!latestWeight) return null;
   if (context.confidence !== "high") return roundToNearest(latestWeight, increment);
 

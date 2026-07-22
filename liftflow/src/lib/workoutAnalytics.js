@@ -69,7 +69,7 @@ export function calculateSessionSummary(lifts) {
 export function detectPRs(workouts, completedLifts) {
   const existing = {};
 
-  (workouts || []).forEach((session) => {
+  (Array.isArray(workouts) ? workouts : []).forEach((session) => {
     getWorkoutItems(session).forEach((lift) => {
       const exercise = getBaseExercise(lift);
       if (!exercise) return;
@@ -80,7 +80,7 @@ export function detectPRs(workouts, completedLifts) {
     });
   });
 
-  return (completedLifts || []).flatMap((lift) =>
+  return (Array.isArray(completedLifts) ? completedLifts : []).flatMap((lift) =>
     getLiftSets(lift)
       .filter((set) => Number(set.weight || 0) > (existing[getBaseExercise(lift)] || 0))
       .map((set) => ({
@@ -96,7 +96,7 @@ export function detectPRs(workouts, completedLifts) {
 export function buildExerciseHistory(workouts) {
   const history = {};
 
-  (workouts || []).forEach((session, sessionIndex) => {
+  (Array.isArray(workouts) ? workouts : []).forEach((session, sessionIndex) => {
     const date = session?.date || null;
     getWorkoutItems(session).forEach((lift) => {
       const exercise = getBaseExercise(lift);
@@ -142,7 +142,7 @@ export function buildExerciseHistory(workouts) {
 }
 
 export function buildProgressData(workouts) {
-  const sessions = (workouts || []).map((session) => {
+  const sessions = (Array.isArray(workouts) ? workouts : []).map((session) => {
     const lifts = getWorkoutItems(session);
     return {
       date: session?.date || lifts[0]?.date || null,
