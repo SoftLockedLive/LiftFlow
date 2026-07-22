@@ -13,24 +13,50 @@ export function buildTodaysWorkout(day, providedPlan = null, providedHistory = n
   const plan = providedPlan || getPlan();
   const history = providedHistory || getWorkouts();
 
-  const baseWorkout = plan[day] || [];
+  const baseWorkout = Array.isArray(plan?.[day]) ? plan[day].filter(Boolean) : [];
 
   const prs = buildPRMap(history, providedManualPrs || getManualPRs());
 
-  return baseWorkout.map((lift) => {
-    const baseExercise = getBaseExercise(lift);
+  return baseWorkout.map((lift, index) => {
+    const safeLift = normalizeWorkoutLift(lift, day, index);
+    const baseExercise = getBaseExercise(safeLift);
     const prRecord = prs[baseExercise];
 
     return {
-      ...lift,
+      ...safeLift,
 
       // coach layer (soft suggestions only)
       displayPR: formatPR(prRecord),
       prRecord,
-      coachRecommendation: buildCoachRecommendation(lift, history),
+      coachRecommendation: buildCoachRecommendation(safeLift, history),
 
       // user always overrides this
       userOverride: null,
     };
   });
+}
+
+function normalizeWorkoutLift(lift, day, index) {
+  return {
+    ...lift,
+    id: lift.id || `${day}-${index}-${String(lift.exercise || "lift").replace(/[^a-z0-9]+/gi, "-")}`,
+    exercise: stringifyField(lift.exercise, "Exercise"),
+    muscleGroup: stringifyField(lift.muscleGroup, "other"),
+    sets: stringifyField(lift.sets, ""),
+    reps: stringifyField(lift.reps, ""),
+    note: stringifyField(lift.note || lift.stretches, ""),
+    stretches: stringifyField(lift.stretches || lift.note, ""),
+  };
+}
+
+function stringifyField(value, fallback) {
+  if (value === undefined || value === null || value === "") return fallback;
+  if (typeof value === "string" || typeof value === "number") return String(value);
+  if (Array.isArray(value)) return value.filter(Boolean).map((item) => stringifyField(item, "")).join(", ");
+  if (typeof value === "object") {
+    if ("reps" in value || "sets" in value) return [value.sets, value.reps].filter(Boolean).join(" x ");
+    if ("label" in value) return String(value.label || fallback);
+    if ("name" in value) return String(value.name || fallback);
+  }
+  return fallback;
 }

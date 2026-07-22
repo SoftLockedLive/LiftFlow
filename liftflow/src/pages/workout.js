@@ -235,9 +235,9 @@ export default function Workout() {
   const program = buildTodaysWorkout(selectedDay, plan, workouts, manualPrs);
   const focusName = plan.__meta?.[selectedDay]?.name || selectedDay;
   const recovery = plan.__meta?.[selectedDay]?.recovery;
-  const warmup = Array.isArray(plan.__meta?.[selectedDay]?.warmup) ? plan.__meta[selectedDay].warmup : [];
+  const warmup = Array.isArray(plan.__meta?.[selectedDay]?.warmup) ? plan.__meta[selectedDay].warmup.filter(Boolean) : [];
   const emphasis = plan.__meta?.[selectedDay]?.emphasis || "";
-  const actionCards = Array.isArray(plan.__meta?.[selectedDay]?.actionCards) ? plan.__meta[selectedDay].actionCards : [];
+  const actionCards = Array.isArray(plan.__meta?.[selectedDay]?.actionCards) ? plan.__meta[selectedDay].actionCards.filter(Boolean) : [];
   const prMap = buildPRMap(workouts, manualPrs);
 
   return (
@@ -292,10 +292,10 @@ export default function Workout() {
 
           {actionCards.length > 0 && (
             <section style={actionGrid}>
-              {actionCards.map((card) => (
-                <button key={card.href} type="button" onClick={() => router.push(card.href)} style={actionCard}>
-                  <strong>{card.label}</strong>
-                  <span>{card.description}</span>
+              {actionCards.map((card, index) => (
+                <button key={card.href || `${card.label}-${index}`} type="button" onClick={() => card.href && router.push(card.href)} style={actionCard}>
+                  <strong>{formatText(card.label, "Open")}</strong>
+                  <span>{formatText(card.description, "")}</span>
                 </button>
               ))}
             </section>
@@ -312,7 +312,7 @@ export default function Workout() {
               </div>
               <div style={warmupList}>
                 {warmup.map((movement, index) => {
-                  const movementId = movement.id || `${movement.name}-${index}`;
+                  const movementId = movement.id || `${formatText(movement.name, "movement")}-${index}`;
                   const done = Boolean(session.__warmup?.[movementId]);
 
                   return (
@@ -327,8 +327,8 @@ export default function Workout() {
                     >
                       <span style={{ ...checkBox, ...(done ? checkBoxDone : {}) }}>{done ? "✓" : ""}</span>
                       <span style={warmupMain}>
-                        <strong style={warmupName}>{movement.name}</strong>
-                        {movement.note && <span style={warmupNote}>{movement.note}</span>}
+                        <strong style={warmupName}>{formatText(movement.name, "Warmup")}</strong>
+                        {movement.note && <span style={warmupNote}>{formatText(movement.note, "")}</span>}
                       </span>
                       <span style={warmupDose}>{formatWarmupMovement(movement)}</span>
                     </button>
@@ -675,10 +675,22 @@ function formatRestTime(seconds) {
 }
 
 function formatWarmupMovement(movement) {
-  if (movement.mode === "time") return movement.time || "Timed";
-  const sets = movement.sets || "--";
-  const reps = movement.reps || "--";
+  if (movement.mode === "time") return formatText(movement.time, "Timed");
+  const sets = formatText(movement.sets, "--");
+  const reps = formatText(movement.reps, "--");
   return `${sets} x ${reps}`;
+}
+
+function formatText(value, fallback = "") {
+  if (value === undefined || value === null || value === "") return fallback;
+  if (typeof value === "string" || typeof value === "number") return String(value);
+  if (Array.isArray(value)) return value.map((item) => formatText(item, "")).filter(Boolean).join(", ") || fallback;
+  if (typeof value === "object") {
+    if ("sets" in value || "reps" in value) return [value.sets, value.reps].filter(Boolean).map((item) => formatText(item, "")).join(" x ") || fallback;
+    if ("label" in value) return formatText(value.label, fallback);
+    if ("name" in value) return formatText(value.name, fallback);
+  }
+  return fallback;
 }
 
 function getVariationOptions(lift) {
