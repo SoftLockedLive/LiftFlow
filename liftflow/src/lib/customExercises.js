@@ -4,7 +4,8 @@ export function getCustomExercises() {
   if (typeof window === "undefined") return [];
 
   try {
-    return JSON.parse(localStorage.getItem(KEY) || "[]");
+    const parsed = JSON.parse(localStorage.getItem(KEY) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
@@ -27,6 +28,8 @@ export function upsertCustomExercise(exercise) {
     minimumLoad: Number(exercise.minimumLoad || exercise.minLoad || 0) || undefined,
     sets: exercise.sets || "3",
     reps: exercise.reps || "8-12",
+    targetType: exercise.targetType === "time" ? "time" : "reps",
+    duration: exercise.duration || "",
     note: exercise.note || exercise.stretches || "",
     stretches: exercise.stretches || "",
   };

@@ -24,6 +24,8 @@ export default function Plan() {
   const [exercise, setExercise] = useState("");
   const [sets, setSets] = useState("");
   const [reps, setReps] = useState("");
+  const [targetType, setTargetType] = useState("reps");
+  const [duration, setDuration] = useState("");
   const [stretches, setStretches] = useState("");
   const [loadType, setLoadType] = useState("free");
   const [warmupName, setWarmupName] = useState("");
@@ -80,7 +82,8 @@ export default function Plan() {
   }
 
   function handleSaveExercise() {
-    if (!exercise || !sets || !reps) return;
+    const targetValue = targetType === "time" ? duration : reps;
+    if (!exercise || !sets || !targetValue) return;
 
     const updated = { ...plan };
     const dayPlan = Array.isArray(updated[selectedDay]) ? updated[selectedDay] : [];
@@ -96,7 +99,9 @@ export default function Plan() {
               loadType: loadProfile.type,
               minimumLoad: loadProfile.minimumLoad,
               sets,
-              reps,
+              reps: targetValue,
+              targetType,
+              duration: targetType === "time" ? targetValue : "",
               note: stretches,
               stretches,
             }
@@ -112,7 +117,9 @@ export default function Plan() {
           loadType: loadProfile.type,
           minimumLoad: loadProfile.minimumLoad,
           sets,
-          reps,
+          reps: targetValue,
+          targetType,
+          duration: targetType === "time" ? targetValue : "",
           note: stretches,
           stretches,
         },
@@ -139,6 +146,8 @@ export default function Plan() {
         minimumLoad: loadProfile.minimumLoad,
         sets: lift.sets || "3",
         reps: lift.reps || "8-12",
+        targetType: lift.targetType === "time" ? "time" : "reps",
+        duration: lift.duration || (lift.targetType === "time" ? lift.reps : ""),
         note: lift.note || lift.stretches || "",
         stretches: lift.stretches || "",
       },
@@ -165,7 +174,9 @@ export default function Plan() {
       muscleGroup,
       loadType,
       sets,
-      reps,
+      reps: targetType === "time" ? duration : reps,
+      targetType,
+      duration: targetType === "time" ? duration : "",
       note: stretches,
       stretches,
     });
@@ -183,6 +194,8 @@ export default function Plan() {
     setExercise("");
     setSets("");
     setReps("");
+    setTargetType("reps");
+    setDuration("");
     setStretches("");
     setLoadType("free");
     setMuscleGroup("chest");
@@ -203,7 +216,9 @@ export default function Plan() {
     setEditorOpen(true);
     setExercise(lift.exercise || "");
     setSets(String(lift.sets || ""));
-    setReps(String(lift.reps || ""));
+    setTargetType(lift.targetType === "time" ? "time" : "reps");
+    setReps(lift.targetType === "time" ? "" : String(lift.reps || ""));
+    setDuration(lift.targetType === "time" ? String(lift.duration || lift.reps || "") : "");
     setStretches(lift.note || lift.stretches || "");
     setLoadType(getLoadProfile(lift).type);
     setMuscleGroup(lift.muscleGroup || "other");
@@ -214,7 +229,9 @@ export default function Plan() {
     setEditorOpen(true);
     setExercise(lift.exercise || "");
     setSets(String(lift.sets || ""));
-    setReps(String(lift.reps || ""));
+    setTargetType(lift.targetType === "time" ? "time" : "reps");
+    setReps(lift.targetType === "time" ? "" : String(lift.reps || ""));
+    setDuration(lift.targetType === "time" ? String(lift.duration || lift.reps || "") : "");
     setStretches(lift.note || lift.stretches || "");
     setLoadType(getLoadProfile(lift).type);
     setMuscleGroup(lift.muscleGroup || "other");
@@ -507,7 +524,7 @@ export default function Plan() {
               <div>
                 <h3 style={liftName}>{lift.exercise}</h3>
                 <p style={liftMeta}>
-                  {group.label} · {formatLoadType(profile.type)} · {lift.sets} sets x {lift.reps} reps
+                  {group.label} · {formatLoadType(profile.type)} · {formatExerciseTarget(lift)}
                 </p>
                 {(lift.note || lift.stretches) && <p style={stretchPreview}>{lift.note || lift.stretches}</p>}
               </div>
@@ -721,7 +738,7 @@ export default function Plan() {
                   <div key={`${lift.exercise}-${lift.muscleGroup}`} style={libraryItem}>
                     <div>
                       <strong style={libraryLiftName}>{lift.exercise}</strong>
-                      <p style={liftMeta}>{group.label} · {formatLoadType(profile.type)} · {lift.sets} sets x {lift.reps} reps</p>
+                      <p style={liftMeta}>{group.label} · {formatLoadType(profile.type)} · {formatExerciseTarget(lift)}</p>
                     </div>
                     <button type="button" onClick={() => addExerciseToDay(lift)} style={editBtn}>
                       Add
@@ -745,7 +762,7 @@ export default function Plan() {
                     <div key={lift.id} style={libraryItem}>
                       <div>
                         <strong style={libraryLiftName}>{lift.exercise}</strong>
-                        <p style={liftMeta}>{group.label} · {formatLoadType(profile.type)} · {lift.sets} sets x {lift.reps} reps</p>
+                        <p style={liftMeta}>{group.label} · {formatLoadType(profile.type)} · {formatExerciseTarget(lift)}</p>
                       </div>
                       <div style={actions}>
                         <button type="button" onClick={() => addExerciseToDay(lift)} style={editBtn}>
@@ -795,6 +812,10 @@ export default function Plan() {
                 setSets,
                 reps,
                 setReps,
+                targetType,
+                setTargetType,
+                duration,
+                setDuration,
                 muscleGroup,
                 setMuscleGroup,
                 loadType,
@@ -878,6 +899,12 @@ function formatLoadType(type) {
   return String(type || "free").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
+function formatExerciseTarget(lift) {
+  const sets = lift?.sets || "--";
+  if (lift?.targetType === "time") return `${sets} sets x ${lift.duration || lift.reps || "--"}`;
+  return `${sets} sets x ${lift?.reps || "--"} reps`;
+}
+
 function formatSavedSplitMeta(plan) {
   const days = DAYS.filter((day) => Array.isArray(plan?.[day]) && plan[day].length > 0).length;
   const lifts = DAYS.reduce((sum, day) => sum + (Array.isArray(plan?.[day]) ? plan[day].length : 0), 0);
@@ -891,6 +918,10 @@ function renderExerciseEditor({
   setSets,
   reps,
   setReps,
+  targetType,
+  setTargetType,
+  duration,
+  setDuration,
   muscleGroup,
   setMuscleGroup,
   loadType,
@@ -911,6 +942,12 @@ function renderExerciseEditor({
         onChange={(event) => setExercise(event.target.value)}
       />
 
+      <label style={label}>Target Type</label>
+      <select value={targetType} onChange={(event) => setTargetType(event.target.value)}>
+        <option value="reps">Reps</option>
+        <option value="time">Time</option>
+      </select>
+
       <div className="field-row" style={fieldRow}>
         <input
           placeholder="Sets, e.g. 3"
@@ -918,12 +955,20 @@ function renderExerciseEditor({
           value={sets}
           onChange={(event) => setSets(event.target.value)}
         />
-        <input
-          placeholder="Reps or range, e.g. 8-12"
-          inputMode="numeric"
-          value={reps}
-          onChange={(event) => setReps(event.target.value)}
-        />
+        {targetType === "time" ? (
+          <input
+            placeholder="Time, e.g. 45-90 sec"
+            value={duration}
+            onChange={(event) => setDuration(event.target.value)}
+          />
+        ) : (
+          <input
+            placeholder="Reps or range, e.g. 8-12"
+            inputMode="numeric"
+            value={reps}
+            onChange={(event) => setReps(event.target.value)}
+          />
+        )}
       </div>
 
       <label style={label}>Muscle Group</label>
@@ -991,7 +1036,7 @@ function PreviewDay({ dayName, config, onUseDay }) {
           {lifts.map((lift) => (
             <div key={`${dayName}-${lift.exercise}-${lift.sets}-${lift.reps}`} style={previewLiftRow}>
               <span>{lift.exercise}</span>
-              <strong>{lift.sets} x {lift.reps}</strong>
+              <strong>{formatExerciseTarget(lift)}</strong>
             </div>
           ))}
         </div>

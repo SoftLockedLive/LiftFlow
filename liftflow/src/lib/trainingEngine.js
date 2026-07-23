@@ -45,6 +45,8 @@ function normalizeWorkoutLift(lift, day, index) {
     muscleGroup: stringifyField(source.muscleGroup, "other"),
     sets: stringifyField(source.sets, ""),
     reps: stringifyField(source.reps, ""),
+    targetType: source.targetType === "time" ? "time" : "reps",
+    duration: stringifyField(source.duration || (source.targetType === "time" ? source.reps : ""), ""),
     note: stringifyField(source.note || source.stretches, ""),
     stretches: stringifyField(source.stretches || source.note, ""),
   };

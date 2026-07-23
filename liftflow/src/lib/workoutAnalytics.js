@@ -59,8 +59,10 @@ export function calculateSessionSummary(lifts) {
         exercise: getBaseExercise(lift),
         weight: Number(set.weight || 0),
         reps: Number(set.reps || 0),
+        duration: set.duration || "",
       }))
     )
+    .filter((set) => set.weight > 0)
     .sort((a, b) => b.weight - a.weight)[0];
 
   return { sets, volume, topSet };
@@ -88,6 +90,7 @@ export function detectPRs(workouts, completedLifts) {
         variation: lift.variation || "",
         weight: Number(set.weight || 0),
         reps: Number(set.reps || 0),
+        duration: set.duration || "",
         previous: existing[getBaseExercise(lift)] || 0,
       }))
   );
@@ -119,6 +122,7 @@ export function buildExerciseHistory(workouts) {
         (best, set) => (Number(set.weight || 0) > best.weight ? {
           weight: Number(set.weight || 0),
           reps: Number(set.reps || 0),
+          duration: set.duration || "",
         } : best),
         { weight: 0, reps: 0 }
       );

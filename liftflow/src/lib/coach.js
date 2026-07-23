@@ -3,6 +3,18 @@ import { getBaseExercise, getLiftSets, getWorkoutItems, normalizeExerciseName } 
 import { BAR_WEIGHT, getLoadProfile } from "./loadProfiles";
 
 export function buildCoachRecommendation(lift, workouts = getWorkouts()) {
+  if (lift?.targetType === "time") {
+    return {
+      status: "timed",
+      headline: lift.duration || lift.reps || "Timed",
+      detail: "Timed exercises are tracked by duration, so the coach will not force rep-based load jumps.",
+      warmups: [],
+      workingWeight: null,
+      workingSetPlan: "Hold clean position for the programmed time.",
+      nextAction: `${lift.sets || "--"} sets x ${lift.duration || lift.reps || "--"}.`,
+    };
+  }
+
   const baseExercise = getBaseExercise(lift);
   const history = collectLiftHistory(workouts, baseExercise);
   const target = parseRepTarget(lift.reps);
@@ -53,6 +65,7 @@ export function buildCoachRecommendation(lift, workouts = getWorkouts()) {
 }
 
 export function buildLiveSetRecommendation(lift, loggedSets, coach) {
+  if (lift?.targetType === "time") return null;
   const sets = getLiftSets({ sets: loggedSets });
   if (!coach?.workingWeight || sets.length === 0) return null;
 

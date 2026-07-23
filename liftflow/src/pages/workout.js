@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
+import { getCustomExercises, upsertCustomExercise } from "../lib/customExercises";
 import { getMuscleGroup, tint } from "../lib/muscleGroups";
 import { getManualPRs } from "../lib/manualPRs";
-import { getPlan } from "../lib/plan";
+import { getPlan, savePlan } from "../lib/plan";
 import { buildPRMap, formatPR } from "../lib/prRecords";
+import { DEFAULT_EXERCISES } from "../lib/programTemplates";
 import { buildTodaysWorkout } from "../lib/trainingEngine";
 import { getTodayName } from "../lib/today";
 import { getWorkouts, saveWorkout } from "../lib/workoutStorage";
@@ -27,6 +29,9 @@ export default function Workout() {
   const [restSeconds, setRestSeconds] = useState(0);
   const [restPreset, setRestPreset] = useState(90);
   const [summary, setSummary] = useState(null);
+  const [customExercises, setCustomExercises] = useState([]);
+  const [addOpen, setAddOpen] = useState(false);
+  const [addDraft, setAddDraft] = useState(createEmptyAddDraft());
 
   useEffect(() => {
     if (restSeconds <= 0) return undefined;
@@ -54,6 +59,7 @@ export default function Workout() {
       setSession(getSafeSession(savedDrafts[initialDay]));
       setWorkouts(getWorkouts());
       setManualPrs(getManualPRs());
+      setCustomExercises(getCustomExercises());
     }, 0);
 
     return () => window.clearTimeout(timer);
@@ -79,7 +85,7 @@ export default function Workout() {
 
       copy[exerciseId][setIndex] = {
         ...(copy[exerciseId][setIndex] || {}),
-        [field]: Number(value),
+        [field]: field === "duration" ? value : Number(value),
       };
 
       const updatedDrafts = {
@@ -205,6 +211,8 @@ export default function Workout() {
         muscleGroup: lift.muscleGroup || "other",
         plannedSets: lift.sets || "",
         plannedReps: lift.reps || "",
+        targetType: lift.targetType || "reps",
+        plannedDuration: lift.duration || "",
         sets: getLoggedSets(currentSession[lift.id]),
         date: Date.now(),
         note: lift.note || lift.stretches || "",
@@ -239,6 +247,44 @@ export default function Workout() {
     router.push("/notes", undefined, { scroll: false });
   }
 
+  function openAddExercise() {
+    setAddDraft(createEmptyAddDraft());
+    setAddOpen(true);
+  }
+
+  function addExerciseToWorkout(lift, saveCustom = false) {
+    const prepared = prepareWorkoutLift(lift);
+    if (!prepared.exercise || !prepared.sets || !prepared.reps) return;
+
+    const updated = {
+      ...plan,
+      [selectedDay]: [...(Array.isArray(plan[selectedDay]) ? plan[selectedDay] : []), prepared],
+      __meta: {
+        ...(plan.__meta || {}),
+        [selectedDay]: {
+          ...(plan.__meta?.[selectedDay] || {}),
+          type: "training",
+          recovery: null,
+        },
+      },
+    };
+
+    setPlan(updated);
+    savePlan(updated);
+
+    if (saveCustom) {
+      setCustomExercises(upsertCustomExercise(prepared));
+    }
+
+    setAddOpen(false);
+    setAddDraft(createEmptyAddDraft());
+  }
+
+  function addCustomDraftToWorkout() {
+    const targetValue = addDraft.targetType === "time" ? addDraft.duration : addDraft.reps;
+    addExerciseToWorkout({ ...addDraft, reps: targetValue }, true);
+  }
+
   const program = buildTodaysWorkout(selectedDay, plan, workouts, manualPrs);
   const safeSession = getSafeSession(session);
   const focusName = plan.__meta?.[selectedDay]?.name || selectedDay;
@@ -255,7 +301,14 @@ export default function Workout() {
           <p style={eyebrow}>Workout</p>
           <h1 style={title}>{focusName}</h1>
         </div>
-        <span style={count}>{program.length} lifts</span>
+        <div style={headerActions}>
+          <span style={count}>{program.length} lifts</span>
+          {!recovery && (
+            <button type="button" onClick={openAddExercise} style={addWorkoutBtn}>
+              Add
+            </button>
+          )}
+        </div>
       </header>
 
       <div style={dayRow}>
@@ -405,12 +458,12 @@ export default function Workout() {
                   <div>
                     <h2 style={liftTitle}>{performedExercise}</h2>
                     <p style={liftMeta}>
-                      {group.label} · {lift.sets} sets x {lift.reps} reps
+                      {group.label} · {formatWorkoutTarget(lift)}
                       {swapped ? ` · planned ${lift.exercise}` : ""}
                     </p>
                   </div>
                   <div style={liftHeaderActions}>
-                    {activePr && (
+                    {lift.targetType !== "time" && activePr && (
                       <span style={prBadge}>
                         {formatPR(activePr)}
                       </span>
@@ -535,7 +588,7 @@ export default function Workout() {
 
                 <div style={workingSetHeader}>
                   <span style={workingSetLabel}>Working sets</span>
-                  <span style={workingSetMeta}>Counts for history and PRs.</span>
+                  <span style={workingSetMeta}>{lift.targetType === "time" ? "Track time for history." : "Counts for history and PRs."}</span>
                 </div>
 
                 {workingSets.length === 0 ? (
@@ -552,12 +605,20 @@ export default function Workout() {
                         value={workingSets[i]?.weight || ""}
                         onChange={(event) => updateSet(lift.id, i, "weight", event.target.value)}
                       />
-                      <input
-                        type="number"
-                        placeholder={`Set ${i + 1} reps`}
-                        value={workingSets[i]?.reps || ""}
-                        onChange={(event) => updateSet(lift.id, i, "reps", event.target.value)}
-                      />
+                      {lift.targetType === "time" ? (
+                        <input
+                          placeholder={`Set ${i + 1} time`}
+                          value={workingSets[i]?.duration || ""}
+                          onChange={(event) => updateSet(lift.id, i, "duration", event.target.value)}
+                        />
+                      ) : (
+                        <input
+                          type="number"
+                          placeholder={`Set ${i + 1} reps`}
+                          value={workingSets[i]?.reps || ""}
+                          onChange={(event) => updateSet(lift.id, i, "reps", event.target.value)}
+                        />
+                      )}
                       <button
                         type="button"
                         onClick={() => removeSet(lift.id, i)}
@@ -621,6 +682,97 @@ export default function Workout() {
           )}
         </section>
       )}
+
+      {addOpen && (
+        <div style={modalOverlay} onClick={() => setAddOpen(false)}>
+          <section style={modalPanel} onClick={(event) => event.stopPropagation()}>
+            <div style={modalHeader}>
+              <div>
+                <p style={eyebrow}>Add Exercise</p>
+                <h2 style={modalTitle}>{selectedDay}</h2>
+              </div>
+              <button type="button" onClick={() => setAddOpen(false)} style={closeBtn}>
+                X
+              </button>
+            </div>
+            <div style={modalBody}>
+              <section style={addSection}>
+                <strong style={addSectionTitle}>Library</strong>
+                <div style={libraryList}>
+                  {[...DEFAULT_EXERCISES, ...customExercises].map((lift) => (
+                    <button
+                      key={`${lift.id || "default"}-${lift.exercise}-${lift.muscleGroup}`}
+                      type="button"
+                      onClick={() => addExerciseToWorkout(lift)}
+                      style={libraryItem}
+                    >
+                      <span style={libraryText}>
+                        <strong style={libraryName}>{lift.exercise}</strong>
+                        <span style={libraryMeta}>{getMuscleGroup(lift.muscleGroup).label} · {formatWorkoutTarget(lift)}</span>
+                      </span>
+                      <span style={libraryAdd}>Add</span>
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              <section style={addSection}>
+                <strong style={addSectionTitle}>Custom</strong>
+                <input
+                  placeholder="Exercise name"
+                  value={addDraft.exercise}
+                  onChange={(event) => setAddDraft({ ...addDraft, exercise: event.target.value })}
+                />
+                <select value={addDraft.muscleGroup} onChange={(event) => setAddDraft({ ...addDraft, muscleGroup: event.target.value })}>
+                  {["chest", "back", "legs", "shoulders", "arms", "core", "other"].map((group) => (
+                    <option key={group} value={group}>{getMuscleGroup(group).label}</option>
+                  ))}
+                </select>
+                <select value={addDraft.loadType} onChange={(event) => setAddDraft({ ...addDraft, loadType: event.target.value })}>
+                  {["barbell", "machine", "dumbbell", "bodyweight", "free"].map((type) => (
+                    <option key={type} value={type}>{formatLoadType(type)}</option>
+                  ))}
+                </select>
+                <select value={addDraft.targetType} onChange={(event) => setAddDraft({ ...addDraft, targetType: event.target.value })}>
+                  <option value="reps">Reps</option>
+                  <option value="time">Time</option>
+                </select>
+                <div className="field-row" style={addFieldRow}>
+                  <input
+                    placeholder="Sets"
+                    inputMode="numeric"
+                    value={addDraft.sets}
+                    onChange={(event) => setAddDraft({ ...addDraft, sets: event.target.value })}
+                  />
+                  {addDraft.targetType === "time" ? (
+                    <input
+                      placeholder="Time, e.g. 45-90 sec"
+                      value={addDraft.duration}
+                      onChange={(event) => setAddDraft({ ...addDraft, duration: event.target.value })}
+                    />
+                  ) : (
+                    <input
+                      placeholder="Reps, e.g. 8-12"
+                      inputMode="numeric"
+                      value={addDraft.reps}
+                      onChange={(event) => setAddDraft({ ...addDraft, reps: event.target.value })}
+                    />
+                  )}
+                </div>
+                <textarea
+                  placeholder="Lift note"
+                  value={addDraft.note}
+                  onChange={(event) => setAddDraft({ ...addDraft, note: event.target.value })}
+                  style={textarea}
+                />
+                <button type="button" className="primary" onClick={addCustomDraftToWorkout} style={fullButton}>
+                  Add + Save Custom
+                </button>
+              </section>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }
@@ -634,11 +786,47 @@ function SummaryStat({ label, value }) {
   );
 }
 
+function createEmptyAddDraft() {
+  return {
+    exercise: "",
+    muscleGroup: "other",
+    loadType: "free",
+    sets: "3",
+    reps: "8-12",
+    targetType: "reps",
+    duration: "",
+    note: "",
+  };
+}
+
+function prepareWorkoutLift(lift) {
+  const targetType = lift?.targetType === "time" ? "time" : "reps";
+  const targetValue = targetType === "time" ? lift.duration || lift.reps : lift.reps;
+  const loadProfile = getLoadProfile(lift);
+
+  return {
+    id: crypto.randomUUID(),
+    exercise: String(lift?.exercise || "").trim(),
+    muscleGroup: lift?.muscleGroup || "other",
+    loadType: loadProfile.type,
+    minimumLoad: loadProfile.minimumLoad,
+    sets: String(lift?.sets || "3"),
+    reps: String(targetValue || ""),
+    targetType,
+    duration: targetType === "time" ? String(targetValue || "") : "",
+    note: lift?.note || lift?.stretches || "",
+    stretches: lift?.stretches || lift?.note || "",
+    baseExercise: lift?.baseExercise || lift?.exercise || "",
+    variations: Array.isArray(lift?.variations) ? lift.variations : [],
+  };
+}
+
 function getLoggedSets(sets) {
   return (Array.isArray(sets) ? sets : []).filter((set) => {
     const weight = Number(set?.weight || 0);
     const reps = Number(set?.reps || 0);
-    return weight > 0 || reps > 0;
+    const duration = String(set?.duration || "").trim();
+    return weight > 0 || reps > 0 || duration;
   });
 }
 
@@ -696,6 +884,16 @@ function formatWarmupMovement(movement) {
   const sets = formatText(movement.sets, "--");
   const reps = formatText(movement.reps, "--");
   return `${sets} x ${reps}`;
+}
+
+function formatWorkoutTarget(lift) {
+  const sets = formatText(lift?.sets, "--");
+  if (lift?.targetType === "time") return `${sets} sets x ${formatText(lift.duration || lift.reps, "--")}`;
+  return `${sets} sets x ${formatText(lift?.reps, "--")} reps`;
+}
+
+function formatLoadType(type) {
+  return String(type || "free").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function formatText(value, fallback = "") {
@@ -773,6 +971,14 @@ const header = {
   marginBottom: 18,
 };
 
+const headerActions = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "flex-end",
+  gap: 8,
+  flex: "0 0 auto",
+};
+
 const eyebrow = {
   margin: 0,
   color: "#32cfff",
@@ -794,6 +1000,15 @@ const count = {
   color: "#32cfff",
   background: "rgba(50, 207, 255, 0.08)",
   fontWeight: 850,
+};
+
+const addWorkoutBtn = {
+  minHeight: 38,
+  padding: "8px 12px",
+  color: "#050505",
+  borderColor: "#32cfff",
+  background: "#32cfff",
+  fontWeight: 900,
 };
 
 const dayRow = {
@@ -1443,4 +1658,127 @@ const prLine = {
   margin: "6px 0 0",
   color: "#f7f7f2",
   fontWeight: 750,
+};
+
+const modalOverlay = {
+  position: "fixed",
+  inset: 0,
+  zIndex: 220,
+  background: "rgba(0, 0, 0, 0.78)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: 16,
+};
+
+const modalPanel = {
+  width: "min(520px, 100%)",
+  maxHeight: "88vh",
+  overflow: "auto",
+  border: `1px solid ${colors.border}`,
+  borderRadius: 14,
+  background: colors.surface,
+};
+
+const modalHeader = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 12,
+  padding: 14,
+  borderBottom: "1px solid #222",
+};
+
+const modalTitle = {
+  margin: "4px 0 0",
+  color: colors.text,
+  fontSize: 22,
+};
+
+const closeBtn = {
+  width: 36,
+  height: 36,
+  padding: 0,
+};
+
+const modalBody = {
+  display: "grid",
+  gap: 12,
+  padding: 14,
+};
+
+const addSection = {
+  display: "grid",
+  gap: 9,
+};
+
+const addSectionTitle = {
+  color: colors.textSoft,
+  fontSize: 13,
+  textTransform: "uppercase",
+};
+
+const addFieldRow = {
+  gap: 8,
+  gridTemplateColumns: "1fr 1fr",
+};
+
+const libraryList = {
+  display: "grid",
+  gap: 7,
+  maxHeight: 220,
+  overflow: "auto",
+};
+
+const libraryItem = {
+  width: "100%",
+  border: "1px solid #242424",
+  borderRadius: 10,
+  background: "#0b0b0b",
+  padding: 10,
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 10,
+  textAlign: "left",
+};
+
+const libraryText = {
+  display: "grid",
+  gap: 3,
+  minWidth: 0,
+};
+
+const libraryName = {
+  color: colors.text,
+};
+
+const libraryMeta = {
+  color: "#777",
+  fontSize: 12,
+  fontWeight: 750,
+};
+
+const libraryAdd = {
+  color: "#32cfff",
+  fontSize: 12,
+  fontWeight: 900,
+  flex: "0 0 auto",
+};
+
+const textarea = {
+  width: "100%",
+  minHeight: 76,
+  resize: "vertical",
+  borderRadius: 10,
+  border: "1px solid #2b2b2b",
+  background: "#0b0b0b",
+  color: "#f7f7f2",
+  padding: 10,
+  font: "inherit",
+  fontWeight: 700,
+};
+
+const fullButton = {
+  width: "100%",
 };

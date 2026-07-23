@@ -633,11 +633,14 @@ function defaultWarmupFor(dayName) {
 
 function lift(exercise, muscleGroup, sets, reps, note = "", options = {}) {
   const loadProfile = getLoadProfile({ exercise, loadType: options.loadType, minimumLoad: options.minimumLoad });
+  const targetType = options.targetType || inferTargetType(exercise, reps);
   return {
     exercise,
     muscleGroup,
     sets,
     reps,
+    targetType,
+    duration: targetType === "time" ? reps : "",
     note,
     stretches: note,
     baseExercise: options.baseExercise || exercise,
@@ -646,4 +649,12 @@ function lift(exercise, muscleGroup, sets, reps, note = "", options = {}) {
     loadType: loadProfile.type,
     minimumLoad: loadProfile.minimumLoad,
   };
+}
+
+function inferTargetType(exercise, reps) {
+  const name = String(exercise || "").toLowerCase();
+  const target = String(reps || "").toLowerCase();
+  if (/\bplanks?\b|\bhold\b/.test(name)) return "time";
+  if (/\b(sec|second|seconds|min|minute|minutes)\b/.test(target)) return "time";
+  return "reps";
 }

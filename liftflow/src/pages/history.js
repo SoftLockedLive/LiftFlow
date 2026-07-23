@@ -150,7 +150,7 @@ export default function History() {
                           <div style={setDetails}>
                             {sets.length > 0 ? sets.map((set, setIndex) => (
                               <p key={setIndex} style={setDetailLine}>
-                                {set.reps || "--"} reps × {set.weight || "--"} lb
+                                {formatLoggedSet(set)}
                               </p>
                             )) : <p style={setDetailLine}>No sets logged</p>}
                             <div style={liftActions}>
@@ -279,6 +279,13 @@ function filterSessions(sessions, search) {
       ),
     }))
     .filter((session) => session.lifts.length > 0);
+}
+
+function formatLoggedSet(set) {
+  const duration = String(set?.duration || "").trim();
+  const weight = Number(set?.weight || 0);
+  if (duration) return weight > 0 ? `${duration} × ${weight} lb` : duration;
+  return `${set?.reps || "--"} reps × ${set?.weight || "--"} lb`;
 }
 
 function formatDate(date) {
