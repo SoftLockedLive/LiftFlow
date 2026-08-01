@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/router";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { deleteLiftFromWorkout, deleteWorkout, getWorkouts, updateLiftInWorkout } from "../lib/workoutStorage";
 import { buildExerciseHistory, calculateLiftVolume, getBaseExercise, getLiftSets, getWorkoutItems } from "../lib/workoutAnalytics";
 
 export default function History() {
+  const router = useRouter();
   const [workouts, setWorkouts] = useState([]);
   const [search, setSearch] = useState("");
   const [openSessions, setOpenSessions] = useState({});
@@ -108,7 +110,10 @@ export default function History() {
       )}
 
       {filteredSessions.length === 0 ? (
-        <section style={empty}>No workouts logged yet.</section>
+        <section style={empty}>
+          <span>No workouts logged yet.</span>
+          <button type="button" className="primary" onClick={() => router.push("/workout")}>Start Workout</button>
+        </section>
       ) : (
         <section style={sessionList}>
           {filteredSessions.map((session) => {
@@ -414,6 +419,9 @@ const empty = {
   color: "#555",
   textAlign: "center",
   fontWeight: 850,
+  display: "grid",
+  gap: 10,
+  justifyItems: "center",
 };
 
 const sessionList = {

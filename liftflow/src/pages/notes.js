@@ -7,6 +7,7 @@ import { getPlan } from "../lib/plan";
 const ACCENT = "#32cfff";
 const YELLOW = "#e4ff2f";
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const RECAP_KEY = "liftflow_last_workout_recap";
 
 export default function Notes() {
   const [notes, setNotes] = useState([]);
@@ -17,11 +18,13 @@ export default function Notes() {
   const [text, setText] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [recap, setRecap] = useState(null);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
       setNotes(getNotes());
       setOptions(buildSessionOptions(getPlan()));
+      setRecap(getWorkoutRecap());
     }, 0);
     return () => window.clearTimeout(timer);
   }, []);
@@ -62,6 +65,24 @@ export default function Notes() {
       </header>
 
       <section style={card}>
+        {recap && (
+          <div style={recapCard}>
+            <div style={recapTop}>
+              <div>
+                <p style={eyebrow}>Workout Recap</p>
+                <h2 style={recapTitle}>{recap.focus}</h2>
+              </div>
+              <button type="button" onClick={() => dismissRecap(setRecap)} style={dismissBtn}>Dismiss</button>
+            </div>
+            <div style={recapStats}>
+              <RecapStat label="Lifts" value={recap.lifts || 0} />
+              <RecapStat label="Sets" value={recap.sets || 0} />
+              <RecapStat label="Volume" value={`${Number(recap.volume || 0).toLocaleString()} lb`} />
+              <RecapStat label="PRs" value={recap.prs?.length || 0} />
+            </div>
+            {recap.addedLifts > 0 && <p style={recapCopy}>{recap.addedLifts} added lift{recap.addedLifts === 1 ? "" : "s"} included in history.</p>}
+          </div>
+        )}
         <h2 style={cardTitle}>How did it go?</h2>
         <div className="notes-level-grid" style={levelGrid}>
           {NOTE_LEVELS.map((item) => (
@@ -128,7 +149,7 @@ export default function Notes() {
 
       <section style={list}>
         {notes.length === 0 ? (
-          <div style={empty}>No notes yet.</div>
+          <div style={empty}>No notes yet. Save a quick session note above.</div>
         ) : (
           notes.map((note) => {
             const noteLevel = getNoteLevel(note.level);
@@ -199,6 +220,30 @@ function formatDate(date) {
   }).format(new Date(date));
 }
 
+function getWorkoutRecap() {
+  if (typeof window === "undefined") return null;
+  try {
+    const parsed = JSON.parse(localStorage.getItem(RECAP_KEY) || "null");
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function dismissRecap(setRecap) {
+  localStorage.removeItem(RECAP_KEY);
+  setRecap(null);
+}
+
+function RecapStat({ label, value }) {
+  return (
+    <div style={recapStat}>
+      <span style={recapLabel}>{label}</span>
+      <strong style={recapValue}>{value}</strong>
+    </div>
+  );
+}
+
 const wrap = {
   maxWidth: 760,
   margin: "0 auto",
@@ -235,6 +280,71 @@ const card = {
 const cardTitle = {
   margin: 0,
   fontSize: 22,
+};
+
+const recapCard = {
+  border: "1px solid rgba(228, 255, 47, 0.34)",
+  borderRadius: 12,
+  background: "rgba(228, 255, 47, 0.08)",
+  padding: 12,
+  display: "grid",
+  gap: 10,
+};
+
+const recapTop = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: 10,
+};
+
+const recapTitle = {
+  margin: "4px 0 0",
+  color: YELLOW,
+  fontSize: 20,
+};
+
+const dismissBtn = {
+  color: "#aaa",
+  borderColor: "#333",
+  background: "#0b0b0b",
+  padding: "7px 10px",
+  fontSize: 12,
+};
+
+const recapStats = {
+  display: "grid",
+  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+  gap: 7,
+};
+
+const recapStat = {
+  border: "1px solid rgba(247, 247, 242, 0.1)",
+  borderRadius: 10,
+  background: "#0b0b0b",
+  padding: 8,
+};
+
+const recapLabel = {
+  display: "block",
+  color: "#777",
+  fontSize: 10,
+  fontWeight: 850,
+  textTransform: "uppercase",
+};
+
+const recapValue = {
+  display: "block",
+  marginTop: 4,
+  color: "#f7f7f2",
+  fontSize: 14,
+};
+
+const recapCopy = {
+  margin: 0,
+  color: "#d7d7d2",
+  fontSize: 12,
+  fontWeight: 750,
 };
 
 const levelGrid = {

@@ -16,6 +16,7 @@ import { colors, dayColors } from "../lib/theme";
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const DRAFT_KEY = "liftflow_workout_drafts";
 const LAST_DAY_KEY = "liftflow_last_workout_day";
+const RECAP_KEY = "liftflow_last_workout_recap";
 
 export default function Workout() {
   const router = useRouter();
@@ -30,6 +31,7 @@ export default function Workout() {
   const [summary, setSummary] = useState(null);
   const [addOpen, setAddOpen] = useState(false);
   const [addDraft, setAddDraft] = useState(createEmptyAddDraft());
+  const [addSearch, setAddSearch] = useState("");
 
   useEffect(() => {
     if (restSeconds <= 0) return undefined;
@@ -210,6 +212,7 @@ export default function Workout() {
         plannedReps: lift.reps || "",
         targetType: lift.targetType || "reps",
         plannedDuration: lift.duration || "",
+        addedDuringWorkout: Boolean(lift.addedDuringWorkout),
         sets: getLoggedSets(currentSession[lift.id]),
         date: Date.now(),
         note: lift.note || lift.stretches || "",
@@ -237,6 +240,14 @@ export default function Workout() {
       ...workoutSummary,
       prs,
     });
+    saveWorkoutRecap({
+      focus: plan.__meta?.[selectedDay]?.name || selectedDay,
+      day: selectedDay,
+      addedLifts: completedWorkout.filter((lift) => lift.addedDuringWorkout).length,
+      lifts: completedWorkout.length,
+      ...workoutSummary,
+      prs,
+    });
     setPlan(getPlan());
     setWorkouts(getWorkouts());
     setManualPrs(getManualPRs());
@@ -246,6 +257,7 @@ export default function Workout() {
 
   function openAddExercise() {
     setAddDraft(createEmptyAddDraft());
+    setAddSearch("");
     setAddOpen(true);
   }
 
@@ -318,7 +330,7 @@ export default function Workout() {
   const warmup = Array.isArray(plan.__meta?.[selectedDay]?.warmup) ? plan.__meta[selectedDay].warmup.filter(Boolean) : [];
   const emphasis = plan.__meta?.[selectedDay]?.emphasis || "";
   const actionCards = Array.isArray(plan.__meta?.[selectedDay]?.actionCards) ? plan.__meta[selectedDay].actionCards.filter(Boolean) : [];
-  const splitExerciseOptions = getSplitExerciseOptions(plan, selectedDay);
+  const splitExerciseOptions = getSplitExerciseOptions(plan, selectedDay, addSearch);
 
   return (
     <div style={wrap}>
@@ -366,7 +378,11 @@ export default function Workout() {
           {recovery.notes && <p style={recoveryNotes}>{recovery.notes}</p>}
         </section>
       ) : program.length === 0 ? (
-        <section style={empty}>No workout planned for {selectedDay}.</section>
+        <section style={empty}>
+          <span>No workout planned for {selectedDay}.</span>
+          <button type="button" onClick={() => router.push("/plan")} style={emptyAction}>Build Program</button>
+          <button type="button" onClick={openAddExercise} style={emptyAction}>Add One Lift</button>
+        </section>
       ) : (
         <section style={list}>
           {emphasis && (
@@ -735,6 +751,11 @@ export default function Workout() {
             <div style={modalBody}>
               <section style={addSection}>
                 <strong style={addSectionTitle}>From Your Split</strong>
+                <input
+                  placeholder="Search your split"
+                  value={addSearch}
+                  onChange={(event) => setAddSearch(event.target.value)}
+                />
                 {splitExerciseOptions.length === 0 ? (
                   <p style={emptyMini}>No other split exercises found.</p>
                 ) : (
@@ -878,19 +899,21 @@ function buildExtraWorkoutProgram(extraLifts, workouts, prMap) {
       baseExercise,
       prRecord,
       displayPR: formatPR(prRecord),
-      coachRecommendation: buildCoachRecommendation(prepared, workouts),
+      coachRecommendation: buildCoachRecommendation({ ...prepared, prRecord }, workouts),
       userOverride: null,
     };
   });
 }
 
-function getSplitExerciseOptions(plan, selectedDay) {
+function getSplitExerciseOptions(plan, selectedDay, search = "") {
   const seen = new Set();
+  const query = search.trim().toLowerCase();
   return DAYS.flatMap((day) => {
     const lifts = Array.isArray(plan?.[day]) ? plan[day] : [];
     return lifts.map((lift) => ({ ...lift, sourceDay: day }));
   })
     .filter((lift) => lift.exercise)
+    .filter((lift) => !query || `${lift.exercise} ${lift.sourceDay} ${lift.note || ""}`.toLowerCase().includes(query))
     .filter((lift) => {
       const key = normalizeExerciseName(lift.exercise);
       const currentDayHasLift = dayHasExercise(plan, selectedDay, key);
@@ -935,6 +958,11 @@ function getWorkoutDrafts() {
 function saveWorkoutDrafts(drafts) {
   if (typeof window === "undefined") return;
   localStorage.setItem(DRAFT_KEY, JSON.stringify(drafts));
+}
+
+function saveWorkoutRecap(recap) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(RECAP_KEY, JSON.stringify(recap));
 }
 
 function getLastWorkoutDay() {
@@ -1118,6 +1146,15 @@ const empty = {
   color: "#555",
   textAlign: "center",
   fontWeight: 850,
+  display: "grid",
+  gap: 10,
+  justifyItems: "center",
+};
+
+const emptyAction = {
+  color: "#32cfff",
+  borderColor: "rgba(50, 207, 255, 0.35)",
+  background: "rgba(50, 207, 255, 0.08)",
 };
 
 const recoveryCard = {

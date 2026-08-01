@@ -28,7 +28,7 @@ export function buildTodaysWorkout(day, providedPlan = null, providedHistory = n
       // coach layer (soft suggestions only)
       displayPR: formatPR(prRecord),
       prRecord,
-      coachRecommendation: buildSafeCoachRecommendation(safeLift, history),
+      coachRecommendation: buildSafeCoachRecommendation({ ...safeLift, prRecord }, history),
 
       // user always overrides this
       userOverride: null,

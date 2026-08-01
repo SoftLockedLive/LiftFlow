@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import { getManualPRs } from "../lib/manualPRs";
-import { getPlan } from "../lib/plan";
-import { getDailyCheckIns } from "../lib/progressTracking";
-import { getTodayKey } from "../lib/protein";
+import { getPlan, savePlan } from "../lib/plan";
+import { getDailyCheckIns, saveProgressTargets } from "../lib/progressTracking";
+import { getTodayKey, saveProteinTarget } from "../lib/protein";
+import { getProfile, saveProfile } from "../lib/profile";
+import { buildPlanFromTemplate, PROGRAM_TEMPLATES } from "../lib/programTemplates";
 import { buildPRMap, formatPR } from "../lib/prRecords";
 import { getTodayName } from "../lib/today";
 import { getWorkouts } from "../lib/workoutStorage";
@@ -11,6 +13,8 @@ import { calculateLiftVolume, calculateSessionSummary, getBaseExercise, getLiftS
 import { colors, dayColors, tint } from "../lib/theme";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const ONBOARDING_KEY = "liftflow_onboarding_complete";
+const DRAFT_KEY = "liftflow_workout_drafts";
 
 export default function Home() {
   const router = useRouter();
@@ -23,6 +27,9 @@ export default function Home() {
   const [touchStart, setTouchStart] = useState(null);
   const [flowMotion, setFlowMotion] = useState("");
   const [checkInPrompt, setCheckInPrompt] = useState(null);
+  const [resumeDraft, setResumeDraft] = useState(null);
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
+  const [onboardingDraft, setOnboardingDraft] = useState(createOnboardingDraft());
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -33,6 +40,8 @@ export default function Home() {
       setToday(currentDay);
       setFlowIndex(Math.max(0, DAYS.indexOf(currentDay)));
       setCheckInPrompt(getCheckInPrompt(getDailyCheckIns().find((entry) => entry.date === getTodayKey())));
+      setResumeDraft(getResumeDraftDay());
+      setOnboardingOpen(shouldShowOnboarding(savedPlan, getWorkouts(), getProfile()));
     }, 0);
 
     return () => window.clearTimeout(timer);
@@ -77,6 +86,19 @@ export default function Home() {
 
   return (
     <div style={homeWrap}>
+      {resumeDraft && (
+        <section style={resumeCard}>
+          <div>
+            <p style={eyebrow}>Workout In Progress</p>
+            <h2 style={resumeTitle}>Resume {resumeDraft.day}</h2>
+            <p style={resumeCopy}>{resumeDraft.count} logged item{resumeDraft.count === 1 ? "" : "s"} saved on this device.</p>
+          </div>
+          <button type="button" className="primary" onClick={() => router.push(`/workout?day=${encodeURIComponent(resumeDraft.day)}`)} style={checkInButton}>
+            Resume
+          </button>
+        </section>
+      )}
+
       {checkInPrompt && (
         <section style={checkInCard}>
           <div>
@@ -117,7 +139,7 @@ export default function Home() {
                 ? `${flowItem.recovery.activity} · ${flowItem.recovery.duration} · ${flowItem.recovery.intensity || "Easy"}`
                 : flowItem?.lifts?.length > 0
                 ? `${flowItem.day} · ${flowItem.lifts.length} planned lift${flowItem.lifts.length === 1 ? "" : "s"}`
-                : `${flowItem?.day || "Today"} is open. Add work or keep it for recovery.`}
+                : `${flowItem?.day || "Today"} is open. Build your program or keep it for recovery.`}
             </p>
           </div>
 
@@ -155,6 +177,7 @@ export default function Home() {
             <div style={flowRecovery}>
               <strong>Recovery or planning day</strong>
               <span>No lifts are scheduled yet.</span>
+              <button type="button" onClick={() => router.push("/plan")} style={inlineAction}>Build Program</button>
             </div>
           )}
         </div>
@@ -173,7 +196,10 @@ export default function Home() {
       <section style={section}>
         <h2 style={sectionTitle}>Recent Sets</h2>
         {recentSessions.length === 0 ? (
-          <div style={emptyState}>No sets logged yet. Hit the gym!</div>
+          <div style={emptyState}>
+            <span>No sets logged yet.</span>
+            <button type="button" onClick={() => router.push("/workout")} style={inlineAction}>Start Workout</button>
+          </div>
         ) : (
           <div style={recentList}>
             {recentSessions.map((session) => {
@@ -211,8 +237,128 @@ export default function Home() {
           </div>
         )}
       </section>
+
+      {onboardingOpen && (
+        <div style={modalOverlay} onClick={() => setOnboardingOpen(false)}>
+          <section style={modalPanel} onClick={(event) => event.stopPropagation()}>
+            <div style={modalHeader}>
+              <div>
+                <p style={eyebrow}>First Run</p>
+                <h2 style={modalTitle}>Set up LiftFlow</h2>
+              </div>
+              <button type="button" onClick={() => skipOnboarding(setOnboardingOpen)} style={closeBtn}>X</button>
+            </div>
+            <div style={modalBody}>
+              <input
+                placeholder="Bodyweight"
+                inputMode="decimal"
+                value={onboardingDraft.bodyweight}
+                onChange={(event) => setOnboardingDraft({ ...onboardingDraft, bodyweight: event.target.value })}
+              />
+              <select value={onboardingDraft.goal} onChange={(event) => setOnboardingDraft({ ...onboardingDraft, goal: event.target.value })}>
+                <option value="strength">Strength</option>
+                <option value="hypertrophy">Hypertrophy</option>
+                <option value="fat_loss">Fat Loss</option>
+              </select>
+              <div className="field-row" style={onboardingRow}>
+                <input
+                  placeholder="Calories"
+                  inputMode="numeric"
+                  value={onboardingDraft.calorieTarget}
+                  onChange={(event) => setOnboardingDraft({ ...onboardingDraft, calorieTarget: event.target.value })}
+                />
+                <input
+                  placeholder="Protein"
+                  inputMode="numeric"
+                  value={onboardingDraft.proteinTarget}
+                  onChange={(event) => setOnboardingDraft({ ...onboardingDraft, proteinTarget: event.target.value })}
+                />
+              </div>
+              <select value={onboardingDraft.templateId} onChange={(event) => setOnboardingDraft({ ...onboardingDraft, templateId: event.target.value })}>
+                <option value="">No starter split</option>
+                {PROGRAM_TEMPLATES.map((template) => (
+                  <option key={template.id} value={template.id}>{template.name}</option>
+                ))}
+              </select>
+              <button type="button" className="primary" onClick={() => completeOnboarding(onboardingDraft, setPlan, setOnboardingOpen)} style={fullButton}>
+                Finish Setup
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
+}
+
+function createOnboardingDraft() {
+  return {
+    bodyweight: "",
+    goal: "strength",
+    calorieTarget: "2800",
+    proteinTarget: "160",
+    templateId: "upper-lower-4",
+  };
+}
+
+function shouldShowOnboarding(plan, workouts, profile) {
+  if (typeof window === "undefined") return false;
+  if (localStorage.getItem(ONBOARDING_KEY) === "true") return false;
+  const hasPlan = DAYS.some((day) => Array.isArray(plan?.[day]) && plan[day].length > 0);
+  const hasWorkouts = Array.isArray(workouts) && workouts.length > 0;
+  const hasProfile = Boolean(profile?.bodyweight || profile?.weight || profile?.name);
+  return !hasPlan && !hasWorkouts && !hasProfile;
+}
+
+function completeOnboarding(draft, setPlan, setOnboardingOpen) {
+  const profile = getProfile();
+  saveProfile({
+    ...profile,
+    bodyweight: draft.bodyweight || profile.bodyweight,
+    weight: draft.bodyweight || profile.weight,
+    goal: draft.goal,
+  });
+  const proteinTarget = Number(draft.proteinTarget || 0) || 160;
+  saveProteinTarget(proteinTarget);
+  saveProgressTargets({
+    goalType: draft.goal === "fat_loss" ? "cut" : draft.goal === "hypertrophy" ? "lean-bulk" : "maintenance",
+    calorieTarget: Number(draft.calorieTarget || 0) || 2800,
+    proteinTarget,
+  });
+  if (draft.templateId) {
+    const nextPlan = buildPlanFromTemplate(draft.templateId);
+    savePlan(nextPlan);
+    setPlan(nextPlan);
+  }
+  localStorage.setItem(ONBOARDING_KEY, "true");
+  window.dispatchEvent(new Event("liftflow-profile-updated"));
+  setOnboardingOpen(false);
+}
+
+function skipOnboarding(setOnboardingOpen) {
+  localStorage.setItem(ONBOARDING_KEY, "true");
+  setOnboardingOpen(false);
+}
+
+function getResumeDraftDay() {
+  if (typeof window === "undefined") return null;
+  try {
+    const drafts = JSON.parse(localStorage.getItem(DRAFT_KEY) || "{}");
+    if (!drafts || typeof drafts !== "object" || Array.isArray(drafts)) return null;
+    return DAYS.map((day) => ({ day, count: countDraftItems(drafts[day]) }))
+      .find((draft) => draft.count > 0) || null;
+  } catch {
+    return null;
+  }
+}
+
+function countDraftItems(draft) {
+  if (!draft || typeof draft !== "object" || Array.isArray(draft)) return 0;
+  return Object.entries(draft).reduce((count, [key, value]) => {
+    if (key === "__extraLifts" && Array.isArray(value)) return count + value.length;
+    if (key.startsWith("__")) return count;
+    return count + (Array.isArray(value) ? value.filter(Boolean).length : 0);
+  }, 0);
 }
 
 function getDayTitle(day) {
@@ -338,6 +484,27 @@ const checkInCard = {
   justifyContent: "space-between",
   alignItems: "center",
   gap: 12,
+};
+
+const resumeCard = {
+  ...checkInCard,
+  borderColor: tint(colors.brand, 0.36),
+  background: `linear-gradient(135deg, ${tint(colors.brand, 0.12)}, ${tint(colors.accent, 0.06)}), ${colors.surface}`,
+};
+
+const resumeTitle = {
+  margin: "4px 0 0",
+  color: colors.text,
+  fontSize: 18,
+  lineHeight: 1.1,
+};
+
+const resumeCopy = {
+  margin: "5px 0 0",
+  color: colors.muted,
+  fontSize: 12,
+  lineHeight: 1.35,
+  fontWeight: 700,
 };
 
 const checkInTitle = {
@@ -471,6 +638,16 @@ const flowRecovery = {
   color: colors.textSoft,
 };
 
+const inlineAction = {
+  justifySelf: "flex-start",
+  marginTop: 4,
+  color: colors.brand,
+  borderColor: tint(colors.brand, 0.35),
+  background: tint(colors.brand, 0.08),
+  padding: "7px 10px",
+  fontSize: 12,
+};
+
 const flowFooter = {
   display: "flex",
   alignItems: "center",
@@ -600,13 +777,70 @@ const openButton = {
 
 const emptyState = {
   minHeight: 96,
-  display: "flex",
+  display: "grid",
   alignItems: "center",
   justifyContent: "center",
+  gap: 10,
   color: "#2f2f2f",
   fontSize: 16,
   fontWeight: 850,
   textAlign: "center",
+};
+
+const modalOverlay = {
+  position: "fixed",
+  inset: 0,
+  zIndex: 230,
+  background: "rgba(0, 0, 0, 0.78)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: 16,
+};
+
+const modalPanel = {
+  width: "min(460px, 100%)",
+  maxHeight: "88vh",
+  overflow: "auto",
+  border: `1px solid ${colors.border}`,
+  borderRadius: 14,
+  background: colors.surface,
+};
+
+const modalHeader = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 12,
+  padding: 14,
+  borderBottom: "1px solid #222",
+};
+
+const modalTitle = {
+  margin: "4px 0 0",
+  color: colors.text,
+  fontSize: 22,
+};
+
+const closeBtn = {
+  width: 36,
+  height: 36,
+  padding: 0,
+};
+
+const modalBody = {
+  display: "grid",
+  gap: 10,
+  padding: 14,
+};
+
+const onboardingRow = {
+  gap: 8,
+  gridTemplateColumns: "1fr 1fr",
+};
+
+const fullButton = {
+  width: "100%",
 };
 
 const recentList = {

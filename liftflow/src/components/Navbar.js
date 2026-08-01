@@ -7,7 +7,7 @@ export default function NavBar() {
   const tabs = [
     { label: "Home", path: "/" },
     { label: "Workout", path: "/workout" },
-    { label: "Plan", path: "/plan" },
+    { label: "Program", path: "/plan" },
     { label: "Mobility", path: "/mobility" },
     { label: "Running", path: "/running" },
     { label: "PRs", path: "/prs" },

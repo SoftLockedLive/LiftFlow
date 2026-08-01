@@ -85,7 +85,7 @@ export default function PRs() {
 
       <section style={list}>
         {prs.length === 0 ? (
-          <div style={empty}>No PRs recorded yet.</div>
+          <div style={empty}>No PRs recorded yet. Add your first PR above.</div>
         ) : (
           groupedPrs.map((group) => {
             const expanded = openGroups[group.id] === true;

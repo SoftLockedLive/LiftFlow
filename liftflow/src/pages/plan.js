@@ -46,6 +46,8 @@ export default function Plan() {
   const [savedSplits, setSavedSplits] = useState([]);
   const [saveSplitOpen, setSaveSplitOpen] = useState(false);
   const [saveSplitName, setSaveSplitName] = useState("");
+  const [librarySearch, setLibrarySearch] = useState("");
+  const [libraryGroup, setLibraryGroup] = useState("all");
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -418,13 +420,15 @@ export default function Plan() {
   const selectedMeta = plan.__meta?.[selectedDay] || {};
   const recovery = selectedMeta.recovery;
   const selectedWarmup = Array.isArray(selectedMeta.warmup) ? selectedMeta.warmup : [];
+  const defaultLibrary = filterExerciseLibrary(DEFAULT_EXERCISES, librarySearch, libraryGroup);
+  const customLibrary = filterExerciseLibrary(customExercises, librarySearch, libraryGroup);
 
   return (
     <div style={wrap}>
       <header style={header}>
         <div>
-          <p style={eyebrow}>Program Builder</p>
-          <h1 style={title}>Your Split</h1>
+          <p style={eyebrow}>Program</p>
+          <h1 style={title}>Your Training Split</h1>
         </div>
         <span style={count}>{todayPlan.length} lifts</span>
       </header>
@@ -517,7 +521,19 @@ export default function Plan() {
             </div>
           </article>
         ) : todayPlan.length === 0 ? (
-          <div style={empty}>No exercises for {selectedDay} yet.</div>
+          <div style={empty}>
+            <span>No exercises for {selectedDay} yet.</span>
+            <button
+              type="button"
+              onClick={() => {
+                clearForm();
+                setEditorOpen(true);
+              }}
+              style={editBtn}
+            >
+              Add Lift
+            </button>
+          </div>
         ) : (
           todayPlan.map((lift) => {
             const group = getMuscleGroup(lift.muscleGroup);
@@ -646,7 +662,7 @@ export default function Plan() {
           <div style={templateHeader}>
             <div>
               <p style={label}>Saved Splits</p>
-              <h2 style={cardTitle}>Fallback Plans</h2>
+              <h2 style={cardTitle}>Saved Splits</h2>
             </div>
             <button type="button" onClick={saveCurrentSplitSnapshot} style={editBtn}>
               Save Current
@@ -736,9 +752,24 @@ export default function Plan() {
       {builderPanel === "library" && (
         <>
           <section style={templateSection}>
+            <div style={libraryControls}>
+              <input
+                placeholder="Search exercises"
+                value={librarySearch}
+                onChange={(event) => setLibrarySearch(event.target.value)}
+              />
+              <select value={libraryGroup} onChange={(event) => setLibraryGroup(event.target.value)}>
+                <option value="all">All groups</option>
+                {MUSCLE_GROUPS.map((group) => (
+                  <option key={group.id} value={group.id}>{group.label}</option>
+                ))}
+              </select>
+            </div>
             <p style={label}>Default Exercises</p>
             <div style={libraryList}>
-              {DEFAULT_EXERCISES.map((lift) => {
+              {defaultLibrary.length === 0 ? (
+                <div style={empty}>No default exercises match.</div>
+              ) : defaultLibrary.map((lift) => {
                 const group = getMuscleGroup(lift.muscleGroup);
                 const profile = getLoadProfile(lift);
                 return (
@@ -760,9 +791,11 @@ export default function Plan() {
             <p style={label}>Custom Exercises</p>
             {customExercises.length === 0 ? (
               <div style={empty}>No custom exercises saved yet.</div>
+            ) : customLibrary.length === 0 ? (
+              <div style={empty}>No custom exercises match.</div>
             ) : (
               <div style={libraryList}>
-                {customExercises.map((lift) => {
+                {customLibrary.map((lift) => {
                   const group = getMuscleGroup(lift.muscleGroup);
                   const profile = getLoadProfile(lift);
                   return (
@@ -938,6 +971,15 @@ function formatSavedSplitMeta(plan) {
   const days = DAYS.filter((day) => Array.isArray(plan?.[day]) && plan[day].length > 0).length;
   const lifts = DAYS.reduce((sum, day) => sum + (Array.isArray(plan?.[day]) ? plan[day].length : 0), 0);
   return `${days} days · ${lifts} lifts`;
+}
+
+function filterExerciseLibrary(lifts, search, group) {
+  const query = search.trim().toLowerCase();
+  return (Array.isArray(lifts) ? lifts : []).filter((lift) => {
+    const matchesGroup = group === "all" || lift.muscleGroup === group;
+    const matchesSearch = !query || `${lift.exercise} ${lift.note || ""} ${lift.stretches || ""}`.toLowerCase().includes(query);
+    return matchesGroup && matchesSearch;
+  });
 }
 
 function renderExerciseEditor({
@@ -1308,6 +1350,13 @@ const libraryList = {
   gap: 8,
 };
 
+const libraryControls = {
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) minmax(120px, 0.6fr)",
+  gap: 8,
+  marginBottom: 12,
+};
+
 const warmupList = {
   display: "grid",
   gap: 6,
@@ -1347,6 +1396,9 @@ const empty = {
   color: "#555",
   textAlign: "center",
   fontWeight: 850,
+  display: "grid",
+  gap: 10,
+  justifyItems: "center",
 };
 
 const liftCard = {
