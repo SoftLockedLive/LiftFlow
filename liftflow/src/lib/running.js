@@ -34,7 +34,8 @@ export const RUNNING_PRESETS = [
 export function getRunLog() {
   if (typeof window === "undefined") return [];
   try {
-    return JSON.parse(localStorage.getItem(LOG_KEY) || "[]");
+    const parsed = JSON.parse(localStorage.getItem(LOG_KEY) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }

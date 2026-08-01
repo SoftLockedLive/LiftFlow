@@ -77,6 +77,7 @@ export default function Layout({ children }) {
     { name: "History", path: "/history" },
     { name: "PRs", path: "/prs" },
     { name: "Profile", path: "/profile" },
+    { name: "Settings", path: "/settings" },
   ];
   const moreActive = secondaryTabs.some((tab) => tab.path === router.pathname);
 

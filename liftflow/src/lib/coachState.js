@@ -2,12 +2,19 @@ const KEY = "liftflow_coach_state";
 
 export function getCoachState() {
   if (typeof window === "undefined") return {};
-  return JSON.parse(localStorage.getItem(KEY) || "{}");
+  try {
+    const parsed = JSON.parse(localStorage.getItem(KEY) || "{}");
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
 }
 
 export function setCoachState(state) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(KEY, JSON.stringify(state));
+  if (typeof window === "undefined") return {};
+  const safeState = state && typeof state === "object" && !Array.isArray(state) ? state : {};
+  localStorage.setItem(KEY, JSON.stringify(safeState));
+  return safeState;
 }
 
 /**

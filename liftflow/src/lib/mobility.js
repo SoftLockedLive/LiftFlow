@@ -79,7 +79,12 @@ function movement(name, mode, target) {
 
 function read(key, fallback) {
   try {
-    return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback));
+    const parsed = JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback));
+    if (Array.isArray(fallback)) return Array.isArray(parsed) ? parsed : fallback;
+    if (fallback && typeof fallback === "object") {
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : fallback;
+    }
+    return parsed ?? fallback;
   } catch {
     return fallback;
   }

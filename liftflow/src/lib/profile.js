@@ -37,9 +37,10 @@ export function getProfile() {
 
   try {
     const data = localStorage.getItem(KEY);
+    const parsed = data ? JSON.parse(data) : {};
 
-    return data
-      ? { ...DEFAULT_PROFILE, ...JSON.parse(data) }
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? { ...DEFAULT_PROFILE, ...parsed }
       : DEFAULT_PROFILE;
   } catch {
     return DEFAULT_PROFILE;
@@ -48,12 +49,16 @@ export function getProfile() {
 
 export function saveProfile(profile) {
   if (typeof window === "undefined")
-    return;
+    return DEFAULT_PROFILE;
 
+  const safeProfile = profile && typeof profile === "object" && !Array.isArray(profile)
+    ? { ...DEFAULT_PROFILE, ...profile }
+    : DEFAULT_PROFILE;
   localStorage.setItem(
     KEY,
-    JSON.stringify(profile)
+    JSON.stringify(safeProfile)
   );
+  return safeProfile;
 }
 
 export function calculateTotal(profile) {

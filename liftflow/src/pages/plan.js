@@ -44,6 +44,8 @@ export default function Plan() {
   const [editorOpen, setEditorOpen] = useState(false);
   const [templatePreview, setTemplatePreview] = useState(null);
   const [savedSplits, setSavedSplits] = useState([]);
+  const [saveSplitOpen, setSaveSplitOpen] = useState(false);
+  const [saveSplitName, setSaveSplitName] = useState("");
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -364,9 +366,14 @@ export default function Plan() {
   }
 
   function saveCurrentSplitSnapshot() {
-    const name = window.prompt("Name this saved split", plan.__meta?.Monday?.name ? `${plan.__meta.Monday.name} Split` : "My Split");
-    if (name === null) return;
-    setSavedSplits(saveCurrentSplit(plan, name));
+    setSaveSplitName(plan.__meta?.Monday?.name ? `${plan.__meta.Monday.name} Split` : "My Split");
+    setSaveSplitOpen(true);
+  }
+
+  function confirmSaveCurrentSplitSnapshot() {
+    setSavedSplits(saveCurrentSplit(plan, saveSplitName));
+    setSaveSplitName("");
+    setSaveSplitOpen(false);
   }
 
   function saveCurrentThenApply(templateId) {
@@ -876,6 +883,28 @@ export default function Plan() {
                   </button>
                 </>
               )}
+            </div>
+          </section>
+        </div>
+      )}
+
+      {saveSplitOpen && (
+        <div style={modalOverlay} onClick={() => setSaveSplitOpen(false)}>
+          <section style={modalPanel} onClick={(event) => event.stopPropagation()}>
+            <div style={modalHeader}>
+              <h2 style={modalTitle}>Save Split</h2>
+              <button type="button" onClick={() => setSaveSplitOpen(false)} style={closeBtn}>X</button>
+            </div>
+            <div style={modalBody}>
+              <input
+                autoFocus
+                placeholder="Split name"
+                value={saveSplitName}
+                onChange={(event) => setSaveSplitName(event.target.value)}
+              />
+              <button type="button" className="primary" onClick={confirmSaveCurrentSplitSnapshot} style={fullButton}>
+                Save Split
+              </button>
             </div>
           </section>
         </div>

@@ -3,7 +3,8 @@ const TARGET_KEY = "liftflow_protein_target";
 
 export function getProteinTarget() {
   if (typeof window === "undefined") return 160;
-  return Number(localStorage.getItem(TARGET_KEY) || 160);
+  const target = Number(localStorage.getItem(TARGET_KEY) || 160);
+  return Number.isFinite(target) && target > 0 ? target : 160;
 }
 
 export function saveProteinTarget(target) {
@@ -14,15 +15,18 @@ export function saveProteinTarget(target) {
 export function getProteinLog() {
   if (typeof window === "undefined") return {};
   try {
-    return JSON.parse(localStorage.getItem(KEY) || "{}");
+    const parsed = JSON.parse(localStorage.getItem(KEY) || "{}");
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
   } catch {
     return {};
   }
 }
 
 export function saveProteinLog(log) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(KEY, JSON.stringify(log));
+  if (typeof window === "undefined") return {};
+  const safeLog = log && typeof log === "object" && !Array.isArray(log) ? log : {};
+  localStorage.setItem(KEY, JSON.stringify(safeLog));
+  return safeLog;
 }
 
 export function getTodayKey(date = new Date()) {

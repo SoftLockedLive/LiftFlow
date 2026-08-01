@@ -11,15 +11,18 @@ export const NOTE_LEVELS = [
 export function getNotes() {
   if (typeof window === "undefined") return [];
   try {
-    return JSON.parse(localStorage.getItem(KEY) || "[]");
+    const parsed = JSON.parse(localStorage.getItem(KEY) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
 }
 
 export function saveNotes(notes) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(KEY, JSON.stringify(notes));
+  if (typeof window === "undefined") return [];
+  const safeNotes = Array.isArray(notes) ? notes : [];
+  localStorage.setItem(KEY, JSON.stringify(safeNotes));
+  return safeNotes;
 }
 
 export function addNote(note) {

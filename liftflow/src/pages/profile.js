@@ -8,11 +8,18 @@ import {
 
 export default function Profile() {
   const [profile, setProfile] = useState({});
+  const [saveState, setSaveState] = useState("");
 
   useEffect(() => {
     const timer = window.setTimeout(() => setProfile(getProfile()), 0);
     return () => window.clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (!saveState) return undefined;
+    const timer = window.setTimeout(() => setSaveState(""), 2200);
+    return () => window.clearTimeout(timer);
+  }, [saveState]);
 
   function update(field, value) {
     setProfile((prev) => ({
@@ -30,7 +37,7 @@ export default function Profile() {
     setProfile(normalized);
     saveProfile(normalized);
     window.dispatchEvent(new Event("liftflow-profile-updated"));
-    alert("Profile saved!");
+    setSaveState("Profile saved");
   }
 
   function handlePhoto(event) {
@@ -83,6 +90,8 @@ export default function Profile() {
           Save
         </button>
       </header>
+
+      {saveState && <div style={saveNotice}>{saveState}</div>}
 
       <section className="profile-stats" style={statsGrid}>
         <Stat label="Big 3" value={`${total} lb`} />
@@ -336,6 +345,16 @@ const title = {
 
 const saveTop = {
   minWidth: 90,
+};
+
+const saveNotice = {
+  border: "1px solid rgba(50, 223, 118, 0.34)",
+  borderRadius: 12,
+  background: "rgba(50, 223, 118, 0.1)",
+  color: "#32df76",
+  padding: "10px 12px",
+  marginBottom: 14,
+  fontWeight: 850,
 };
 
 const statsGrid = {
