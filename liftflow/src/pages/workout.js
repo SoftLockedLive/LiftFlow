@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { getCustomExercises, upsertCustomExercise } from "../lib/customExercises";
+import { upsertCustomExercise } from "../lib/customExercises";
 import { getMuscleGroup, tint } from "../lib/muscleGroups";
 import { getManualPRs } from "../lib/manualPRs";
-import { getPlan, savePlan } from "../lib/plan";
+import { getPlan } from "../lib/plan";
 import { buildPRMap, formatPR } from "../lib/prRecords";
-import { DEFAULT_EXERCISES } from "../lib/programTemplates";
 import { buildTodaysWorkout } from "../lib/trainingEngine";
 import { getTodayName } from "../lib/today";
 import { getWorkouts, saveWorkout } from "../lib/workoutStorage";
@@ -29,7 +28,6 @@ export default function Workout() {
   const [restSeconds, setRestSeconds] = useState(0);
   const [restPreset, setRestPreset] = useState(90);
   const [summary, setSummary] = useState(null);
-  const [customExercises, setCustomExercises] = useState([]);
   const [addOpen, setAddOpen] = useState(false);
   const [addDraft, setAddDraft] = useState(createEmptyAddDraft());
 
@@ -59,7 +57,6 @@ export default function Workout() {
       setSession(getSafeSession(savedDrafts[initialDay]));
       setWorkouts(getWorkouts());
       setManualPrs(getManualPRs());
-      setCustomExercises(getCustomExercises());
     }, 0);
 
     return () => window.clearTimeout(timer);
@@ -256,28 +253,54 @@ export default function Workout() {
     const prepared = prepareWorkoutLift(lift);
     if (!prepared.exercise || !prepared.sets || !prepared.reps) return;
 
-    const updated = {
-      ...plan,
-      [selectedDay]: [...(Array.isArray(plan[selectedDay]) ? plan[selectedDay] : []), prepared],
-      __meta: {
-        ...(plan.__meta || {}),
-        [selectedDay]: {
-          ...(plan.__meta?.[selectedDay] || {}),
-          type: "training",
-          recovery: null,
-        },
-      },
-    };
-
-    setPlan(updated);
-    savePlan(updated);
+    setSession((prev) => {
+      const current = getSafeSession(prev);
+      const extraLifts = Array.isArray(current.__extraLifts) ? current.__extraLifts : [];
+      const copy = { ...current, __extraLifts: [...extraLifts, prepared] };
+      const updatedDrafts = { ...drafts, [selectedDay]: copy };
+      setDrafts(updatedDrafts);
+      saveWorkoutDrafts(updatedDrafts);
+      return copy;
+    });
 
     if (saveCustom) {
-      setCustomExercises(upsertCustomExercise(prepared));
+      upsertCustomExercise(prepared);
     }
 
     setAddOpen(false);
     setAddDraft(createEmptyAddDraft());
+  }
+
+  function removeWorkoutExercise(lift) {
+    if (!lift.addedDuringWorkout) return;
+
+    setSession((prev) => {
+      const current = getSafeSession(prev);
+      const extraLifts = (Array.isArray(current.__extraLifts) ? current.__extraLifts : []).filter((item) => item.id !== lift.id);
+      const copy = { ...current, __extraLifts };
+      delete copy[lift.id];
+
+      if (isPlainObject(copy.__variations)) {
+        const variations = { ...copy.__variations };
+        delete variations[lift.id];
+        copy.__variations = variations;
+      }
+      if (isPlainObject(copy.__coach)) {
+        const coach = { ...copy.__coach };
+        delete coach[lift.id];
+        copy.__coach = coach;
+      }
+      if (isPlainObject(copy.__ramp)) {
+        const ramp = { ...copy.__ramp };
+        delete ramp[lift.id];
+        copy.__ramp = ramp;
+      }
+
+      const updatedDrafts = { ...drafts, [selectedDay]: copy };
+      setDrafts(updatedDrafts);
+      saveWorkoutDrafts(updatedDrafts);
+      return copy;
+    });
   }
 
   function addCustomDraftToWorkout() {
@@ -285,14 +308,17 @@ export default function Workout() {
     addExerciseToWorkout({ ...addDraft, reps: targetValue }, true);
   }
 
-  const program = buildTodaysWorkout(selectedDay, plan, workouts, manualPrs);
   const safeSession = getSafeSession(session);
+  const prMap = buildPRMap(workouts, manualPrs);
+  const baseProgram = buildTodaysWorkout(selectedDay, plan, workouts, manualPrs);
+  const extraProgram = buildExtraWorkoutProgram(safeSession.__extraLifts, workouts, prMap);
+  const program = [...baseProgram, ...extraProgram];
   const focusName = plan.__meta?.[selectedDay]?.name || selectedDay;
   const recovery = plan.__meta?.[selectedDay]?.recovery;
   const warmup = Array.isArray(plan.__meta?.[selectedDay]?.warmup) ? plan.__meta[selectedDay].warmup.filter(Boolean) : [];
   const emphasis = plan.__meta?.[selectedDay]?.emphasis || "";
   const actionCards = Array.isArray(plan.__meta?.[selectedDay]?.actionCards) ? plan.__meta[selectedDay].actionCards.filter(Boolean) : [];
-  const prMap = buildPRMap(workouts, manualPrs);
+  const splitExerciseOptions = getSplitExerciseOptions(plan, selectedDay);
 
   return (
     <div style={wrap}>
@@ -463,6 +489,17 @@ export default function Workout() {
                     </p>
                   </div>
                   <div style={liftHeaderActions}>
+                    {lift.addedDuringWorkout && (
+                      <button
+                        type="button"
+                        onClick={() => removeWorkoutExercise(lift)}
+                        style={removeLiftBtn}
+                        aria-label={`Remove ${lift.exercise}`}
+                        title="Remove added exercise"
+                      >
+                        Remove
+                      </button>
+                    )}
                     {lift.targetType !== "time" && activePr && (
                       <span style={prBadge}>
                         {formatPR(activePr)}
@@ -697,23 +734,27 @@ export default function Workout() {
             </div>
             <div style={modalBody}>
               <section style={addSection}>
-                <strong style={addSectionTitle}>Library</strong>
-                <div style={libraryList}>
-                  {[...DEFAULT_EXERCISES, ...customExercises].map((lift) => (
-                    <button
-                      key={`${lift.id || "default"}-${lift.exercise}-${lift.muscleGroup}`}
-                      type="button"
-                      onClick={() => addExerciseToWorkout(lift)}
-                      style={libraryItem}
-                    >
-                      <span style={libraryText}>
-                        <strong style={libraryName}>{lift.exercise}</strong>
-                        <span style={libraryMeta}>{getMuscleGroup(lift.muscleGroup).label} · {formatWorkoutTarget(lift)}</span>
-                      </span>
-                      <span style={libraryAdd}>Add</span>
-                    </button>
-                  ))}
-                </div>
+                <strong style={addSectionTitle}>From Your Split</strong>
+                {splitExerciseOptions.length === 0 ? (
+                  <p style={emptyMini}>No other split exercises found.</p>
+                ) : (
+                  <div style={libraryList}>
+                    {splitExerciseOptions.map((lift) => (
+                      <button
+                        key={`${lift.exercise}-${lift.muscleGroup}-${lift.sets}-${lift.reps}`}
+                        type="button"
+                        onClick={() => addExerciseToWorkout(lift)}
+                        style={libraryItem}
+                      >
+                        <span style={libraryText}>
+                          <strong style={libraryName}>{lift.exercise}</strong>
+                          <span style={libraryMeta}>{lift.sourceDay} · {getMuscleGroup(lift.muscleGroup).label} · {formatWorkoutTarget(lift)}</span>
+                        </span>
+                        <span style={libraryAdd}>Add</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </section>
 
               <section style={addSection}>
@@ -818,7 +859,49 @@ function prepareWorkoutLift(lift) {
     stretches: lift?.stretches || lift?.note || "",
     baseExercise: lift?.baseExercise || lift?.exercise || "",
     variations: Array.isArray(lift?.variations) ? lift.variations : [],
+    addedDuringWorkout: true,
   };
+}
+
+function buildExtraWorkoutProgram(extraLifts, workouts, prMap) {
+  return (Array.isArray(extraLifts) ? extraLifts : []).filter(Boolean).map((lift, index) => {
+    const prepared = {
+      ...lift,
+      id: lift.id || `extra-${index}-${String(lift.exercise || "lift").replace(/[^a-z0-9]+/gi, "-")}`,
+      addedDuringWorkout: true,
+    };
+    const baseExercise = normalizeExerciseName(prepared.baseExercise || prepared.exercise);
+    const prRecord = prMap[baseExercise];
+
+    return {
+      ...prepared,
+      baseExercise,
+      prRecord,
+      displayPR: formatPR(prRecord),
+      coachRecommendation: buildCoachRecommendation(prepared, workouts),
+      userOverride: null,
+    };
+  });
+}
+
+function getSplitExerciseOptions(plan, selectedDay) {
+  const seen = new Set();
+  return DAYS.flatMap((day) => {
+    const lifts = Array.isArray(plan?.[day]) ? plan[day] : [];
+    return lifts.map((lift) => ({ ...lift, sourceDay: day }));
+  })
+    .filter((lift) => lift.exercise)
+    .filter((lift) => {
+      const key = normalizeExerciseName(lift.exercise);
+      const currentDayHasLift = dayHasExercise(plan, selectedDay, key);
+      if (!key || seen.has(key) || currentDayHasLift) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+function dayHasExercise(plan, day, exerciseKey) {
+  return (Array.isArray(plan?.[day]) ? plan[day] : []).some((lift) => normalizeExerciseName(lift.exercise) === exerciseKey);
 }
 
 function getLoggedSets(sets) {
@@ -1479,6 +1562,17 @@ const variationIcon = {
   fontWeight: 900,
 };
 
+const removeLiftBtn = {
+  minWidth: 64,
+  height: 32,
+  padding: "0 9px",
+  color: "#ff6b2c",
+  borderColor: "rgba(255, 107, 44, 0.42)",
+  background: "rgba(255, 107, 44, 0.1)",
+  fontSize: 11,
+  fontWeight: 900,
+};
+
 const variationPanel = {
   display: "grid",
   gap: 7,
@@ -1716,6 +1810,17 @@ const addSectionTitle = {
   color: colors.textSoft,
   fontSize: 13,
   textTransform: "uppercase",
+};
+
+const emptyMini = {
+  margin: 0,
+  border: "1px solid #242424",
+  borderRadius: 10,
+  background: "#0b0b0b",
+  padding: 10,
+  color: "#777",
+  fontWeight: 750,
+  fontSize: 13,
 };
 
 const addFieldRow = {
