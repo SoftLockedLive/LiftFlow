@@ -219,102 +219,131 @@ export const PROGRAM_TEMPLATES = [
     },
   },
 
-  ```js
   {
     id: "peyto-split",
     name: "Peytonium ULPPL",
     summary: "Five-day ULPPL powerbuilding split built around bench, squat, and deadlift with 55-minute lifting sessions.",
     days: {
-      Monday: day("Upper", [
-        lift("Bench Press", "chest", "4", "4-6", "Primary lift. Rest 2-3 minutes between working sets."),
-        lift("Chest-Supported Row", "back", "3", "6-10", "Controlled reps. Drive elbows back."),
-        lift("Lat Pulldown", "back", "3", "6-10", "Drive elbows down. Control the eccentric."),
-        lift("Incline Bench Press", "chest", "2", "8-12", "Controlled stretch and strong press."),
-        lift("Lateral Raise", "shoulders", "2-3", "10-15", "Superset with Bayesian Curl. Control the weight."),
-        lift("Bayesian Curl", "arms", "3", "8-12", "Superset with Lateral Raise. Full stretch at the bottom."),
-        lift("Triceps Extension", "arms", "3", "8-12", "Superset with Lateral Raise/Bayesian Curl. Keep elbows controlled."),
-      ], [
-        warmup("Easy row", "time", "3 min"),
-        warmup("Band pull-aparts", "reps", { sets: "1", reps: "15-20" }),
-        warmup("Band external rotations", "reps", { sets: "1", reps: "15" }),
-        warmup("Bench ramp-up sets", "reps", { sets: "2-3", reps: "5-8" }),
-      ], {
-        emphasis: "Bench strength with balanced upper-body coverage.",
-      }),
+      Monday: day(
+        "Upper",
+        [
+          lift("Bench Press", "chest", "4", "4-6", "Primary lift. Rest 2-3 minutes between working sets."),
+          lift("Chest-Supported Row", "back", "3", "6-10", "Controlled reps. Drive elbows back."),
+          lift("Lat Pulldown", "back", "3", "6-10", "Drive elbows down. Control the eccentric."),
+          lift("Incline Bench Press", "chest", "2", "8-12", "Controlled stretch and strong press."),
+          lift("Lateral Raise", "shoulders", "2-3", "10-15", "Superset with Bayesian Curl. Control the weight."),
+          lift("Bayesian Curl", "arms", "3", "8-12", "Superset with Lateral Raise. Full stretch at the bottom."),
+          lift("Triceps Extension", "arms", "3", "8-12", "Superset with Lateral Raise/Bayesian Curl. Keep elbows controlled."),
+        ],
+        [
+          warmup("Easy row", "time", "3 min"),
+          warmup("Band pull-aparts", "reps", { sets: "1", reps: "15-20" }),
+          warmup("Band external rotations", "reps", { sets: "1", reps: "15" }),
+          warmup("Bench ramp-up sets", "reps", { sets: "2-3", reps: "5-8" }),
+        ],
+        {
+          emphasis: "Bench strength with balanced upper-body coverage.",
+        }
+      ),
 
-      Tuesday: day("Lower", [
-        lift("Back Squat", "legs", "3", "4-6", "Primary lift. Brace hard and use consistent depth."),
-        lift("Hip Abduction", "legs", "2", "12", "Superset with Hip Adduction. Controlled range, no momentum."),
-        lift("Hip Adduction", "legs", "2", "12", "Superset with Hip Abduction. Controlled squeeze."),
-        lift("Leg Curl", "legs", "3", "8-12", "Superset with Leg Extension. Slow eccentric."),
-        lift("Leg Extension", "legs", "3", "8-12", "Superset with Leg Curl. Hard contraction."),
-        lift("Calf Raise", "legs", "3", "8-15", "Full stretch and controlled squeeze."),
-      ], [
-        warmup("Easy bike or incline walk", "time", "3-5 min"),
-        warmup("Leg swings", "reps", { sets: "1", reps: "10/side" }),
-        warmup("Deep squat hold", "time", "30-45 sec"),
-        warmup("Squat ramp-up sets", "reps", { sets: "2-3", reps: "5-8" }),
-      ], {
-        emphasis: "Squat strength with quad, hamstring, adductor, abductor, and calf coverage.",
-      }),
+      Tuesday: day(
+        "Lower",
+        [
+          lift("Back Squat", "legs", "3", "4-6", "Primary lift. Brace hard and use consistent depth."),
+          lift("Hip Abduction", "legs", "2", "12", "Superset with Hip Adduction. Controlled range, no momentum."),
+          lift("Hip Adduction", "legs", "2", "12", "Superset with Hip Abduction. Controlled squeeze."),
+          lift("Leg Curl", "legs", "3", "8-12", "Superset with Leg Extension. Slow eccentric."),
+          lift("Leg Extension", "legs", "3", "8-12", "Superset with Leg Curl. Hard contraction."),
+          lift("Calf Raise", "legs", "3", "8-15", "Full stretch and controlled squeeze."),
+        ],
+        [
+          warmup("Easy bike or incline walk", "time", "3-5 min"),
+          warmup("Leg swings", "reps", { sets: "1", reps: "10/side" }),
+          warmup("Deep squat hold", "time", "30-45 sec"),
+          warmup("Squat ramp-up sets", "reps", { sets: "2-3", reps: "5-8" }),
+        ],
+        {
+          emphasis: "Squat strength with quad, hamstring, adductor, abductor, and calf coverage.",
+        }
+      ),
 
-      Wednesday: day("Push", [
-        lift("Bench Press", "chest", "3", "6-8", "Primary lift. Controlled reps with strong drive."),
-        lift("Seated Overhead Press", "shoulders", "2", "8-12", "Superset with Incline Smith Machine Press."),
-        lift("Incline Bench Press", "chest", "2", "8-12", "Superset with Seated Overhead Press."),
-        lift("Pec Deck", "chest", "3", "10-15", "Controlled stretch and squeeze."),
-        lift("Lateral Raise", "shoulders", "3", "10-15", "Superset with Overhead Triceps Extension."),
-        lift("Overhead Triceps Extension", "arms", "3", "8-12", "Superset with Lateral Raise."),
-        lift("Triceps Pressdown", "arms", "2", "10-15", "Controlled lockout and eccentric."),
-      ], [
-        warmup("Easy row", "time", "3 min"),
-        warmup("Band pull-aparts", "reps", { sets: "1", reps: "15-20" }),
-        warmup("Band external rotations", "reps", { sets: "1", reps: "15" }),
-        warmup("Bench ramp-up sets", "reps", { sets: "2", reps: "5-8" }),
-      ], {
-        emphasis: "Chest, shoulders, and triceps hypertrophy with a secondary bench focus.",
-      }),
+      Wednesday: day(
+        "Push",
+        [
+          lift("Bench Press", "chest", "3", "6-8", "Primary lift. Controlled reps with strong drive."),
+          lift("Seated Overhead Press", "shoulders", "2", "8-12", "Superset with Incline Smith Machine Press."),
+          lift("Incline Bench Press", "chest", "2", "8-12", "Superset with Seated Overhead Press."),
+          lift("Pec Deck", "chest", "3", "10-15", "Controlled stretch and squeeze."),
+          lift("Lateral Raise", "shoulders", "3", "10-15", "Superset with Overhead Triceps Extension."),
+          lift("Overhead Triceps Extension", "arms", "3", "8-12", "Superset with Lateral Raise."),
+          lift("Triceps Pressdown", "arms", "2", "10-15", "Controlled lockout and eccentric."),
+        ],
+        [
+          warmup("Easy row", "time", "3 min"),
+          warmup("Band pull-aparts", "reps", { sets: "1", reps: "15-20" }),
+          warmup("Band external rotations", "reps", { sets: "1", reps: "15" }),
+          warmup("Bench ramp-up sets", "reps", { sets: "2", reps: "5-8" }),
+        ],
+        {
+          emphasis: "Chest, shoulders, and triceps hypertrophy with a secondary bench focus.",
+        }
+      ),
 
-      Thursday: day("Pull", [
-        lift("Deadlift", "back", "3", "3-5", "Primary lift. Take the slack out of the bar and brace hard."),
-        lift("Lat Pulldown", "back", "3", "6-10", "Drive elbows down. Control the eccentric."),
-        lift("Chest-Supported Row", "back", "3", "8-12", "Keep torso supported and pull elbows back."),
-        lift("Face Pull", "shoulders", "3", "10-15", "Superset with Bayesian Curl. Pull toward eye level."),
-        lift("Bayesian Curl", "arms", "3", "8-12", "Superset with Face Pull. Full stretch at the bottom."),
-        lift("Preacher Hammer Curl", "arms", "3", "8-12", "Controlled reps. Avoid swinging."),
-      ], [
-        warmup("Easy row", "time", "3 min"),
-        warmup("Hip hinge drill", "reps", { sets: "1", reps: "10" }),
-        warmup("Band pull-aparts", "reps", { sets: "1", reps: "20" }),
-        warmup("Deadlift ramp-up sets", "reps", { sets: "2-3", reps: "5-8" }),
-      ], {
-        emphasis: "Deadlift strength with lat, upper-back, rear-delt, and biceps volume.",
-      }),
+      Thursday: day(
+        "Pull",
+        [
+          lift("Deadlift", "back", "3", "3-5", "Primary lift. Take the slack out of the bar and brace hard."),
+          lift("Lat Pulldown", "back", "3", "6-10", "Drive elbows down. Control the eccentric."),
+          lift("Chest-Supported Row", "back", "3", "8-12", "Keep torso supported and pull elbows back."),
+          lift("Face Pull", "shoulders", "3", "10-15", "Superset with Bayesian Curl. Pull toward eye level."),
+          lift("Bayesian Curl", "arms", "3", "8-12", "Superset with Face Pull. Full stretch at the bottom."),
+          lift("Preacher Hammer Curl", "arms", "3", "8-12", "Controlled reps. Avoid swinging."),
+        ],
+        [
+          warmup("Easy row", "time", "3 min"),
+          warmup("Hip hinge drill", "reps", { sets: "1", reps: "10" }),
+          warmup("Band pull-aparts", "reps", { sets: "1", reps: "20" }),
+          warmup("Deadlift ramp-up sets", "reps", { sets: "2-3", reps: "5-8" }),
+        ],
+        {
+          emphasis: "Deadlift strength with lat, upper-back, rear-delt, and biceps volume.",
+        }
+      ),
 
-      Friday: day("Legs", [
-        lift("Hack Squat", "legs", "3", "6-8", "Primary lift. Full range with controlled eccentric."),
-        lift("Hip Thrust", "legs", "3", "8-12", "Full lockout and controlled lowering."),
-        lift("Hip Abduction", "legs", "2", "12", "Superset with Hip Adduction. Controlled range."),
-        lift("Hip Adduction", "legs", "2", "12", "Superset with Hip Abduction. Controlled squeeze."),
-        lift("Leg Curl", "legs", "3", "8-12", "Superset with Leg Extension. Slow eccentric."),
-        lift("Leg Extension", "legs", "2", "10-15", "Superset with Leg Curl. Hard contraction."),
-        lift("Calf Raise", "legs", "3", "8-15", "Full stretch and controlled squeeze."),
-      ], [
-        warmup("Easy bike or incline walk", "time", "3-5 min"),
-        warmup("Leg swings", "reps", { sets: "1", reps: "10/side" }),
-        warmup("Deep squat hold", "time", "30-45 sec" ),
-        warmup("Hack squat ramp-up sets", "reps", { sets: "2", reps: "5-8" }),
-      ], {
-        emphasis: "Lower-body hypertrophy with hack squat, glute, hamstring, quad, adductor, abductor, and calf work.",
-      }),
+      Friday: day(
+        "Legs",
+        [
+          lift("Hack Squat", "legs", "3", "6-8", "Primary lift. Full range with controlled eccentric."),
+          lift("Hip Thrust", "legs", "3", "8-12", "Full lockout and controlled lowering."),
+          lift("Hip Abduction", "legs", "2", "12", "Superset with Hip Adduction. Controlled range."),
+          lift("Hip Adduction", "legs", "2", "12", "Superset with Hip Abduction. Controlled squeeze."),
+          lift("Leg Curl", "legs", "3", "8-12", "Superset with Leg Extension. Slow eccentric."),
+          lift("Leg Extension", "legs", "2", "10-15", "Superset with Leg Curl. Hard contraction."),
+          lift("Calf Raise", "legs", "3", "8-15", "Full stretch and controlled squeeze."),
+        ],
+        [
+          warmup("Easy bike or incline walk", "time", "3-5 min"),
+          warmup("Leg swings", "reps", { sets: "1", reps: "10/side" }),
+          warmup("Deep squat hold", "time", "30-45 sec"),
+          warmup("Hack squat ramp-up sets", "reps", { sets: "2", reps: "5-8" }),
+        ],
+        {
+          emphasis: "Lower-body hypertrophy with hack squat, glute, hamstring, quad, adductor, abductor, and calf work.",
+        }
+      ),
 
-      Saturday: recovery("Extra Time", "Optional accessory, core, cardio, and conditioning", "15-40 min", "Easy-moderate", "Use this session when you have additional time. Prioritize abs, cardio, forearms, neck, tibialis, or other small areas that were not covered during the main 55-minute workouts."),
+      Saturday: recovery(
+        "Extra Time",
+        "Optional accessory, core, cardio, and conditioning",
+        "15-40 min",
+        "Easy-moderate",
+        "Use this session when you have additional time. Prioritize abs, cardio, mobility, or weak-point work."
+      ),
 
       Sunday: recovery("Rest", "Full Rest Day", "All day", "Easy", "No training. Prioritize sleep, hydration, and food."),
     },
   },
 ];
-
 
 export const DAY_TEMPLATES = [
   {
