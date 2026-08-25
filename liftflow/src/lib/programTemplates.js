@@ -241,9 +241,6 @@ export const PROGRAM_TEMPLATES = [
           warmup("Band external rotations", "reps", { sets: "1", reps: "15" }),
           warmup("Bench ramp-up sets", "reps", { sets: "2-3", reps: "5-8" }),
         ],
-        {
-          emphasis: "Bench strength with balanced upper-body coverage.",
-        }
       ),
 
       Tuesday: day(
@@ -262,9 +259,6 @@ export const PROGRAM_TEMPLATES = [
           warmup("Deep squat hold", "time", "30-45 sec"),
           warmup("Squat ramp-up sets", "reps", { sets: "2-3", reps: "5-8" }),
         ],
-        {
-          emphasis: "Squat strength with quad, hamstring, adductor, abductor, and calf coverage.",
-        }
       ),
 
       Wednesday: day(
@@ -284,9 +278,6 @@ export const PROGRAM_TEMPLATES = [
           warmup("Band external rotations", "reps", { sets: "1", reps: "15" }),
           warmup("Bench ramp-up sets", "reps", { sets: "2", reps: "5-8" }),
         ],
-        {
-          emphasis: "Chest, shoulders, and triceps hypertrophy with a secondary bench focus.",
-        }
       ),
 
       Thursday: day(
@@ -305,9 +296,6 @@ export const PROGRAM_TEMPLATES = [
           warmup("Band pull-aparts", "reps", { sets: "1", reps: "20" }),
           warmup("Deadlift ramp-up sets", "reps", { sets: "2-3", reps: "5-8" }),
         ],
-        {
-          emphasis: "Deadlift strength with lat, upper-back, rear-delt, and biceps volume.",
-        }
       ),
 
       Friday: day(
@@ -327,17 +315,23 @@ export const PROGRAM_TEMPLATES = [
           warmup("Deep squat hold", "time", "30-45 sec"),
           warmup("Hack squat ramp-up sets", "reps", { sets: "2", reps: "5-8" }),
         ],
-        {
-          emphasis: "Lower-body hypertrophy with hack squat, glute, hamstring, quad, adductor, abductor, and calf work.",
-        }
       ),
 
-      Saturday: recovery(
+      Saturday: day(
         "Extra Time",
-        "Optional accessory, core, cardio, and conditioning",
-        "15-40 min",
-        "Easy-moderate",
-        "Use this session when you have additional time. Prioritize abs, cardio, mobility, or weak-point work."
+        [
+          lift("Cable Crunch", "core", "3", "10-15", "Controlled reps. Focus on curling your torso with your abs."),
+          lift("Hanging Leg Raise", "core", "3", "8-15", "Control the movement. Avoid swinging."),
+          lift("Neck Flexion", "neck", "2", "12-20", "Controlled reps. Use light resistance and a comfortable range of motion."),
+          lift("Neck Extension", "neck", "2", "12-20", "Controlled reps. Use light resistance and avoid forcing the range of motion."),
+          lift("Wrist Curl", "arms", "2", "10-15", "Controlled reps. Don't rush the eccentric."),
+          lift("Reverse Wrist Curl", "arms", "2", "10-15", "Light weight and controlled movement."),
+        ], 
+        [
+          warmup("Easy incline walk", "time", "3-5 min"),
+          warmup("Ankle rocks", "reps", { sets: "1", reps: "10/side" }),
+          warmup("Wrist circles", "reps", { sets: "1", reps: "10/side" }),
+        ],
       ),
 
       Sunday: recovery("Rest", "Full Rest Day", "All day", "Easy", "No training. Prioritize sleep, hydration, and food."),
