@@ -26,22 +26,39 @@ export default function Workout() {
   const [drafts, setDrafts] = useState({});
   const [workouts, setWorkouts] = useState([]);
   const [manualPrs, setManualPrs] = useState([]);
-  const [restSeconds, setRestSeconds] = useState(0);
+  const [restEndsAt, setRestEndsAt] = useState(0);
+  const [restNow, setRestNow] = useState(0);
   const [restPreset, setRestPreset] = useState(90);
-  const [summary, setSummary] = useState(null);
+  const [finishMessage, setFinishMessage] = useState("");
   const [addOpen, setAddOpen] = useState(false);
   const [addDraft, setAddDraft] = useState(createEmptyAddDraft());
   const [addSearch, setAddSearch] = useState("");
 
+  // Remaining rest is derived from an end timestamp, so throttled or paused
+  // intervals (backgrounded mobile tabs) can't make the timer run slow.
   useEffect(() => {
-    if (restSeconds <= 0) return undefined;
+    if (!restEndsAt) return undefined;
 
-    const timer = window.setInterval(() => {
-      setRestSeconds((seconds) => Math.max(0, seconds - 1));
-    }, 1000);
+    function tick() {
+      const now = Date.now();
+      setRestNow(now);
+      if (now >= restEndsAt) setRestEndsAt(0);
+    }
 
-    return () => window.clearInterval(timer);
-  }, [restSeconds]);
+    const timer = window.setInterval(tick, 250);
+    document.addEventListener("visibilitychange", tick);
+
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", tick);
+    };
+  }, [restEndsAt]);
+
+  function startRest() {
+    const now = Date.now();
+    setRestNow(now);
+    setRestEndsAt(now + restPreset * 1000);
+  }
 
   useEffect(() => {
     if (!router.isReady) return undefined;
@@ -66,6 +83,7 @@ export default function Workout() {
 
   function chooseDay(day) {
     setSelectedDay(day);
+    setFinishMessage("");
     saveLastWorkoutDay(day);
     setSession(getSafeSession(drafts[day]));
 
@@ -75,6 +93,7 @@ export default function Workout() {
   }
 
   function updateSet(exerciseId, setIndex, field, value) {
+    setFinishMessage("");
     setSession((prev) => {
       const copy = { ...getSafeSession(prev) };
 
@@ -196,31 +215,41 @@ export default function Workout() {
   function finishWorkout() {
     const previousWorkouts = getWorkouts();
     const currentSession = getSafeSession(session);
-    const completedWorkout = program.map((lift) => {
-      const performedExercise = getPerformedExercise(lift, currentSession.__variations?.[lift.id]);
-      const swapped = performedExercise !== lift.exercise;
-      const loadProfile = getLoadProfile(swapped ? { exercise: performedExercise } : lift);
+    const completedWorkout = program
+      .map((lift) => {
+        const performedExercise = getPerformedExercise(lift, currentSession.__variations?.[lift.id]);
+        const swapped = performedExercise !== lift.exercise;
+        const loadProfile = getLoadProfile(swapped ? { exercise: performedExercise } : lift);
 
-      return {
-        exercise: performedExercise,
-        baseExercise: normalizeExerciseName(performedExercise),
-        loadType: loadProfile.type,
-        minimumLoad: loadProfile.minimumLoad,
-        variation: swapped ? `Planned: ${lift.exercise}` : "",
-        muscleGroup: lift.muscleGroup || "other",
-        plannedSets: lift.sets || "",
-        plannedReps: lift.reps || "",
-        targetType: lift.targetType || "reps",
-        plannedDuration: lift.duration || "",
-        addedDuringWorkout: Boolean(lift.addedDuringWorkout),
-        sets: getLoggedSets(currentSession[lift.id]),
-        date: Date.now(),
-        note: lift.note || lift.stretches || "",
-        stretches: lift.stretches || "",
-      };
-    });
+        return {
+          exercise: performedExercise,
+          baseExercise: normalizeExerciseName(performedExercise),
+          loadType: loadProfile.type,
+          minimumLoad: loadProfile.minimumLoad,
+          // History and Home still display `variation`; the coach ignores the "Planned:" marker.
+          variation: swapped ? `Planned: ${lift.exercise}` : "",
+          plannedExercise: swapped ? lift.exercise : "",
+          muscleGroup: lift.muscleGroup || "other",
+          plannedSets: lift.sets || "",
+          plannedReps: lift.reps || "",
+          targetType: lift.targetType || "reps",
+          plannedDuration: lift.duration || "",
+          addedDuringWorkout: Boolean(lift.addedDuringWorkout),
+          sets: getLoggedSets(currentSession[lift.id]),
+          date: Date.now(),
+          note: lift.note || lift.stretches || "",
+          stretches: lift.stretches || "",
+        };
+      })
+      .filter((lift) => lift.sets.length > 0);
+
+    if (completedWorkout.length === 0) {
+      setFinishMessage("Log at least one set before finishing. Your workout is still saved as a draft.");
+      return;
+    }
+
     const workoutSummary = calculateSessionSummary(completedWorkout);
-    const prs = detectPRs(previousWorkouts, completedWorkout);
+    const prs = detectPRs(previousWorkouts, completedWorkout, getManualPRs());
 
     saveWorkout(completedWorkout, {
       day: selectedDay,
@@ -234,12 +263,6 @@ export default function Workout() {
     setDrafts(updatedDrafts);
     saveWorkoutDrafts(updatedDrafts);
 
-    setSummary({
-      focus: plan.__meta?.[selectedDay]?.name || selectedDay,
-      day: selectedDay,
-      ...workoutSummary,
-      prs,
-    });
     saveWorkoutRecap({
       focus: plan.__meta?.[selectedDay]?.name || selectedDay,
       day: selectedDay,
@@ -327,6 +350,7 @@ export default function Workout() {
   const baseProgram = buildTodaysWorkout(selectedDay, plan, workouts, manualPrs);
   const extraProgram = buildExtraWorkoutProgram(safeSession.__extraLifts, workouts, prMap);
   const program = [...baseProgram, ...extraProgram];
+  const restSeconds = restEndsAt ? Math.max(0, Math.ceil((restEndsAt - restNow) / 1000)) : 0;
   const focusName = plan.__meta?.[selectedDay]?.name || selectedDay;
   const recovery = plan.__meta?.[selectedDay]?.recovery;
   const warmup = Array.isArray(plan.__meta?.[selectedDay]?.warmup)
@@ -465,10 +489,10 @@ export default function Workout() {
                   </button>
                 ))}
               </div>
-              <button type="button" onClick={() => setRestSeconds(restPreset)} style={timerStart}>
+              <button type="button" onClick={startRest} style={timerStart}>
                 Start
               </button>
-              <button type="button" className="ghost" onClick={() => setRestSeconds(0)} style={timerReset}>
+              <button type="button" className="ghost" onClick={() => setRestEndsAt(0)} style={timerReset}>
                 Reset
               </button>
             </div>
@@ -483,15 +507,16 @@ export default function Workout() {
             const performedExercise = getPerformedExercise(lift, variationDraft);
             const swapped = performedExercise !== lift.exercise;
             const loadProfile = getLoadProfile(swapped ? { exercise: performedExercise } : lift);
+            const activePr = swapped ? prMap[normalizeExerciseName(performedExercise)] : lift.prRecord;
             const activeLift = swapped
               ? {
                   ...lift,
                   exercise: performedExercise,
                   baseExercise: normalizeExerciseName(performedExercise),
+                  prRecord: activePr,
                   ...loadProfile,
                 }
               : { ...lift, ...loadProfile };
-            const activePr = swapped ? prMap[normalizeExerciseName(performedExercise)] : lift.prRecord;
             const coach = swapped ? buildCoachRecommendation(activeLift, workouts) : lift.coachRecommendation;
             const liveCoach = buildLiveSetRecommendation(activeLift, workingSets, coach);
             const coachDetailsOpen = Boolean(safeSession.__coach?.[lift.id]);
@@ -723,45 +748,10 @@ export default function Workout() {
           Finish workout
         </button>
       )}
-
-      {summary && (
-        <section style={card}>
-          <div style={summaryTop}>
-            <div style={{ minWidth: 0 }}>
-              <p style={type.eyebrow}>Workout complete</p>
-              <h2 style={summaryTitle}>{summary.focus}</h2>
-            </div>
-            <button
-              type="button"
-              className="ghost"
-              onClick={() => setSummary(null)}
-              style={closeBtn}
-              aria-label="Close"
-            >
-              ✕
-            </button>
-          </div>
-
-          <div className="history-stats" style={summaryStats}>
-            <SummaryStat label="Sets" value={summary.sets} />
-            <SummaryStat label="Volume" value={`${summary.volume.toLocaleString()} lb`} />
-            <SummaryStat
-              label="Top set"
-              value={summary.topSet ? `${summary.topSet.weight} × ${summary.topSet.reps}` : "--"}
-            />
-          </div>
-
-          {summary.prs.length > 0 && (
-            <div style={prBox}>
-              <strong style={prTitle}>New PRs</strong>
-              {summary.prs.map((pr) => (
-                <p key={`${pr.exercise}-${pr.weight}-${pr.reps}`} style={prLine}>
-                  {pr.exercise}: {pr.weight} lb × {pr.reps}
-                </p>
-              ))}
-            </div>
-          )}
-        </section>
+      {finishMessage && (
+        <p style={finishNote} role="status">
+          {finishMessage}
+        </p>
       )}
 
       {addOpen && (
@@ -918,15 +908,6 @@ export default function Workout() {
           </section>
         </div>
       )}
-    </div>
-  );
-}
-
-function SummaryStat({ label, value }) {
-  return (
-    <div style={summaryStat}>
-      <span style={type.meta}>{label}</span>
-      <strong style={summaryValue}>{value}</strong>
     </div>
   );
 }
@@ -1765,62 +1746,11 @@ const finishBtn = {
   fontSize: 16,
 };
 
-const summaryTop = {
-  display: "flex",
-  justifyContent: "space-between",
-  gap: 12,
-  alignItems: "flex-start",
-};
-
-const summaryTitle = {
-  ...type.pageTitle,
-  fontSize: 22,
-  marginTop: 6,
-};
-
-const summaryStats = {
-  gap: 8,
-  marginTop: 14,
-};
-
-const summaryStat = {
-  display: "grid",
-  gap: 2,
-  padding: "10px 12px",
-  borderRadius: radii.lg,
-  background: colors.surfaceSoft,
-  border: `1px solid ${colors.borderSoft}`,
-  minWidth: 0,
-};
-
-const summaryValue = {
-  ...type.number,
-  color: colors.text,
-  fontSize: 20,
-  fontWeight: 650,
-  lineHeight: 1.2,
-};
-
-const prBox = {
-  display: "grid",
-  gap: 4,
-  border: `1px solid ${tint(colors.accent, 0.25)}`,
-  borderRadius: radii.lg,
-  background: tint(colors.accent, 0.06),
-  padding: 12,
-  marginTop: 12,
-};
-
-const prTitle = {
-  color: colors.accent,
-  fontSize: 14,
-  fontWeight: 600,
-};
-
-const prLine = {
+const finishNote = {
   ...type.body,
-  ...type.number,
-  margin: 0,
+  color: colors.warning,
+  margin: "10px 0 0",
+  textAlign: "center",
 };
 
 const modalOverlay = {
