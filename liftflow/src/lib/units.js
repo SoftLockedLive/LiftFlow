@@ -28,9 +28,19 @@ export function toDisplay(lb, units) {
   return normalizeUnits(units) === "kg" ? value * KG_PER_LB : value;
 }
 
+// A typed weight as a number. Accepts a decimal comma ("62,5", from phones set to a
+// comma locale) but not a thousands separator ("1,000" stays invalid). Weights are
+// never negative, so "-5" is invalid too. Returns NaN when the text is not a weight.
+function parseWeight(value) {
+  if (typeof value === "number") return value >= 0 ? value : NaN;
+  const text = String(value ?? "").trim();
+  const number = Number(/^\d*,\d{1,2}$/.test(text) ? text.replace(",", ".") : text);
+  return number >= 0 ? number : NaN;
+}
+
 // Display unit -> lb, unrounded (storage keeps full precision).
 export function fromDisplay(value, units) {
-  const number = Number(value);
+  const number = parseWeight(value);
   if (!Number.isFinite(number)) return 0;
   return normalizeUnits(units) === "kg" ? number / KG_PER_LB : number;
 }
@@ -58,7 +68,7 @@ export function toInputValue(lb, units) {
 export function fromInputValue(value, units) {
   const text = String(value ?? "").trim();
   if (text === "") return "";
-  const number = Number(text);
+  const number = parseWeight(text);
   return Number.isFinite(number) ? fromDisplay(number, units) : "";
 }
 

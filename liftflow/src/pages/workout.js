@@ -110,7 +110,10 @@ export default function Workout() {
       copy[exerciseId][setIndex] =
         field === "weight"
           ? { ...previous, weight: fromDisplay(value, units), weightInput: value, weightUnits: units }
-          : { ...previous, [field]: field === "duration" ? value : Number(value) };
+          : field === "duration"
+            ? { ...previous, duration: value }
+            : // Reps are never negative (a "-5" would subtract from volume).
+              { ...previous, [field]: Math.max(0, Number(value) || 0) };
 
       const updatedDrafts = {
         ...drafts,
@@ -211,6 +214,16 @@ export default function Workout() {
       }
 
       const copy = { ...currentSession, __variations: variations };
+      // Ramp checkmarks belong to the old exercise's ramp; a swap gets a fresh one.
+      if (
+        getSelectedVariation(next) !== getSelectedVariation(currentDraft) &&
+        isPlainObject(copy.__ramp) &&
+        copy.__ramp[exerciseId]
+      ) {
+        const ramp = { ...copy.__ramp };
+        delete ramp[exerciseId];
+        copy.__ramp = ramp;
+      }
       const updatedDrafts = { ...drafts, [selectedDay]: copy };
       setDrafts(updatedDrafts);
       saveWorkoutDrafts(updatedDrafts);
@@ -701,6 +714,7 @@ export default function Workout() {
                           <input
                             type="number"
                             inputMode="decimal"
+                            min="0"
                             placeholder={unitLabel(units)}
                             aria-label={`Set ${i + 1} weight in ${unitLabel(units)}`}
                             value={getWeightInputValue(workingSets[i], units)}
@@ -719,6 +733,7 @@ export default function Workout() {
                             <input
                               type="number"
                               inputMode="numeric"
+                              min="0"
                               placeholder="reps"
                               aria-label={`Set ${i + 1} reps`}
                               value={workingSets[i]?.reps || ""}
@@ -1327,10 +1342,14 @@ const warmupRowDone = {
   opacity: 0.55,
 };
 
+// Border as longhands: checkBoxDone toggles borderColor, and removing it next to a
+// `border` shorthand would drop the border color on re-render.
 const checkBox = {
   width: 22,
   height: 22,
-  border: `1px solid ${colors.border}`,
+  borderWidth: 1,
+  borderStyle: "solid",
+  borderColor: colors.border,
   borderRadius: 6,
   color: colors.inverse,
   background: colors.surfaceSoft,

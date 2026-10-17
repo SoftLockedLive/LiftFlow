@@ -11,7 +11,7 @@ import {
   roundWeight,
   toCoachWeight,
 } from "./loadProfiles";
-import { getUnits, normalizeUnits, unitLabel } from "./units";
+import { displayNumber, getUnits, normalizeUnits, unitLabel } from "./units";
 
 // The coach works natively in the display unit: history (stored in lb) is converted
 // at the input with toCoachWeight, and every number it returns (workingWeight,
@@ -43,10 +43,14 @@ export function buildCoachRecommendation(lift, workouts = getWorkouts(), units =
     const prWeight = toCoachWeight(lift?.prRecord?.weight, units);
     if (prWeight > 0) {
       const estimatedWeight = estimateFromPR(prWeight, target, loadProfile);
+      // The text quotes the PR as the PR badge shows it (180 lb reads 81.65 kg, not the
+      // snapped 82.5 kg). A record from logged sets the coach cannot grade (no reps) is
+      // not a manual PR.
+      const prSource = lift.prRecord.source === "history" ? "logged best" : "manual PR";
       return {
         status: "estimated",
         headline: `${estimatedWeight} ${label}`,
-        detail: `Estimated from your manual PR of ${prWeight} ${label}. Start here only if warmups feel clean.`,
+        detail: `Estimated from your ${prSource} of ${displayNumber(lift.prRecord.weight, units)} ${label}. Start here only if warmups feel clean.`,
         warmups: buildWarmupRamp(estimatedWeight, target, loadProfile),
         warmupLabel: "Optional ramp",
         workingWeight: estimatedWeight,
@@ -57,7 +61,11 @@ export function buildCoachRecommendation(lift, workouts = getWorkouts(), units =
         loadType: loadProfile.type,
         units,
         confidence: "medium",
-        contextNotes: ["No logged sets for this lift yet, so this uses your PR tab as the anchor."],
+        contextNotes: [
+          lift.prRecord.source === "history"
+            ? "No logged sets with reps for this lift yet, so this uses your best logged weight as the anchor."
+            : "No logged sets for this lift yet, so this uses your PR tab as the anchor.",
+        ],
         workingSetPlan: "Use flat sets. Adjust down if bar speed or form drops early.",
         nextAction: buildNextAction(estimatedWeight, lift, label),
       };
@@ -140,13 +148,19 @@ export function buildLiveSetRecommendation(lift, loggedSets, coach, units = coac
 
   if (!lastWeight || !lastReps) return null;
 
-  const knownPr = Math.max(
-    toCoachWeight(lift?.prRecord?.weight, units),
-    sameUnits ? Number(coach.latestTopWeight || 0) : 0,
-  );
-  if (knownPr > 0 && lastWeight > knownPr) {
+  // Compare against the PR record in stored lb, exactly as Finish detects PRs: the
+  // display values are snapped for weights logged in the other unit (a 190 lb record
+  // reads 85 kg), so comparing those would announce 86 kg (189.6 lb) as a PR. The
+  // record already applies the manual-PR override; without one, fall back to the
+  // coach's last top weight.
+  const prLb = Number(lift?.prRecord?.weight || 0);
+  const isNewPr =
+    prLb > 0
+      ? Number(last.weight || 0) > prLb + 1e-9
+      : sameUnits && Number(coach.latestTopWeight || 0) > 0 && lastWeight > Number(coach.latestTopWeight);
+  if (isNewPr) {
     return {
-      label: `New PR: ${lastWeight} ${label}`,
+      label: `New PR: ${displayNumber(last.weight, units)} ${label}`,
       detail: "You moved more weight than your previous best. Rest longer before deciding whether to repeat it.",
       tone: "up",
     };
