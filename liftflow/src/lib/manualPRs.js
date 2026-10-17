@@ -29,9 +29,10 @@ export function upsertManualPR(pr) {
     reps: pr.reps === "" || pr.reps === undefined ? "" : Number(pr.reps || 0),
     date: pr.date || Date.now(),
   };
-  const existing = prs.find(
-    (item) => item.id === nextPr.id || normalizeExerciseName(item.exercise) === nextPr.exercise,
-  );
+  // Editing matches by id; a new entry for an exercise that already has one replaces it.
+  const existing = pr.id
+    ? prs.find((item) => item.id === pr.id)
+    : prs.find((item) => normalizeExerciseName(item.exercise) === nextPr.exercise);
   const savedPr = existing ? { ...nextPr, id: existing.id } : nextPr;
   const updated = existing ? prs.map((item) => (item.id === existing.id ? savedPr : item)) : [nextPr, ...prs];
 

@@ -28,6 +28,12 @@ export function saveWorkout(workout, metadata = {}) {
   localStorage.setItem(KEY, JSON.stringify(updated));
 }
 
+// Stable id for a stored session. Old sessions were bare arrays of lifts with the date on each lift.
+export function getWorkoutId(workout, index) {
+  const date = workout?.date || (Array.isArray(workout) ? workout[0]?.date : null);
+  return workout?.id || `${date || "session"}-${index}`;
+}
+
 export function saveWorkouts(workouts) {
   if (typeof window === "undefined") return [];
   const safeWorkouts = Array.isArray(workouts) ? workouts : [];
@@ -39,7 +45,7 @@ export function deleteLiftFromWorkout(workoutId, liftIndex) {
   const workouts = getWorkouts();
   const updated = workouts
     .map((workout, index) => {
-      const id = workout?.id || `${workout?.date || "session"}-${index}`;
+      const id = getWorkoutId(workout, index);
       if (id !== workoutId) return workout;
 
       if (Array.isArray(workout)) {
@@ -62,7 +68,7 @@ export function deleteLiftFromWorkout(workoutId, liftIndex) {
 export function updateLiftInWorkout(workoutId, liftIndex, nextLift) {
   const workouts = getWorkouts();
   const updated = workouts.map((workout, index) => {
-    const id = workout?.id || `${workout?.date || "session"}-${index}`;
+    const id = getWorkoutId(workout, index);
     if (id !== workoutId) return workout;
 
     if (Array.isArray(workout)) {
@@ -82,7 +88,7 @@ export function updateLiftInWorkout(workoutId, liftIndex, nextLift) {
 
 export function deleteWorkout(workoutId) {
   const updated = getWorkouts().filter((workout, index) => {
-    const id = workout?.id || `${workout?.date || "session"}-${index}`;
+    const id = getWorkoutId(workout, index);
     return id !== workoutId;
   });
 

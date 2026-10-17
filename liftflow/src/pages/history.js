@@ -1,13 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import ConfirmDialog from "../components/ConfirmDialog";
-import { deleteLiftFromWorkout, deleteWorkout, getWorkouts, updateLiftInWorkout } from "../lib/workoutStorage";
+import {
+  deleteLiftFromWorkout,
+  deleteWorkout,
+  getWorkoutId,
+  getWorkouts,
+  updateLiftInWorkout,
+} from "../lib/workoutStorage";
 import {
   buildExerciseHistory,
   calculateLiftVolume,
   getBaseExercise,
   getLiftSets,
   getWorkoutItems,
+  normalizeExerciseName,
 } from "../lib/workoutAnalytics";
 import { colors, radii, type } from "../lib/theme";
 
@@ -63,26 +70,32 @@ export default function History() {
       sessionId,
       liftIndex,
       exercise: getBaseExercise(lift),
-      setsText: getLiftSets(lift)
-        .map((set) => `${set.weight || 0}x${set.reps || 0}`)
-        .join(", "),
+      setsText: getLiftSets(lift).map(formatEditableSet).join(", "),
+      error: "",
     });
   }
 
   function saveEditedLift() {
     if (!editingLift) return;
-    const sets = editingLift.setsText
+    const parts = editingLift.setsText
       .split(",")
       .map((part) => part.trim())
-      .filter(Boolean)
-      .map((part) => {
-        const [weight, reps] = part.toLowerCase().split("x");
-        return { weight: Number(weight || 0), reps: Number(reps || 0) };
+      .filter(Boolean);
+    const sets = parts.map(parseEditableSet);
+    if (sets.some((set) => !set)) {
+      setEditingLift({
+        ...editingLift,
+        error: "Use weight x reps (e.g. 185x5) or a time (e.g. 60s), separated by commas.",
       });
+      return;
+    }
 
+    const exercise = normalizeExerciseName(editingLift.exercise);
     setWorkouts(
       updateLiftInWorkout(editingLift.sessionId, editingLift.liftIndex, {
-        exercise: editingLift.exercise,
+        exercise,
+        // History, PRs and the coach read baseExercise first, so a rename has to update it too.
+        baseExercise: exercise,
         sets,
       }),
     );
@@ -123,10 +136,16 @@ export default function History() {
 
         {filteredSessions.length === 0 ? (
           <div style={{ ...card, ...emptyState }}>
-            <span>No workouts logged yet.</span>
-            <button type="button" className="primary" onClick={() => router.push("/workout")}>
-              Start a workout
-            </button>
+            {search.trim() ? (
+              <span>No workouts match “{search.trim()}”.</span>
+            ) : (
+              <>
+                <span>No workouts logged yet.</span>
+                <button type="button" className="primary" onClick={() => router.push("/workout")}>
+                  Start a workout
+                </button>
+              </>
+            )}
           </div>
         ) : (
           <div style={sessionList}>
@@ -272,9 +291,16 @@ export default function History() {
                 <input
                   value={editingLift.setsText}
                   placeholder="225x5, 225x4, 205x8"
-                  onChange={(event) => setEditingLift({ ...editingLift, setsText: event.target.value })}
+                  onChange={(event) => setEditingLift({ ...editingLift, setsText: event.target.value, error: "" })}
+                  aria-invalid={Boolean(editingLift.error)}
                 />
-                <span style={fieldHint}>Weight x reps, separated by commas.</span>
+                {editingLift.error ? (
+                  <span style={fieldError} role="alert">
+                    {editingLift.error}
+                  </span>
+                ) : (
+                  <span style={fieldHint}>Weight x reps (185x5) or a time (60s), separated by commas.</span>
+                )}
               </label>
               <div style={editActions}>
                 <button type="button" onClick={() => setEditingLift(null)}>
@@ -349,6 +375,36 @@ function Chevron({ open }) {
   );
 }
 
+function formatEditableSet(set) {
+  const weight = Number(set.weight || 0);
+  const duration = String(set.duration || "").trim();
+  if (duration) {
+    const time = /^\d+(\.\d+)?$/.test(duration) ? `${duration}s` : duration;
+    return weight > 0 ? `${weight}x${time}` : time;
+  }
+  return `${weight}x${Number(set.reps || 0)}`;
+}
+
+// "185x5" -> weight/reps, "60s" or "25x60s" -> timed set. Returns null for anything else.
+function parseEditableSet(text) {
+  const [first, second, extra] = text.toLowerCase().replace(/\s+/g, "").split("x");
+  if (extra !== undefined) return null;
+  const isNumber = (value) => /^\d+(\.\d+)?$/.test(value || "");
+  const asDuration = (value) => {
+    const match = /^(\d+(?:\.\d+)?)s(?:ec)?$/.exec(value || "") || /^(\d+:\d{2})$/.exec(value || "");
+    return match ? match[1] : null;
+  };
+
+  if (second === undefined) {
+    const duration = asDuration(first);
+    return duration ? { weight: 0, reps: 0, duration } : null;
+  }
+  if (!isNumber(first)) return null;
+  if (isNumber(second)) return { weight: Number(first), reps: Number(second) };
+  const duration = asDuration(second);
+  return duration ? { weight: Number(first), reps: 0, duration } : null;
+}
+
 function normalizeSessions(workouts) {
   return workouts
     .map((workout, index) => {
@@ -358,7 +414,7 @@ function normalizeSessions(workouts) {
       const volume = lifts.reduce((sum, lift) => sum + calculateLiftVolume(lift), 0);
 
       return {
-        id: workout?.id || `${date || "session"}-${index}`,
+        id: getWorkoutId(workout, index),
         date,
         name: workout?.focus || workout?.day || formatDate(date),
         lifts: lifts.map((lift, liftIndex) => ({ lift, index: liftIndex })),
@@ -675,6 +731,11 @@ const fieldLabel = {
 const fieldHint = {
   ...type.meta,
   fontSize: 12,
+};
+
+const fieldError = {
+  ...fieldHint,
+  color: colors.danger,
 };
 
 const editActions = {

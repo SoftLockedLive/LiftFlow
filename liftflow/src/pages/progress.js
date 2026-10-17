@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { getBigThree } from "../lib/bigThree";
 import { getProfile } from "../lib/profile";
 import { getManualPRs } from "../lib/manualPRs";
 import { buildPRRecords } from "../lib/prRecords";
@@ -28,7 +29,10 @@ export default function Progress() {
     () => ({ ...strengthData, exerciseBest: strengthBest }),
     [strengthData, strengthBest],
   );
-  const goals = useMemo(() => buildGoals(profile, strengthBest), [profile, strengthBest]);
+  const goals = useMemo(
+    () => buildGoals(profile, getBigThree(profile, workouts, manualPrs)),
+    [profile, workouts, manualPrs],
+  );
   const strengthTrend = useMemo(() => buildTrend(strengthData.sessions), [strengthData.sessions]);
 
   return (
@@ -43,13 +47,8 @@ export default function Progress() {
 }
 
 function StrengthSection({ data, goals, trend }) {
-  const leadGoal = goals[0] || {
-    label: "Bench",
-    current: 0,
-    target: 315,
-    percent: 0,
-    remaining: 315,
-  };
+  const leadGoal = goals.find((goal) => goal.target > 0 && goal.label !== "Bodyweight") ||
+    goals[0] || { label: "Bench", current: 0, target: 0, percent: 0, remaining: 0 };
   const exerciseBest = Object.entries(data.exerciseBest).slice(0, 6);
 
   return (
@@ -171,37 +170,44 @@ function EmptyState({ copy }) {
   return <div style={emptyState}>{copy}</div>;
 }
 
-function buildGoals(profile, bests) {
+function buildGoals(profile, bigThree) {
+  const lift = (label) => bigThree.lifts.find((item) => item.label === label)?.value || 0;
   const goals = [
-    {
-      label: "Bench",
-      current: findBest(bests, "bench") || Number(profile.benchPR || 0),
-      target: Number(profile.goalBench || 315),
-    },
-    {
-      label: "Squat",
-      current: findBest(bests, "squat") || Number(profile.squatPR || 0),
-      target: Number(profile.goalSquat || 0),
-    },
-    {
-      label: "Deadlift",
-      current: findBest(bests, "deadlift") || Number(profile.deadliftPR || 0),
-      target: Number(profile.goalDeadlift || 0),
-    },
+    { label: "Bench", current: lift("Bench"), target: Number(profile.goalBench || 0) },
+    { label: "Squat", current: lift("Squat"), target: Number(profile.goalSquat || 0) },
+    { label: "Deadlift", current: lift("Deadlift"), target: Number(profile.goalDeadlift || 0) },
     {
       label: "Bodyweight",
       current: Number(profile.weight || profile.bodyweight || 0),
       target: Number(profile.goalWeight || 0),
+      start: Number(profile.startWeight || 0),
     },
   ];
 
-  return goals
-    .filter((goal) => goal.target > 0 || goal.current > 0)
-    .map((goal) => ({
+  return goals.filter((goal) => goal.target > 0 || goal.current > 0).map(withProgress);
+}
+
+function withProgress(goal) {
+  const { current, target, start } = goal;
+  if (!(target > 0)) return { ...goal, percent: 0, remaining: 0 };
+
+  // A bodyweight goal below the current (or starting) weight is a cut: progress means going down.
+  const losing = goal.label === "Bodyweight" && (target < current || start > target);
+  if (!losing) {
+    return {
       ...goal,
-      percent: goal.target > 0 ? Math.min(999, Math.round((goal.current / goal.target) * 100)) : 0,
-      remaining: goal.target > 0 ? Math.max(0, goal.target - goal.current) : 0,
-    }));
+      percent: Math.min(999, Math.round((current / target) * 100)),
+      remaining: Math.max(0, target - current),
+    };
+  }
+
+  const percent =
+    current <= target
+      ? 100
+      : start > current
+        ? Math.round(((start - current) / (start - target)) * 100)
+        : Math.round((target / current) * 100);
+  return { ...goal, percent, remaining: Math.max(0, current - target) };
 }
 
 function buildExerciseBestFromPRs(prs) {
@@ -210,15 +216,6 @@ function buildExerciseBestFromPRs(prs) {
     if (pr.exercise && weight > 0) best[pr.exercise] = weight;
     return best;
   }, {});
-}
-
-function findBest(bests, keyword) {
-  return Math.max(
-    0,
-    ...Object.entries(bests)
-      .filter(([exercise]) => exercise.toLowerCase().includes(keyword))
-      .map(([, weight]) => Number(weight || 0)),
-  );
 }
 
 function buildTrend(sessions) {
@@ -233,7 +230,8 @@ function buildTrend(sessions) {
 
   const recent = sessions.slice(-3).reduce((sum, session) => sum + session.volume, 0);
   const previous = sessions.slice(-6, -3).reduce((sum, session) => sum + session.volume, 0);
-  if (!previous) {
+  // Comparing 3 sessions against 1 or 2 would report a fake jump.
+  if (sessions.length < 6 || !previous) {
     return {
       label: "Baseline set",
       color: colors.text,

@@ -75,32 +75,44 @@ export function calculateSessionSummary(lifts) {
   return { sets, volume, topSet };
 }
 
-export function detectPRs(workouts, completedLifts) {
+// One entry per exercise: its best set from this session, if that beats the previous best
+// (logged history or a manual PR).
+export function detectPRs(workouts, completedLifts, manualPrs = []) {
   const existing = {};
+  const raise = (exercise, weight) => {
+    if (exercise && weight > (existing[exercise] || 0)) existing[exercise] = weight;
+  };
 
   (Array.isArray(workouts) ? workouts : []).forEach((session) => {
     getWorkoutItems(session).forEach((lift) => {
-      const exercise = getBaseExercise(lift);
-      if (!exercise) return;
-      getLiftSets(lift).forEach((set) => {
-        const weight = Number(set.weight || 0);
-        if (weight > (existing[exercise] || 0)) existing[exercise] = weight;
-      });
+      getLiftSets(lift).forEach((set) => raise(getBaseExercise(lift), Number(set.weight || 0)));
+    });
+  });
+  (Array.isArray(manualPrs) ? manualPrs : []).forEach((pr) =>
+    raise(normalizeExerciseName(pr.exercise), Number(pr.weight || 0)),
+  );
+
+  const best = {};
+  (Array.isArray(completedLifts) ? completedLifts : []).forEach((lift) => {
+    const exercise = getBaseExercise(lift);
+    getLiftSets(lift).forEach((set) => {
+      const weight = Number(set.weight || 0);
+      const reps = Number(set.reps || 0);
+      if (!exercise || reps <= 0 || weight <= (existing[exercise] || 0)) return;
+      const current = best[exercise];
+      if (current && (weight < current.weight || (weight === current.weight && reps <= current.reps))) return;
+      best[exercise] = {
+        exercise,
+        variation: lift.variation || "",
+        weight,
+        reps,
+        duration: set.duration || "",
+        previous: existing[exercise] || 0,
+      };
     });
   });
 
-  return (Array.isArray(completedLifts) ? completedLifts : []).flatMap((lift) =>
-    getLiftSets(lift)
-      .filter((set) => Number(set.weight || 0) > (existing[getBaseExercise(lift)] || 0))
-      .map((set) => ({
-        exercise: getBaseExercise(lift),
-        variation: lift.variation || "",
-        weight: Number(set.weight || 0),
-        reps: Number(set.reps || 0),
-        duration: set.duration || "",
-        previous: existing[getBaseExercise(lift)] || 0,
-      })),
-  );
+  return Object.values(best);
 }
 
 export function buildExerciseHistory(workouts) {
