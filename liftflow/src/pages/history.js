@@ -17,6 +17,7 @@ import {
   normalizeExerciseName,
 } from "../lib/workoutAnalytics";
 import { colors, radii, type } from "../lib/theme";
+import { formatVolume, formatWeight, fromDisplay, unitLabel, useUnits } from "../lib/units";
 
 export default function History() {
   const router = useRouter();
@@ -27,6 +28,7 @@ export default function History() {
   const [editingLift, setEditingLift] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [confirmDeleteSession, setConfirmDeleteSession] = useState(null);
+  const units = useUnits();
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -66,11 +68,14 @@ export default function History() {
   }
 
   function startEditLift(sessionId, liftIndex, lift) {
+    const originalSets = getLiftSets(lift);
     setEditingLift({
       sessionId,
       liftIndex,
       exercise: getBaseExercise(lift),
-      setsText: getLiftSets(lift).map(formatEditableSet).join(", "),
+      setsText: originalSets.map((set) => formatEditableSet(set, units)).join(", "),
+      originalSets,
+      units,
       error: "",
     });
   }
@@ -81,11 +86,19 @@ export default function History() {
       .split(",")
       .map((part) => part.trim())
       .filter(Boolean);
-    const sets = parts.map(parseEditableSet);
+    // Weights are typed in the display unit and stored in lb. A set whose text was
+    // left as shown keeps its stored value exactly, so opening and saving loses nothing.
+    const editUnits = editingLift.units;
+    const sets = parts.map((part, index) => {
+      const original = editingLift.originalSets[index];
+      if (original && part === formatEditableSet(original, editUnits)) return original;
+      const parsed = parseEditableSet(part);
+      return parsed && { ...parsed, weight: fromDisplay(parsed.weight, editUnits) };
+    });
     if (sets.some((set) => !set)) {
       setEditingLift({
         ...editingLift,
-        error: "Use weight x reps (e.g. 185x5) or a time (e.g. 60s), separated by commas.",
+        error: `Use weight x reps (e.g. ${editExample(editUnits)}) or a time (e.g. 60s), separated by commas.`,
       });
       return;
     }
@@ -112,7 +125,11 @@ export default function History() {
       <section style={statsGrid} aria-label="Totals">
         <Stat label="Sessions" value={totals.sessions.toLocaleString()} hint="logged" />
         <Stat label="Sets" value={totals.sets.toLocaleString()} hint="completed" />
-        <Stat label="Volume" value={totals.volume.toLocaleString()} hint="lb lifted" />
+        <Stat
+          label="Volume"
+          value={formatVolume(totals.volume, units, { unit: false })}
+          hint={`${unitLabel(units)} lifted`}
+        />
       </section>
 
       <section style={{ display: "grid", gap: 10 }}>
@@ -167,7 +184,7 @@ export default function History() {
                       </p>
                     </div>
                     <span style={summaryRight}>
-                      <span style={sessionVolume}>{session.volume.toLocaleString()} lb</span>
+                      <span style={sessionVolume}>{formatVolume(session.volume, units)}</span>
                       <Chevron open={sessionOpen} />
                     </span>
                   </button>
@@ -195,7 +212,7 @@ export default function History() {
                                 </p>
                               </div>
                               <span style={summaryRight}>
-                                <span style={liftVolume}>{calculateLiftVolume(lift).toLocaleString()} lb</span>
+                                <span style={liftVolume}>{formatVolume(calculateLiftVolume(lift), units)}</span>
                                 <Chevron open={liftOpen} />
                               </span>
                             </button>
@@ -207,7 +224,7 @@ export default function History() {
                                     sets.map((set, setIndex) => (
                                       <li key={setIndex} style={setLine}>
                                         <span style={setNumber}>{setIndex + 1}</span>
-                                        {formatLoggedSet(set)}
+                                        {formatLoggedSet(set, units)}
                                       </li>
                                     ))
                                   ) : (
@@ -287,10 +304,10 @@ export default function History() {
                 />
               </label>
               <label style={field}>
-                <span style={fieldLabel}>Sets</span>
+                <span style={fieldLabel}>Sets ({unitLabel(editingLift.units)})</span>
                 <input
                   value={editingLift.setsText}
-                  placeholder="225x5, 225x4, 205x8"
+                  placeholder={editingLift.units === "kg" ? "100x5, 100x4, 90x8" : "225x5, 225x4, 205x8"}
                   onChange={(event) => setEditingLift({ ...editingLift, setsText: event.target.value, error: "" })}
                   aria-invalid={Boolean(editingLift.error)}
                 />
@@ -299,7 +316,9 @@ export default function History() {
                     {editingLift.error}
                   </span>
                 ) : (
-                  <span style={fieldHint}>Weight x reps (185x5) or a time (60s), separated by commas.</span>
+                  <span style={fieldHint}>
+                    Weight x reps ({editExample(editingLift.units)}) or a time (60s), separated by commas.
+                  </span>
                 )}
               </label>
               <div style={editActions}>
@@ -375,14 +394,20 @@ function Chevron({ open }) {
   );
 }
 
-function formatEditableSet(set) {
+function editExample(units) {
+  return units === "kg" ? "80x5" : "185x5";
+}
+
+// Weight shown in `units` (stored lb), to 0.01.
+function formatEditableSet(set, units) {
   const weight = Number(set.weight || 0);
+  const shown = formatWeight(weight, units, { unit: false });
   const duration = String(set.duration || "").trim();
   if (duration) {
     const time = /^\d+(\.\d+)?$/.test(duration) ? `${duration}s` : duration;
-    return weight > 0 ? `${weight}x${time}` : time;
+    return weight > 0 ? `${shown}x${time}` : time;
   }
-  return `${weight}x${Number(set.reps || 0)}`;
+  return `${shown}x${Number(set.reps || 0)}`;
 }
 
 // "185x5" -> weight/reps, "60s" or "25x60s" -> timed set. Returns null for anything else.
@@ -440,11 +465,11 @@ function filterSessions(sessions, search) {
     .filter((session) => session.lifts.length > 0);
 }
 
-function formatLoggedSet(set) {
+function formatLoggedSet(set, units) {
   const duration = String(set?.duration || "").trim();
   const weight = Number(set?.weight || 0);
-  if (duration) return weight > 0 ? `${duration} × ${weight} lb` : duration;
-  return `${set?.reps || "--"} reps × ${set?.weight || "--"} lb`;
+  if (duration) return weight > 0 ? `${duration} × ${formatWeight(weight, units)}` : duration;
+  return `${set?.reps || "--"} reps × ${weight > 0 ? formatWeight(weight, units) : `-- ${unitLabel(units)}`}`;
 }
 
 function formatDate(date) {

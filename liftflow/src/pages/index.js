@@ -18,6 +18,7 @@ import {
   getWorkoutItems,
 } from "../lib/workoutAnalytics";
 import { colors, dayColors, radii, tint, type } from "../lib/theme";
+import { formatVolume, formatWeight, fromInputValue, unitLabel, useUnits } from "../lib/units";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const ONBOARDING_KEY = "liftflow_onboarding_complete";
@@ -87,7 +88,7 @@ export default function Home() {
   const recentSessions = useMemo(() => buildRecentSessions(workouts).slice(0, 5), [workouts]);
   const prs = useMemo(() => buildPRMap(workouts, manualPrs), [workouts, manualPrs]);
   const bigThree = useMemo(() => getBigThree(workouts, manualPrs), [workouts, manualPrs]);
-  const units = profile.units || "lbs";
+  const units = useUnits();
   const firstName = String(profile.name || "")
     .trim()
     .split(/\s+/)[0];
@@ -183,7 +184,7 @@ export default function Home() {
                     {lift.sets || "--"} × {lift.reps || "--"}
                   </p>
                 </div>
-                <span style={flowLiftPr}>{getLiftPR(lift, prs)}</span>
+                <span style={flowLiftPr}>{getLiftPR(lift, prs, units)}</span>
               </li>
             ))}
           </ol>
@@ -207,7 +208,7 @@ export default function Home() {
         <div style={bigThreeHeader}>
           <h2 style={type.sectionTitle}>Big 3</h2>
           <span style={bigThreeTotal}>
-            {bigThree.total > 0 ? `${bigThree.total.toLocaleString()} ${units}` : "--"}
+            {bigThree.total > 0 ? formatWeight(bigThree.total, units, { grouping: true }) : "--"}
             <span style={bigThreeTotalLabel}>total</span>
           </span>
         </div>
@@ -216,8 +217,8 @@ export default function Home() {
             <div key={lift.label} style={bigThreeCell}>
               <span style={type.meta}>{lift.label}</span>
               <strong style={{ ...bigThreeValue, color: lift.value ? colors.text : colors.mutedStrong }}>
-                {lift.value ? lift.value : "--"}
-                {lift.value ? <span style={bigThreeUnit}> {units}</span> : null}
+                {lift.value ? formatWeight(lift.value, units, { unit: false }) : "--"}
+                {lift.value ? <span style={bigThreeUnit}> {unitLabel(units)}</span> : null}
               </strong>
               <span style={bigThreeHint}>
                 {lift.value && lift.reps ? `× ${lift.reps}` : lift.value ? "tracked" : "not logged"}
@@ -262,7 +263,7 @@ export default function Home() {
                         {session.date} · {session.sets} sets
                       </p>
                     </div>
-                    <span style={recentLoad}>{session.volume.toLocaleString()} lb</span>
+                    <span style={recentLoad}>{formatVolume(session.volume, units)}</span>
                   </button>
 
                   {expanded && (
@@ -274,11 +275,14 @@ export default function Home() {
                             <p style={recentDate}>
                               {lift.variation ? `${lift.variation} · ` : ""}
                               {getLiftSets(lift)
-                                .map((set) => `${set.weight || "--"} × ${set.reps || "--"}`)
+                                .map(
+                                  (set) =>
+                                    `${Number(set.weight) > 0 ? formatWeight(set.weight, units, { unit: false }) : "--"} × ${set.reps || "--"}`,
+                                )
                                 .join(", ") || "No sets logged"}
                             </p>
                           </div>
-                          <span style={recentLiftVolume}>{calculateLiftVolume(lift).toLocaleString()} lb</span>
+                          <span style={recentLiftVolume}>{formatVolume(calculateLiftVolume(lift), units)}</span>
                         </div>
                       ))}
                     </div>
@@ -318,9 +322,9 @@ export default function Home() {
             </div>
             <div style={modalBody}>
               <label style={field}>
-                <span style={fieldLabel}>Bodyweight</span>
+                <span style={fieldLabel}>Bodyweight ({unitLabel(units)})</span>
                 <input
-                  placeholder="e.g. 180"
+                  placeholder={units === "kg" ? "e.g. 80" : "e.g. 180"}
                   inputMode="decimal"
                   value={onboardingDraft.bodyweight}
                   onChange={(event) => setOnboardingDraft({ ...onboardingDraft, bodyweight: event.target.value })}
@@ -355,7 +359,7 @@ export default function Home() {
                 type="button"
                 className="primary"
                 onClick={() => {
-                  completeOnboarding(onboardingDraft, setPlan, setOnboardingOpen);
+                  completeOnboarding(onboardingDraft, setPlan, setOnboardingOpen, units);
                   setProfile(getProfile());
                 }}
                 style={fullButton}
@@ -405,12 +409,14 @@ function shouldShowOnboarding(plan, workouts, profile) {
   return !hasPlan && !hasWorkouts && !hasProfile;
 }
 
-function completeOnboarding(draft, setPlan, setOnboardingOpen) {
+function completeOnboarding(draft, setPlan, setOnboardingOpen, units) {
   const profile = getProfile();
+  // Profile weights are stored in lb.
+  const bodyweight = fromInputValue(draft.bodyweight, units);
   saveProfile({
     ...profile,
-    bodyweight: draft.bodyweight || profile.bodyweight,
-    weight: draft.bodyweight || profile.weight,
+    bodyweight: bodyweight || profile.bodyweight,
+    weight: bodyweight || profile.weight,
     goal: draft.goal,
   });
   if (draft.templateId) {
@@ -485,10 +491,10 @@ function getFlowAccent(day) {
   return day?.accent || colors.brand;
 }
 
-function getLiftPR(lift, prs) {
+function getLiftPR(lift, prs, units) {
   const base = getBaseExercise(lift);
   const record = prs[base] || prs[lift?.exercise];
-  return record ? formatPR(record) : "";
+  return record ? formatPR(record, units) : "";
 }
 
 function buildRecentSessions(workouts) {

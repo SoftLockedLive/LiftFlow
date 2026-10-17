@@ -6,11 +6,13 @@ import { buildPRRecords } from "../lib/prRecords";
 import { getWorkouts } from "../lib/workoutStorage";
 import { buildProgressData } from "../lib/workoutAnalytics";
 import { colors, radii, type } from "../lib/theme";
+import { formatVolume, formatWeight, unitLabel, useUnits } from "../lib/units";
 
 export default function Progress() {
   const [workouts, setWorkouts] = useState([]);
   const [manualPrs, setManualPrs] = useState([]);
   const [profile, setProfile] = useState({});
+  const units = useUnits();
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -30,7 +32,7 @@ export default function Progress() {
     [strengthData, strengthBest],
   );
   const goals = useMemo(() => buildGoals(profile, getBigThree(workouts, manualPrs)), [profile, workouts, manualPrs]);
-  const strengthTrend = useMemo(() => buildTrend(strengthData.sessions), [strengthData.sessions]);
+  const strengthTrend = useMemo(() => buildTrend(strengthData.sessions, units), [strengthData.sessions, units]);
 
   return (
     <div style={wrap}>
@@ -38,12 +40,15 @@ export default function Progress() {
         <h1 style={type.pageTitle}>Progress</h1>
       </header>
 
-      <StrengthSection data={strengthDisplayData} goals={goals} trend={strengthTrend} />
+      <StrengthSection data={strengthDisplayData} goals={goals} trend={strengthTrend} units={units} />
     </div>
   );
 }
 
-function StrengthSection({ data, goals, trend }) {
+// Goal and lift values are stored lb; `units` is the display unit.
+function StrengthSection({ data, goals, trend, units }) {
+  const w = (lb) => formatWeight(lb, units, { unit: false });
+  const label = unitLabel(units);
   const leadGoal = goals.find((goal) => goal.target > 0 && goal.label !== "Bodyweight") ||
     goals[0] || { label: "Bench", current: 0, target: 0, percent: 0, remaining: 0 };
   const exerciseBest = Object.entries(data.exerciseBest).slice(0, 6);
@@ -66,11 +71,11 @@ function StrengthSection({ data, goals, trend }) {
           <p style={heroMeta}>
             {leadGoal.target > 0 ? (
               <>
-                {leadGoal.current} / {leadGoal.target} lb ·{" "}
-                {leadGoal.remaining > 0 ? `${leadGoal.remaining} lb left` : "Goal hit"}
+                {w(leadGoal.current)} / {w(leadGoal.target)} {label} ·{" "}
+                {leadGoal.remaining > 0 ? `${formatWeight(leadGoal.remaining, units)} left` : "Goal hit"}
               </>
             ) : (
-              <>{leadGoal.current} lb · No goal set</>
+              <>{formatWeight(leadGoal.current, units)} · No goal set</>
             )}
           </p>
           {leadGoal.target > 0 && <ProgressBar percent={leadGoal.percent} />}
@@ -81,7 +86,7 @@ function StrengthSection({ data, goals, trend }) {
         <h2 style={type.sectionTitle}>Strength targets</h2>
         <div style={goalList}>
           {goals.map((goal, index) => (
-            <GoalRow key={goal.label} goal={goal} first={index === 0} />
+            <GoalRow key={goal.label} goal={goal} first={index === 0} units={units} />
           ))}
           {goals.length === 0 && (
             <EmptyState copy="Log workouts or add profile goals to build your strength targets." />
@@ -106,8 +111,8 @@ function StrengthSection({ data, goals, trend }) {
               <div key={exercise} style={{ ...compactRow, ...(index === 0 ? { borderTop: 0 } : {}) }}>
                 <span style={compactName}>{exercise}</span>
                 <strong style={compactValue}>
-                  {weight}
-                  <span style={unit}> lb</span>
+                  {w(weight)}
+                  <span style={unit}> {label}</span>
                 </strong>
               </div>
             ))}
@@ -119,7 +124,8 @@ function StrengthSection({ data, goals, trend }) {
   );
 }
 
-function GoalRow({ goal, first }) {
+function GoalRow({ goal, first, units }) {
+  const w = (lb) => formatWeight(lb, units, { unit: false });
   const hasTarget = goal.target > 0;
   const hit = hasTarget && goal.percent >= 100;
 
@@ -128,7 +134,11 @@ function GoalRow({ goal, first }) {
       <div style={goalTop}>
         <div style={{ minWidth: 0 }}>
           <h3 style={goalTitle}>{goal.label}</h3>
-          <p style={goalMeta}>{hasTarget ? `${goal.current} / ${goal.target} lb` : `${goal.current} lb`}</p>
+          <p style={goalMeta}>
+            {hasTarget
+              ? `${w(goal.current)} / ${w(goal.target)} ${unitLabel(units)}`
+              : formatWeight(goal.current, units)}
+          </p>
         </div>
         {hasTarget ? (
           <strong style={{ ...goalPercent, color: hit ? colors.accent : colors.text }}>{goal.percent}%</strong>
@@ -139,7 +149,7 @@ function GoalRow({ goal, first }) {
       {hasTarget && (
         <>
           <ProgressBar percent={goal.percent} />
-          <p style={goalCopy}>{goal.remaining > 0 ? `${goal.remaining} lb to go` : "Goal hit"}</p>
+          <p style={goalCopy}>{goal.remaining > 0 ? `${formatWeight(goal.remaining, units)} to go` : "Goal hit"}</p>
         </>
       )}
     </article>
@@ -215,7 +225,7 @@ function buildExerciseBestFromPRs(prs) {
   }, {});
 }
 
-function buildTrend(sessions) {
+function buildTrend(sessions, units) {
   if (sessions.length < 2) {
     return {
       label: "Building baseline",
@@ -232,13 +242,13 @@ function buildTrend(sessions) {
     return {
       label: "Baseline set",
       color: colors.text,
-      copy: `${recent.toLocaleString()} lb lifted across your latest sessions.`,
+      copy: `${formatVolume(recent, units)} lifted across your latest sessions.`,
       source: "Needs at least six workouts for a last-3 vs previous-3 comparison.",
     };
   }
 
   const change = Math.round(((recent - previous) / previous) * 100);
-  const source = `Last 3 workouts: ${recent.toLocaleString()} lb. Previous 3: ${previous.toLocaleString()} lb.`;
+  const source = `Last 3 workouts: ${formatVolume(recent, units)}. Previous 3: ${formatVolume(previous, units)}.`;
   if (change > 5)
     return {
       label: `Up ${change}%`,

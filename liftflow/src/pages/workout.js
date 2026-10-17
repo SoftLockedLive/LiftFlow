@@ -12,6 +12,7 @@ import { calculateSessionSummary, normalizeExerciseName } from "../lib/workoutAn
 import { buildCoachRecommendation, buildLiveSetRecommendation } from "../lib/coach";
 import { getLoadProfile } from "../lib/loadProfiles";
 import { colors, dayColors, radii, tint, type } from "../lib/theme";
+import { fromDisplay, toInputValue, unitLabel, useUnits } from "../lib/units";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const DRAFT_KEY = "liftflow_workout_drafts";
@@ -33,6 +34,7 @@ export default function Workout() {
   const [addOpen, setAddOpen] = useState(false);
   const [addDraft, setAddDraft] = useState(createEmptyAddDraft());
   const [addSearch, setAddSearch] = useState("");
+  const units = useUnits();
 
   // Remaining rest is derived from an end timestamp, so throttled or paused
   // intervals (backgrounded mobile tabs) can't make the timer run slow.
@@ -101,10 +103,14 @@ export default function Workout() {
         copy[exerciseId] = [];
       }
 
-      copy[exerciseId][setIndex] = {
-        ...(copy[exerciseId][setIndex] || {}),
-        [field]: field === "duration" ? value : Number(value),
-      };
+      const previous = copy[exerciseId][setIndex] || {};
+      // Drafts keep weight in lb like saved workouts. The typed text is kept too, tagged
+      // with its unit, so the input shows exactly what was typed ("102." mid-entry) and
+      // a draft stays unambiguous if the unit changes before the workout is finished.
+      copy[exerciseId][setIndex] =
+        field === "weight"
+          ? { ...previous, weight: fromDisplay(value, units), weightInput: value, weightUnits: units }
+          : { ...previous, [field]: field === "duration" ? value : Number(value) };
 
       const updatedDrafts = {
         ...drafts,
@@ -347,8 +353,8 @@ export default function Workout() {
 
   const safeSession = getSafeSession(session);
   const prMap = buildPRMap(workouts, manualPrs);
-  const baseProgram = buildTodaysWorkout(selectedDay, plan, workouts, manualPrs);
-  const extraProgram = buildExtraWorkoutProgram(safeSession.__extraLifts, workouts, prMap);
+  const baseProgram = buildTodaysWorkout(selectedDay, plan, workouts, manualPrs, units);
+  const extraProgram = buildExtraWorkoutProgram(safeSession.__extraLifts, workouts, prMap, units);
   const program = [...baseProgram, ...extraProgram];
   const restSeconds = restEndsAt ? Math.max(0, Math.ceil((restEndsAt - restNow) / 1000)) : 0;
   const focusName = plan.__meta?.[selectedDay]?.name || selectedDay;
@@ -517,7 +523,7 @@ export default function Workout() {
                   ...loadProfile,
                 }
               : { ...lift, ...loadProfile };
-            const coach = swapped ? buildCoachRecommendation(activeLift, workouts) : lift.coachRecommendation;
+            const coach = swapped ? buildCoachRecommendation(activeLift, workouts, units) : lift.coachRecommendation;
             const liveCoach = buildLiveSetRecommendation(activeLift, workingSets, coach);
             const coachDetailsOpen = Boolean(safeSession.__coach?.[lift.id]);
             const isTime = lift.targetType === "time";
@@ -531,7 +537,7 @@ export default function Workout() {
                       {group.label} · {formatWorkoutTarget(lift)}
                       {swapped ? ` · planned ${lift.exercise}` : ""}
                     </p>
-                    {!isTime && activePr && <span style={prBadge}>{formatPR(activePr)}</span>}
+                    {!isTime && activePr && <span style={prBadge}>{formatPR(activePr, units)}</span>}
                   </div>
                   <div style={liftHeaderActions}>
                     {lift.addedDuringWorkout && (
@@ -684,7 +690,7 @@ export default function Workout() {
                   <>
                     <div style={setColumns} aria-hidden="true">
                       <span>Set</span>
-                      <span>Weight</span>
+                      <span>Weight ({unitLabel(units)})</span>
                       <span>{isTime ? "Time" : "Reps"}</span>
                       <span />
                     </div>
@@ -695,9 +701,9 @@ export default function Workout() {
                           <input
                             type="number"
                             inputMode="decimal"
-                            placeholder="lb"
-                            aria-label={`Set ${i + 1} weight`}
-                            value={workingSets[i]?.weight || ""}
+                            placeholder={unitLabel(units)}
+                            aria-label={`Set ${i + 1} weight in ${unitLabel(units)}`}
+                            value={getWeightInputValue(workingSets[i], units)}
                             onChange={(event) => updateSet(lift.id, i, "weight", event.target.value)}
                             style={setInput}
                           />
@@ -956,7 +962,7 @@ function prepareWorkoutLift(lift) {
   };
 }
 
-function buildExtraWorkoutProgram(extraLifts, workouts, prMap) {
+function buildExtraWorkoutProgram(extraLifts, workouts, prMap, units) {
   return (Array.isArray(extraLifts) ? extraLifts : []).filter(Boolean).map((lift, index) => {
     const prepared = {
       ...lift,
@@ -970,8 +976,8 @@ function buildExtraWorkoutProgram(extraLifts, workouts, prMap) {
       ...prepared,
       baseExercise,
       prRecord,
-      displayPR: formatPR(prRecord),
-      coachRecommendation: buildCoachRecommendation({ ...prepared, prRecord }, workouts),
+      displayPR: formatPR(prRecord, units),
+      coachRecommendation: buildCoachRecommendation({ ...prepared, prRecord }, workouts, units),
       userOverride: null,
     };
   });
@@ -1001,13 +1007,29 @@ function dayHasExercise(plan, day, exerciseKey) {
   );
 }
 
+// Saved sets drop the draft-only typed text; `weight` is already lb.
 function getLoggedSets(sets) {
-  return (Array.isArray(sets) ? sets : []).filter((set) => {
-    const weight = Number(set?.weight || 0);
-    const reps = Number(set?.reps || 0);
-    const duration = String(set?.duration || "").trim();
-    return weight > 0 || reps > 0 || duration;
-  });
+  return (Array.isArray(sets) ? sets : [])
+    .filter((set) => {
+      const weight = Number(set?.weight || 0);
+      const reps = Number(set?.reps || 0);
+      const duration = String(set?.duration || "").trim();
+      return weight > 0 || reps > 0 || duration;
+    })
+    .map((set) => {
+      const saved = { ...set };
+      delete saved.weightInput;
+      delete saved.weightUnits;
+      return saved;
+    });
+}
+
+// What a set's weight input shows: the typed text when it was typed in the current
+// unit, otherwise the stored lb converted (older drafts hold only lb numbers).
+function getWeightInputValue(set, units) {
+  if (!set) return "";
+  if (set.weightUnits === units && typeof set.weightInput === "string") return set.weightInput;
+  return toInputValue(set.weight, units);
 }
 
 function isPlainObject(value) {

@@ -4,12 +4,20 @@ import { getManualPRs } from "./manualPRs";
 import { buildPRMap, formatPR } from "./prRecords";
 import { buildCoachRecommendation } from "./coach";
 import { getBaseExercise } from "./workoutAnalytics";
+import { getUnits } from "./units";
 
 /**
  * CORE SYSTEM:
  * Produces today's recommended workout
  */
-export function buildTodaysWorkout(day, providedPlan = null, providedHistory = null, providedManualPrs = null) {
+// Coach numbers and PR text come out in `units` (default: the profile's units).
+export function buildTodaysWorkout(
+  day,
+  providedPlan = null,
+  providedHistory = null,
+  providedManualPrs = null,
+  units = getUnits(),
+) {
   const plan = providedPlan || getPlan();
   const history = Array.isArray(providedHistory) ? providedHistory : getWorkouts();
 
@@ -26,9 +34,9 @@ export function buildTodaysWorkout(day, providedPlan = null, providedHistory = n
       ...safeLift,
 
       // coach layer (soft suggestions only)
-      displayPR: formatPR(prRecord),
+      displayPR: formatPR(prRecord, units),
       prRecord,
-      coachRecommendation: buildSafeCoachRecommendation({ ...safeLift, prRecord }, history),
+      coachRecommendation: buildSafeCoachRecommendation({ ...safeLift, prRecord }, history, units),
 
       // user always overrides this
       userOverride: null,
@@ -52,9 +60,9 @@ function normalizeWorkoutLift(lift, day, index) {
   };
 }
 
-function buildSafeCoachRecommendation(lift, history) {
+function buildSafeCoachRecommendation(lift, history, units) {
   try {
-    return buildCoachRecommendation(lift, history);
+    return buildCoachRecommendation(lift, history, units);
   } catch {
     return {
       status: "empty",
@@ -62,6 +70,7 @@ function buildSafeCoachRecommendation(lift, history) {
       detail: "Log this lift once and coach recommendations will use your history.",
       warmups: [],
       workingWeight: null,
+      units,
       workingSetPlan: "Flat sets by default.",
       nextAction: "Choose a weight you can control for the programmed reps.",
     };

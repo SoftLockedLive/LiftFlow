@@ -1,42 +1,104 @@
-// All weight numbers the coach depends on live here (in lb), so unit support can
-// swap them in one place.
-export const BAR_WEIGHT = 45;
-export const EZ_BAR_WEIGHT = 20;
-export const MIN_LOAD = 5;
-export const LOAD_TYPES = ["barbell", "machine", "dumbbell", "bodyweight", "free"];
+import { roundTo, toDisplay } from "./units";
 
-// Spacing of loadable weights per load type: barbell = 2.5 lb plates each side,
-// dumbbells/machines/free weights/bodyweight belts in 5 lb steps. EZ-bars are
-// "barbell" lifts and share the barbell grid (anchored on the 20 lb bar).
-export const LOAD_GRID_STEPS = { barbell: 5, dumbbell: 5, machine: 5, free: 5, bodyweight: 5 };
-// Normal session-to-session change for each load type.
-export const PROGRESSION_STEPS = { barbell: 5, dumbbell: 5, machine: 5, free: 5, bodyweight: 5 };
-// Heavy barbell lifts take a bigger jump after a strong session.
-export const HEAVY_BARBELL_JUMP = 10;
-export const HEAVY_BARBELL_THRESHOLD = 100;
-// Under this, a lift progresses reps before load (a fixed jump is a big relative change).
-export const LIGHT_LOAD_THRESHOLD = 50;
-// Warmup ramp thresholds: no ramp under minWorking; the bar-only first set needs
-// barbellStart; a second set from secondSet; a heavy single-ish set from heavySet.
-export const RAMP_THRESHOLDS = { minWorking: 50, barbellStart: 95, secondSet: 100, heavySet: 185 };
+// All weight numbers the coach depends on live here, per display unit. Stored
+// weights are always lb; the coach converts history into the display unit and
+// runs on that unit's own gym values (a 20 kg bar, 2.5 kg steps), not on
+// converted pound numbers.
+export const UNIT_LOADS = {
+  lbs: {
+    barWeight: 45,
+    ezBarWeight: 20,
+    minLoad: 5,
+    // Spacing of loadable weights per load type: barbell = 2.5 lb plates each side,
+    // dumbbells/machines/free weights/bodyweight belts in 5 lb steps. EZ-bars are
+    // "barbell" lifts and share the barbell grid (anchored on the 20 lb bar).
+    gridSteps: { barbell: 5, dumbbell: 5, machine: 5, free: 5, bodyweight: 5 },
+    // Normal session-to-session change for each load type.
+    progressionSteps: { barbell: 5, dumbbell: 5, machine: 5, free: 5, bodyweight: 5 },
+    // Heavy barbell lifts take a bigger jump after a strong session.
+    heavyBarbellJump: 10,
+    heavyBarbellThreshold: 100,
+    // Under this, a lift progresses reps before load (a fixed jump is a big relative change).
+    lightLoadThreshold: 50,
+    // Warmup ramp thresholds: no ramp under minWorking; the bar-only first set needs
+    // barbellStart; a second set from secondSet; a heavy single-ish set from heavySet.
+    rampThresholds: { minWorking: 50, barbellStart: 95, secondSet: 100, heavySet: 185 },
+    // A history weight that was not entered in this unit (e.g. logged in kg) is
+    // snapped to the plate step before the coach repeats or grades it, so jumps
+    // from it are whole steps.
+    foreignSnapStep: 5,
+  },
+  kg: {
+    barWeight: 20,
+    ezBarWeight: 10,
+    minLoad: 2.5,
+    // 1.25 kg plates each side on a bar; 2.5 kg dumbbell/machine/belt steps.
+    gridSteps: { barbell: 2.5, dumbbell: 2.5, machine: 2.5, free: 2.5, bodyweight: 2.5 },
+    progressionSteps: { barbell: 2.5, dumbbell: 2.5, machine: 2.5, free: 2.5, bodyweight: 2.5 },
+    heavyBarbellJump: 5,
+    heavyBarbellThreshold: 45,
+    lightLoadThreshold: 22.5,
+    rampThresholds: { minWorking: 22.5, barbellStart: 42.5, secondSet: 45, heavySet: 85 },
+    foreignSnapStep: 2.5,
+  },
+};
+
+export function getUnitLoads(units) {
+  return units === "kg" ? UNIT_LOADS.kg : UNIT_LOADS.lbs;
+}
+
+// The lb values, kept as named exports.
+export const BAR_WEIGHT = UNIT_LOADS.lbs.barWeight;
+export const EZ_BAR_WEIGHT = UNIT_LOADS.lbs.ezBarWeight;
+export const MIN_LOAD = UNIT_LOADS.lbs.minLoad;
+export const LOAD_TYPES = ["barbell", "machine", "dumbbell", "bodyweight", "free"];
+export const LOAD_GRID_STEPS = UNIT_LOADS.lbs.gridSteps;
+export const PROGRESSION_STEPS = UNIT_LOADS.lbs.progressionSteps;
+export const HEAVY_BARBELL_JUMP = UNIT_LOADS.lbs.heavyBarbellJump;
+export const HEAVY_BARBELL_THRESHOLD = UNIT_LOADS.lbs.heavyBarbellThreshold;
+export const LIGHT_LOAD_THRESHOLD = UNIT_LOADS.lbs.lightLoadThreshold;
+export const RAMP_THRESHOLDS = UNIT_LOADS.lbs.rampThresholds;
+
+// A stored lb weight as the coach sees it in the display unit. A value that was
+// entered in this unit converts back to (within float noise) a number with at most
+// two decimals and is used exactly, so a hold repeats what was lifted (60 kg logged
+// -> 60). A value entered in the other unit (185 lb -> 83.91 kg) is not something
+// this user loaded, so it snaps to the unit's foreignSnapStep (-> 85 kg). In lb,
+// weights typed in lb are unchanged; values logged in kg snap to 5 lb.
+export function toCoachWeight(lb, units) {
+  const value = toDisplay(lb, units);
+  if (!(value > 0)) return 0;
+  const exact = roundTo(value, 2);
+  if (Math.abs(value - exact) < 1e-6) return exact;
+  const step = getUnitLoads(units).foreignSnapStep;
+  return roundWeight(Math.round(value / step) * step);
+}
 
 const EPSILON = 1e-6;
 
-export function getLoadProfile(lift = {}) {
-  const inferredType = inferLoadType(lift.exercise || lift.baseExercise);
+// Without `units` (or with "lbs") the minimum is the stored lb value. With "kg" it
+// is in kg: a stored minimum that is one of the lb defaults means that default's kg
+// counterpart (45 lb bar -> 20 kg, 20 lb EZ-bar -> 10 kg, 5 lb -> 2.5 kg), so a kg
+// barbell floor is 20 kg, not 20.41 kg; any other stored minimum is converted.
+export function getLoadProfile(lift = {}, units = "lbs") {
+  const exercise = lift.exercise || lift.baseExercise;
+  const inferredType = inferLoadType(exercise);
   const type = normalizeLoadType(lift.loadType) || inferredType;
   const configuredMinimum = Number(lift.minimumLoad || lift.minLoad || 0);
+  const defaultMinimum = getDefaultMinimumLoad(type, exercise, units);
 
-  if (configuredMinimum > 0) {
-    return { type, minimumLoad: configuredMinimum };
-  }
-
-  return { type, minimumLoad: getDefaultMinimumLoad(type, lift.exercise || lift.baseExercise) };
+  if (!(configuredMinimum > 0)) return { type, minimumLoad: defaultMinimum };
+  if (units !== "kg") return { type, minimumLoad: configuredMinimum };
+  const kg = UNIT_LOADS.kg;
+  const counterpart = { [BAR_WEIGHT]: kg.barWeight, [EZ_BAR_WEIGHT]: kg.ezBarWeight, [MIN_LOAD]: kg.minLoad };
+  if (counterpart[configuredMinimum]) return { type, minimumLoad: counterpart[configuredMinimum] };
+  return { type, minimumLoad: toCoachWeight(configuredMinimum, units) };
 }
 
-export function getDefaultMinimumLoad(type, exercise) {
-  if (type !== "barbell") return MIN_LOAD;
-  return isEzBar(exercise) ? EZ_BAR_WEIGHT : BAR_WEIGHT;
+export function getDefaultMinimumLoad(type, exercise, units = "lbs") {
+  const loads = getUnitLoads(units);
+  if (type !== "barbell") return loads.minLoad;
+  return isEzBar(exercise) ? loads.ezBarWeight : loads.barWeight;
 }
 
 // Order matters: explicit equipment first, then movement names. A bare "squat"
@@ -69,14 +131,17 @@ export function normalizeLoadType(value) {
   return LOAD_TYPES.includes(type) ? type : "";
 }
 
-export function getProgressionStep(type) {
-  return PROGRESSION_STEPS[type] || PROGRESSION_STEPS.free;
+export function getProgressionStep(type, units = "lbs") {
+  const steps = getUnitLoads(units).progressionSteps;
+  return steps[type] || steps.free;
 }
 
 // Loadable weights for a profile are base + k * step. Barbell grids start at the
 // bar (so a 20 lb EZ-bar or a custom bar weight stays loadable); others at zero.
-export function getLoadGrid(profile = {}) {
-  const step = LOAD_GRID_STEPS[profile.type] || LOAD_GRID_STEPS.free;
+// `profile.minimumLoad` must be in the same unit as `units`.
+export function getLoadGrid(profile = {}, units = "lbs") {
+  const steps = getUnitLoads(units).gridSteps;
+  const step = steps[profile.type] || steps.free;
   const base = profile.type === "barbell" ? Number(profile.minimumLoad || 0) : 0;
   return { step, base };
 }

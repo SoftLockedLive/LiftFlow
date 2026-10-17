@@ -3,6 +3,7 @@ import ConfirmDialog from "../components/ConfirmDialog";
 import { addNote, deleteNote, getNoteLevel, getNotes, NOTE_LEVELS, updateNote } from "../lib/notes";
 import { getPlan } from "../lib/plan";
 import { colors, radii, tint, type } from "../lib/theme";
+import { formatVolume, formatWeight, unitLabel, useUnits } from "../lib/units";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const RECAP_KEY = "liftflow_last_workout_recap";
@@ -17,6 +18,7 @@ export default function Notes() {
   const [editingId, setEditingId] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [recap, setRecap] = useState(null);
+  const units = useUnits();
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -82,7 +84,11 @@ export default function Notes() {
           <div style={recapStats}>
             <RecapStat label="Lifts" value={recap.lifts || 0} />
             <RecapStat label="Sets" value={recap.sets || 0} />
-            <RecapStat label="Volume" value={Number(recap.volume || 0).toLocaleString()} unit="lb" />
+            <RecapStat
+              label="Volume"
+              value={formatVolume(Number(recap.volume || 0), units, { unit: false })}
+              unit={unitLabel(units)}
+            />
             <RecapStat label="PRs" value={recapPrs.length} highlight={recapPrs.length > 0} />
           </div>
           {recapPrs.length > 0 && (
@@ -91,7 +97,7 @@ export default function Notes() {
                 <li key={pr.exercise} style={prRow}>
                   <span style={prExercise}>{pr.exercise}</span>
                   <span style={prSet}>
-                    <span style={prWeight}>{pr.weight} lb</span> × {pr.reps}
+                    <span style={prWeight}>{formatWeight(pr.weight, units)}</span> × {pr.reps}
                   </span>
                 </li>
               ))}

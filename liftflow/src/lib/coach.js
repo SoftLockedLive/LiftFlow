@@ -5,16 +5,21 @@ import {
   getLoadGrid,
   getLoadProfile,
   getProgressionStep,
+  getUnitLoads,
   gridNearest,
-  HEAVY_BARBELL_JUMP,
-  HEAVY_BARBELL_THRESHOLD,
   increaseLoad,
-  LIGHT_LOAD_THRESHOLD,
-  RAMP_THRESHOLDS,
   roundWeight,
+  toCoachWeight,
 } from "./loadProfiles";
+import { getUnits, normalizeUnits, unitLabel } from "./units";
 
-export function buildCoachRecommendation(lift, workouts = getWorkouts()) {
+// The coach works natively in the display unit: history (stored in lb) is converted
+// at the input with toCoachWeight, and every number it returns (workingWeight,
+// warmups, latestTopWeight, minimumLoad, increment, jump) and all advice text are in
+// `units`. The result carries `units` so callers know what the numbers mean.
+export function buildCoachRecommendation(lift, workouts = getWorkouts(), units = getUnits()) {
+  units = normalizeUnits(units);
+  const label = unitLabel(units);
   if (lift?.targetType === "time") {
     return {
       status: "timed",
@@ -28,20 +33,20 @@ export function buildCoachRecommendation(lift, workouts = getWorkouts()) {
   }
 
   const baseExercise = getBaseExercise(lift);
-  const loadProfile = getLoadProfile(lift);
-  const history = collectLiftHistory(workouts, baseExercise, loadProfile.type === "bodyweight");
+  const loadProfile = { ...getLoadProfile(lift, units), units };
+  const history = collectLiftHistory(workouts, baseExercise, loadProfile.type === "bodyweight", units);
   const target = parseRepTarget(lift.reps);
-  const increment = getProgressionStep(loadProfile.type);
+  const increment = getProgressionStep(loadProfile.type, units);
   const minimumLoad = loadProfile.minimumLoad;
 
   if (history.length === 0) {
-    const prWeight = Number(lift?.prRecord?.weight || 0);
+    const prWeight = toCoachWeight(lift?.prRecord?.weight, units);
     if (prWeight > 0) {
       const estimatedWeight = estimateFromPR(prWeight, target, loadProfile);
       return {
         status: "estimated",
-        headline: `${estimatedWeight} lb`,
-        detail: `Estimated from your manual PR of ${prWeight} lb. Start here only if warmups feel clean.`,
+        headline: `${estimatedWeight} ${label}`,
+        detail: `Estimated from your manual PR of ${prWeight} ${label}. Start here only if warmups feel clean.`,
         warmups: buildWarmupRamp(estimatedWeight, target, loadProfile),
         warmupLabel: "Optional ramp",
         workingWeight: estimatedWeight,
@@ -50,10 +55,11 @@ export function buildCoachRecommendation(lift, workouts = getWorkouts()) {
         increment,
         minimumLoad,
         loadType: loadProfile.type,
+        units,
         confidence: "medium",
         contextNotes: ["No logged sets for this lift yet, so this uses your PR tab as the anchor."],
         workingSetPlan: "Use flat sets. Adjust down if bar speed or form drops early.",
-        nextAction: buildNextAction(estimatedWeight, lift),
+        nextAction: buildNextAction(estimatedWeight, lift, label),
       };
     }
 
@@ -63,6 +69,7 @@ export function buildCoachRecommendation(lift, workouts = getWorkouts()) {
       detail: "Log this lift once and coach recommendations will use your history.",
       warmups: [],
       workingWeight: null,
+      units,
       workingSetPlan: "Flat sets by default.",
       nextAction: "Choose a weight you can control for the programmed reps.",
     };
@@ -87,8 +94,8 @@ export function buildCoachRecommendation(lift, workouts = getWorkouts()) {
 
   return {
     status: "ready",
-    headline: `${workingWeight} lb`,
-    detail: buildDetail(direction, latestTopWeight, workingWeight, grade, target, context, minimumLoad),
+    headline: `${workingWeight} ${label}`,
+    detail: buildDetail(direction, latestTopWeight, workingWeight, grade, target, context, minimumLoad, label),
     warmups: buildWarmupRamp(workingWeight, target, loadProfile),
     warmupLabel: "Ramp-up sets",
     workingWeight,
@@ -99,37 +106,47 @@ export function buildCoachRecommendation(lift, workouts = getWorkouts()) {
     jump,
     minimumLoad,
     loadType: loadProfile.type,
+    units,
     confidence: context.confidence,
     contextNotes: context.notes,
     workingSetPlan: "Flat sets by default. Adjust only if reps fall off or it is clearly too light.",
-    nextAction: buildNextAction(workingWeight, lift),
+    nextAction: buildNextAction(workingWeight, lift, label),
   };
 }
 
-export function buildLiveSetRecommendation(lift, loggedSets, coach) {
+// `loggedSets` are stored sets (weights in lb). `coach` is a buildCoachRecommendation
+// result; its numbers are in coach.units, which this uses unless `units` is given.
+export function buildLiveSetRecommendation(lift, loggedSets, coach, units = coach?.units || getUnits()) {
   if (lift?.targetType === "time") return null;
+  units = normalizeUnits(units);
+  const label = unitLabel(units);
   const sets = getLiftSets({ sets: loggedSets });
   if (!coach?.workingWeight || sets.length === 0) return null;
+  // A coach built in another unit would mix numbers; ignore its unit-bound values then.
+  const sameUnits = normalizeUnits(coach.units || "lbs") === units;
 
   const target = coach.target || parseRepTarget(lift.reps);
-  const liftProfile = getLoadProfile(lift);
+  const liftProfile = getLoadProfile(lift, units);
   const loadProfile = {
     type: coach.loadType || liftProfile.type,
-    minimumLoad: coach.minimumLoad || liftProfile.minimumLoad,
+    minimumLoad: (sameUnits && coach.minimumLoad) || liftProfile.minimumLoad,
   };
-  const increment = coach.increment || getProgressionStep(loadProfile.type);
+  const increment = (sameUnits && coach.increment) || getProgressionStep(loadProfile.type, units);
   const minimumLoad = loadProfile.minimumLoad;
-  const grid = getLoadGrid(loadProfile);
+  const grid = getLoadGrid(loadProfile, units);
   const last = sets[sets.length - 1];
-  const lastWeight = Number(last.weight || 0);
+  const lastWeight = toCoachWeight(last.weight, units);
   const lastReps = Number(last.reps || 0);
 
   if (!lastWeight || !lastReps) return null;
 
-  const knownPr = Math.max(Number(lift?.prRecord?.weight || 0), Number(coach.latestTopWeight || 0));
+  const knownPr = Math.max(
+    toCoachWeight(lift?.prRecord?.weight, units),
+    sameUnits ? Number(coach.latestTopWeight || 0) : 0,
+  );
   if (knownPr > 0 && lastWeight > knownPr) {
     return {
-      label: `New PR: ${lastWeight} lb`,
+      label: `New PR: ${lastWeight} ${label}`,
       detail: "You moved more weight than your previous best. Rest longer before deciding whether to repeat it.",
       tone: "up",
     };
@@ -137,22 +154,22 @@ export function buildLiveSetRecommendation(lift, loggedSets, coach) {
 
   if (lastReps > target.max) {
     return {
-      label: `Next set: ${increaseLoad(lastWeight, increment, grid)} lb`,
-      detail: `You exceeded the target range at ${lastWeight} lb.`,
+      label: `Next set: ${increaseLoad(lastWeight, increment, grid)} ${label}`,
+      detail: `You exceeded the target range at ${lastWeight} ${label}.`,
       tone: "up",
     };
   }
 
   if (lastReps < target.min) {
     return {
-      label: `Next set: ${decreaseLoad(lastWeight, increment, minimumLoad, grid)} lb`,
+      label: `Next set: ${decreaseLoad(lastWeight, increment, minimumLoad, grid)} ${label}`,
       detail: `You missed the low end of the range. Reduce slightly or rest longer.`,
       tone: "down",
     };
   }
 
   return {
-    label: `Next set: stay at ${lastWeight} lb`,
+    label: `Next set: stay at ${lastWeight} ${label}`,
     detail:
       lastReps === target.max
         ? "You hit the top of the range. Hold this weight for the workout; progress next time if the sets stay strong."
@@ -161,7 +178,7 @@ export function buildLiveSetRecommendation(lift, loggedSets, coach) {
   };
 }
 
-function collectLiftHistory(workouts, baseExercise, allowRepsOnly = false) {
+function collectLiftHistory(workouts, baseExercise, allowRepsOnly = false, units = "lbs") {
   const targetExercise = normalizeExerciseName(baseExercise);
   return (Array.isArray(workouts) ? workouts : [])
     .slice()
@@ -175,7 +192,7 @@ function collectLiftHistory(workouts, baseExercise, allowRepsOnly = false) {
           target: parseRepTarget(lift.reps || lift.plannedReps),
           targetLabel: lift.reps || lift.plannedReps || "",
           variation: getVariationNote(lift),
-          sets: getCoachSets(lift, allowRepsOnly),
+          sets: getCoachSets(lift, allowRepsOnly, units),
         }));
     })
     .filter((entry) => entry.sets.length > 0)
@@ -184,8 +201,11 @@ function collectLiftHistory(workouts, baseExercise, allowRepsOnly = false) {
 
 // Logged sets the coach can grade. Weighted sets always win; a bodyweight lift
 // logged with reps only (no added load) is graded on reps instead.
-function getCoachSets(lift, allowRepsOnly) {
-  const repSets = getLiftSets(lift).filter((set) => Number(set.reps || 0) > 0);
+// Weights come back in `units` (see toCoachWeight).
+function getCoachSets(lift, allowRepsOnly, units) {
+  const repSets = getLiftSets(lift)
+    .filter((set) => Number(set.reps || 0) > 0)
+    .map((set) => ({ ...set, weight: toCoachWeight(set.weight, units) }));
   const weightedSets = repSets.filter((set) => Number(set.weight || 0) > 0);
   if (weightedSets.length > 0 || !allowRepsOnly) return weightedSets;
   return repSets.map((set) => ({ ...set, weight: 0 }));
@@ -199,13 +219,15 @@ function getVariationNote(lift) {
   return variation;
 }
 
-// Holds repeat the exact logged weight (it was just lifted, so it is loadable).
+// Holds repeat the exact logged weight (it was just lifted, so it is loadable); a
+// weight logged in the other unit was already snapped by toCoachWeight.
 // Increases and decreases land on the load type's grid of loadable weights:
-// 17.5 lb dumbbells pass -> 20, 102.5 lb bench +10 -> 110, 17.5 lb miss -> 15.
+// 17.5 lb dumbbells pass -> 20, 102.5 lb bench +10 -> 110, 17.5 lb miss -> 15;
+// in kg: 101.25 kg bench +5 -> 105, 9 kg dumbbell miss -> 7.5.
 function recommendWorkingWeight(latestWeight, grade, increment, context, loadProfile, jump) {
   if (!latestWeight) return null;
   if (context.confidence !== "high") return latestWeight;
-  const grid = getLoadGrid(loadProfile);
+  const grid = getLoadGrid(loadProfile, loadProfile.units);
   if ((grade.result === "strong-pass" || grade.result === "pass") && jump > 0)
     return increaseLoad(latestWeight, jump, grid);
   // A miss never recommends more than the weight that was just missed, even if the
@@ -216,6 +238,7 @@ function recommendWorkingWeight(latestWeight, grade, increment, context, loadPro
 
 function buildBodyweightRecommendation(lift, grade, target, increment, context, loadProfile) {
   const confident = context.confidence === "high";
+  const label = unitLabel(loadProfile.units);
   const setSummary = `${grade.completedTopSets}/${grade.requiredSets} sets, lowest ${grade.lowestRep || "--"} reps`;
   const estimate = confident ? "" : " Treat this as an estimate.";
   const base = {
@@ -230,20 +253,21 @@ function buildBodyweightRecommendation(lift, grade, target, increment, context, 
     jump: 0,
     minimumLoad: loadProfile.minimumLoad,
     loadType: loadProfile.type,
+    units: loadProfile.units,
     confidence: context.confidence,
     contextNotes: context.notes,
     workingSetPlan: "Flat sets at bodyweight. Add reps before adding load.",
   };
 
   if (confident && grade.result === "strong-pass") {
-    const added = increaseLoad(0, increment, getLoadGrid({ ...loadProfile, type: "bodyweight" }));
+    const added = increaseLoad(0, increment, getLoadGrid({ ...loadProfile, type: "bodyweight" }, loadProfile.units));
     return {
       ...base,
-      headline: `Add ${added} lb`,
-      detail: `Last time: ${setSummary} at bodyweight against ${target.min}-${target.max}. Every set reached the top of the range, so add ${added} lb (belt or held dumbbell) and rebuild reps.`,
+      headline: `Add ${added} ${label}`,
+      detail: `Last time: ${setSummary} at bodyweight against ${target.min}-${target.max}. Every set reached the top of the range, so add ${added} ${label} (belt or held dumbbell) and rebuild reps.`,
       workingWeight: added,
       jump: added,
-      nextAction: `${lift.sets} x ${lift.reps} with about ${added} lb added.`,
+      nextAction: `${lift.sets} x ${lift.reps} with about ${added} ${label} added.`,
     };
   }
 
@@ -278,6 +302,7 @@ function buildBodyweightRecommendation(lift, grade, target, increment, context, 
 }
 
 function buildWarmupRamp(workingWeight, target, loadProfile) {
+  const RAMP_THRESHOLDS = getUnitLoads(loadProfile.units).rampThresholds;
   if (!workingWeight || workingWeight < RAMP_THRESHOLDS.minWorking) return [];
 
   const ramp = [];
@@ -304,7 +329,10 @@ function buildWarmupRamp(workingWeight, target, loadProfile) {
 }
 
 function rampWeight(workingWeight, loadProfile, percent) {
-  return Math.max(loadProfile.minimumLoad, gridNearest(workingWeight * percent, getLoadGrid(loadProfile)));
+  return Math.max(
+    loadProfile.minimumLoad,
+    gridNearest(workingWeight * percent, getLoadGrid(loadProfile, loadProfile.units)),
+  );
 }
 
 function dedupeWarmups(sets) {
@@ -372,11 +400,12 @@ function getRecommendedJump(latestWeight, grade, increment, context, target, loa
   if (!["pass", "strong-pass"].includes(grade.result)) return 0;
   if (latestWeight < loadProfile.minimumLoad) return 0;
 
+  const loads = getUnitLoads(loadProfile.units);
   const baseJump =
-    loadProfile.type === "barbell" && latestWeight >= HEAVY_BARBELL_THRESHOLD ? HEAVY_BARBELL_JUMP : increment;
+    loadProfile.type === "barbell" && latestWeight >= loads.heavyBarbellThreshold ? loads.heavyBarbellJump : increment;
   if (grade.result === "strong-pass") return baseJump;
   if (grade.lowestRep >= target.max) return increment;
-  return latestWeight >= LIGHT_LOAD_THRESHOLD ? increment : 0;
+  return latestWeight >= loads.lightLoadThreshold ? increment : 0;
 }
 
 function round1(value) {
@@ -406,30 +435,33 @@ function sameRepTarget(a, b) {
 
 function estimateFromPR(prWeight, target, loadProfile) {
   const repFactor = target.max <= 5 ? 0.86 : target.max <= 8 ? 0.78 : target.max <= 12 ? 0.7 : 0.62;
-  return Math.max(loadProfile.minimumLoad, gridNearest(prWeight * repFactor, getLoadGrid(loadProfile)));
+  return Math.max(
+    loadProfile.minimumLoad,
+    gridNearest(prWeight * repFactor, getLoadGrid(loadProfile, loadProfile.units)),
+  );
 }
 
-function buildDetail(direction, latestWeight, workingWeight, grade, target, context, minimumLoad) {
+function buildDetail(direction, latestWeight, workingWeight, grade, target, context, minimumLoad, label) {
   const confidence = context.confidence === "high" ? "" : " Treat this as an estimate.";
   const setSummary = `${grade.completedTopSets}/${grade.requiredSets} top sets, lowest ${grade.lowestRep || "--"} reps`;
   if (direction === "increase")
-    return `Last time: ${setSummary} at ${latestWeight} lb against ${target.min}-${target.max}. Add ${roundWeight(workingWeight - latestWeight)} lb (to ${workingWeight} lb) because the programmed work was completed cleanly.${confidence}`;
+    return `Last time: ${setSummary} at ${latestWeight} ${label} against ${target.min}-${target.max}. Add ${roundWeight(workingWeight - latestWeight)} ${label} (to ${workingWeight} ${label}) because the programmed work was completed cleanly.${confidence}`;
   if (direction === "reduce")
-    return `Last time: ${setSummary} at ${latestWeight} lb, below the ${target.min}-${target.max} target. Drop ${roundWeight(latestWeight - workingWeight)} lb to ${workingWeight} lb and rebuild.${confidence}`;
-  return `Last time: ${setSummary} at ${latestWeight} lb against ${target.min}-${target.max}. ${getHoldReason(latestWeight, grade, target, context, minimumLoad)}${confidence}`;
+    return `Last time: ${setSummary} at ${latestWeight} ${label}, below the ${target.min}-${target.max} target. Drop ${roundWeight(latestWeight - workingWeight)} ${label} to ${workingWeight} ${label} and rebuild.${confidence}`;
+  return `Last time: ${setSummary} at ${latestWeight} ${label} against ${target.min}-${target.max}. ${getHoldReason(latestWeight, grade, target, context, minimumLoad, label)}${confidence}`;
 }
 
-function getHoldReason(latestWeight, grade, target, context, minimumLoad) {
+function getHoldReason(latestWeight, grade, target, context, minimumLoad, label) {
   if (context.confidence !== "high") return "Repeat this load to re-check it before progressing.";
-  if (grade.result === "miss") return `Already at the ${minimumLoad} lb minimum, so hold and rebuild reps.`;
+  if (grade.result === "miss") return `Already at the ${minimumLoad} ${label} minimum, so hold and rebuild reps.`;
   if (grade.result === "hold") return "Hold until every set is clean.";
   if (latestWeight < minimumLoad)
-    return `Every set was clean, but ${latestWeight} lb is under this lift's ${minimumLoad} lb minimum load. Check the equipment type before adding weight.`;
-  // Light lifts (under 50 lb) progress reps first: a fixed jump is a big relative increase.
+    return `Every set was clean, but ${latestWeight} ${label} is under this lift's ${minimumLoad} ${label} minimum load. Check the equipment type before adding weight.`;
+  // Light lifts (under 50 lb / 22.5 kg) progress reps first: a fixed jump is a big relative increase.
   return `All sets clean. Build every set to ${target.max} reps before adding weight.`;
 }
 
-function buildNextAction(workingWeight, lift) {
+function buildNextAction(workingWeight, lift, label) {
   if (!workingWeight) return "Pick a controlled starting weight.";
-  return `${lift.sets} x ${lift.reps} at about ${workingWeight} lb.`;
+  return `${lift.sets} x ${lift.reps} at about ${workingWeight} ${label}.`;
 }

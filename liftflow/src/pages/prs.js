@@ -5,14 +5,20 @@ import { buildPRRecords } from "../lib/prRecords";
 import { getWorkouts } from "../lib/workoutStorage";
 import { MUSCLE_GROUPS } from "../lib/muscleGroups";
 import { colors, radii, type } from "../lib/theme";
+import { formatWeight, fromDisplay, toInputValue, unitLabel, useUnits } from "../lib/units";
+
+const EMPTY_FORM = { id: "", exercise: "", weight: "", reps: "", original: null };
 
 export default function PRs() {
   const [workouts, setWorkouts] = useState([]);
   const [manualPrs, setManualPrs] = useState([]);
-  const [form, setForm] = useState({ id: "", exercise: "", weight: "", reps: "" });
+  // form.weight is the typed display-unit text; `original` remembers the stored lb
+  // value being edited so an untouched weight saves back exactly.
+  const [form, setForm] = useState(EMPTY_FORM);
   const [search, setSearch] = useState("");
   const [openGroups, setOpenGroups] = useState({});
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const units = useUnits();
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -29,16 +35,23 @@ export default function PRs() {
   function savePR() {
     if (!form.exercise || !form.weight) return;
 
-    setManualPrs(upsertManualPR(form));
-    setForm({ id: "", exercise: "", weight: "", reps: "" });
+    const original = form.original;
+    const weight =
+      original && original.units === units && original.text === form.weight
+        ? original.weight
+        : fromDisplay(form.weight, units);
+    setManualPrs(upsertManualPR({ id: form.id, exercise: form.exercise, weight, reps: form.reps }));
+    setForm(EMPTY_FORM);
   }
 
   function editPR(pr) {
+    const text = toInputValue(pr.weight, units);
     setForm({
       id: pr.manualId || "",
       exercise: pr.exercise,
-      weight: String(pr.weight || ""),
+      weight: text,
       reps: pr.reps === "" || pr.reps === undefined ? "" : String(pr.reps),
+      original: { weight: Number(pr.weight || 0), text, units },
     });
   }
 
@@ -66,11 +79,11 @@ export default function PRs() {
         </label>
         <div style={fieldRow}>
           <label style={field}>
-            <span style={fieldLabel}>Weight (lb)</span>
+            <span style={fieldLabel}>Weight ({unitLabel(units)})</span>
             <input
               type="number"
               inputMode="decimal"
-              placeholder="225"
+              placeholder={units === "kg" ? "100" : "225"}
               value={form.weight}
               onChange={(event) => setForm({ ...form, weight: event.target.value })}
             />
@@ -131,7 +144,7 @@ export default function PRs() {
                           <div style={{ minWidth: 0 }}>
                             <h3 style={prName}>{pr.exercise}</h3>
                             <p style={prValue}>
-                              {pr.weight} lb
+                              {formatWeight(pr.weight, units)}
                               {pr.reps ? <span style={prReps}> × {pr.reps} reps</span> : null}
                             </p>
                             <p style={prSource}>{describeSource(pr)}</p>

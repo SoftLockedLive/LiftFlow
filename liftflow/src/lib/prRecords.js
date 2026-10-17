@@ -1,4 +1,5 @@
 import { getManualPRs } from "./manualPRs";
+import { formatWeight, getUnits } from "./units";
 import { getBaseExercise, getLiftSets, getWorkoutItems, normalizeExerciseName } from "./workoutAnalytics";
 
 // A manual PR overrides logged sets (e.g. a PR hit but never logged, or a bad log), until a set
@@ -108,10 +109,11 @@ export function buildPRMap(workouts = [], manualPrs = getManualPRs()) {
   }, {});
 }
 
-export function formatPR(pr) {
+// `pr.weight` is stored lb; shown in `units`.
+export function formatPR(pr, units = getUnits()) {
   const weight = Number(pr?.weight || 0);
   if (weight <= 0) return "No PR yet";
-  return `PR ${weight} lb${pr.reps ? ` x ${pr.reps}` : ""}`;
+  return `PR ${formatWeight(weight, units)}${pr.reps ? ` x ${pr.reps}` : ""}`;
 }
 
 export function inferMuscleGroup(exercise) {

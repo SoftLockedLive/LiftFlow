@@ -2,13 +2,24 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { getBigThree } from "../lib/bigThree";
 import { getManualPRs } from "../lib/manualPRs";
-import { calculateLeanMass, getProfile, normalizeSex, saveProfile } from "../lib/profile";
+import {
+  calculateDotsScore,
+  calculateLeanMass,
+  getProfile,
+  normalizeSex,
+  PROFILE_WEIGHT_FIELDS,
+  saveProfile,
+} from "../lib/profile";
+import { formatWeight, fromInputValue, normalizeUnits, toInputValue, unitLabel } from "../lib/units";
 import { getWorkouts } from "../lib/workoutStorage";
 import { colors, radii, tint, type } from "../lib/theme";
 
 export default function Profile() {
   const router = useRouter();
+  // `profile` is the form: weight fields hold display-unit text in profile.units.
+  // `stored` is the saved profile (lb), used to keep untouched weights exact.
   const [profile, setProfile] = useState({});
+  const [stored, setStored] = useState({});
   const [saveState, setSaveState] = useState("");
   const [workouts, setWorkouts] = useState([]);
   const [manualPrs, setManualPrs] = useState([]);
@@ -17,7 +28,9 @@ export default function Profile() {
     const timer = window.setTimeout(() => {
       // Reading PRs first moves any old Profile PR fields into manual PRs before the profile loads.
       setManualPrs(getManualPRs());
-      setProfile(getProfile());
+      const saved = getProfile();
+      setStored(saved);
+      setProfile(toForm(saved));
       setWorkouts(getWorkouts());
     }, 0);
     return () => window.clearTimeout(timer);
@@ -36,15 +49,28 @@ export default function Profile() {
     }));
   }
 
+  // Switching units re-expresses the typed weights in the new unit (same quantity).
+  function changeUnits(value) {
+    setProfile((prev) => {
+      const next = { ...prev, units: normalizeUnits(value) };
+      PROFILE_WEIGHT_FIELDS.forEach((field) => {
+        next[field] = toInputValue(readFormWeight(prev, stored, field), next.units);
+      });
+      return next;
+    });
+  }
+
   function save() {
+    const lbProfile = fromForm(profile, stored);
     const normalized = {
-      ...profile,
+      ...lbProfile,
       sex: normalizeSex(profile.sex),
-      bodyweight: profile.bodyweight || profile.weight || "",
+      bodyweight: lbProfile.bodyweight || lbProfile.weight || "",
     };
 
-    setProfile(normalized);
-    saveProfile(normalized);
+    const saved = saveProfile(normalized);
+    setStored(saved);
+    setProfile(toForm(saved));
     window.dispatchEvent(new Event("liftflow-profile-updated"));
     setSaveState("Profile saved");
   }
@@ -78,17 +104,21 @@ export default function Profile() {
     reader.readAsDataURL(file);
   }
 
+  // Stats use the form's values (unsaved edits included) converted to lb, shown in the form's unit.
+  const units = normalizeUnits(profile.units);
+  const label = unitLabel(units);
+  const lbProfile = fromForm(profile, stored);
   const total = getBigThree(workouts, manualPrs).total;
-  const leanMass = calculateLeanMass(profile);
-  const currentWeight = Number(profile.weight || profile.bodyweight || 0);
-  const startWeight = Number(profile.startWeight || 0);
-  const weightChange =
-    currentWeight > 0 && startWeight > 0 ? Math.round((currentWeight - startWeight) * 10) / 10 : null;
+  const leanMass = calculateLeanMass(lbProfile);
+  const currentWeight = Number(lbProfile.weight || lbProfile.bodyweight || 0);
+  const startWeight = Number(lbProfile.startWeight || 0);
+  const weightChange = currentWeight > 0 && startWeight > 0 ? currentWeight - startWeight : null;
+  const weightChangeText =
+    weightChange === null ? "--" : formatWeight(weightChange, units, { unit: false, decimals: 1 });
   const dotsScore = calculateDotsScore({
-    total,
-    bodyweight: Number(profile.bodyweight || profile.weight || 0),
-    sex: normalizeSex(profile.sex),
-    units: profile.units || "lbs",
+    totalLb: total,
+    bodyweightLb: Number(lbProfile.bodyweight || lbProfile.weight || 0),
+    sex: profile.sex,
   });
 
   return (
@@ -108,13 +138,17 @@ export default function Profile() {
 
       <section style={card} aria-label="Stats">
         <div className="profile-stats" style={statsGrid}>
-          <Stat label="Big 3" value={total} unit="lb" />
+          <Stat label="Big 3" value={formatWeight(total, units, { unit: false, grouping: true })} unit={label} />
           <Stat label="DOTS" value={dotsScore || "--"} />
-          <Stat label="Lean mass" value={leanMass ?? "--"} unit={leanMass === null ? "" : "lb"} />
+          <Stat
+            label="Lean mass"
+            value={leanMass === null ? "--" : formatWeight(leanMass, units, { unit: false, decimals: 0 })}
+            unit={leanMass === null ? "" : label}
+          />
           <Stat
             label="Change"
-            value={weightChange === null ? "--" : `${weightChange > 0 ? "+" : ""}${weightChange}`}
-            unit={weightChange === null ? "" : "lb"}
+            value={weightChange === null ? "--" : `${Number(weightChangeText) > 0 ? "+" : ""}${weightChangeText}`}
+            unit={weightChange === null ? "" : label}
           />
         </div>
       </section>
@@ -185,27 +219,25 @@ export default function Profile() {
           />
           <div className="field-row" style={fieldRow}>
             <Field
-              label="Weight"
+              label={`Weight (${label})`}
               type="number"
+              inputMode="decimal"
               value={profile.weight || profile.bodyweight || ""}
               onChange={(event) => {
                 update("weight", event.target.value);
                 update("bodyweight", event.target.value);
               }}
             />
-            <SelectField
-              label="Units"
-              value={profile.units || "lbs"}
-              onChange={(event) => update("units", event.target.value)}
-            >
-              <option value="lbs">lbs</option>
-              <option value="kg">kg</option>
+            <SelectField label="Units" value={units} onChange={(event) => changeUnits(event.target.value)}>
+              <option value="lbs">Pounds (lb)</option>
+              <option value="kg">Kilograms (kg)</option>
             </SelectField>
           </div>
           <div className="field-row" style={fieldRow}>
             <Field
-              label="Start weight"
+              label={`Start weight (${label})`}
               type="number"
+              inputMode="decimal"
               value={profile.startWeight || ""}
               onChange={(event) => update("startWeight", event.target.value)}
             />
@@ -231,8 +263,9 @@ export default function Profile() {
         <Panel title="Goals">
           <div className="field-row" style={fieldRow}>
             <Field
-              label="Goal weight"
+              label={`Goal weight (${label})`}
               type="number"
+              inputMode="decimal"
               value={profile.goalWeight || ""}
               onChange={(event) => update("goalWeight", event.target.value)}
             />
@@ -245,21 +278,24 @@ export default function Profile() {
           </div>
           <div className="field-row" style={fieldRow}>
             <Field
-              label="Goal bench"
+              label={`Goal bench (${label})`}
               type="number"
+              inputMode="decimal"
               value={profile.goalBench || ""}
               onChange={(event) => update("goalBench", event.target.value)}
             />
             <Field
-              label="Goal squat"
+              label={`Goal squat (${label})`}
               type="number"
+              inputMode="decimal"
               value={profile.goalSquat || ""}
               onChange={(event) => update("goalSquat", event.target.value)}
             />
           </div>
           <Field
-            label="Goal deadlift"
+            label={`Goal deadlift (${label})`}
             type="number"
+            inputMode="decimal"
             value={profile.goalDeadlift || ""}
             onChange={(event) => update("goalDeadlift", event.target.value)}
           />
@@ -291,22 +327,30 @@ function Stat({ label, value, unit }) {
   );
 }
 
-function calculateDotsScore({ total, bodyweight, sex, units }) {
-  if (!total || !bodyweight) return null;
+// Form <-> stored profile. A weight field still showing the stored value's text keeps
+// the stored lb number exactly; anything typed is converted from the form's unit.
+function toForm(saved) {
+  const units = normalizeUnits(saved.units);
+  const form = { ...saved, units };
+  PROFILE_WEIGHT_FIELDS.forEach((field) => {
+    form[field] = toInputValue(saved[field], units);
+  });
+  return form;
+}
 
-  const totalKg = units === "kg" ? total : total * 0.45359237;
-  const bodyweightKg = units === "kg" ? bodyweight : bodyweight * 0.45359237;
-  const coefficients =
-    sex === "female"
-      ? [-0.0000010706, 0.0005158568, -0.1126655495, 13.6175032, -57.96288]
-      : [-0.000001093, 0.0007391293, -0.1918759221, 24.0900756, -307.75076];
-  const denominator = coefficients.reduce(
-    (sum, coefficient, index) => sum + coefficient * bodyweightKg ** (4 - index),
-    0,
-  );
+function readFormWeight(form, saved, field) {
+  const units = normalizeUnits(form.units);
+  const text = String(form[field] ?? "");
+  if (text === toInputValue(saved[field], units)) return saved[field] ?? "";
+  return fromInputValue(text, units);
+}
 
-  if (denominator <= 0) return null;
-  return Math.round((500 / denominator) * totalKg * 10) / 10;
+function fromForm(form, saved) {
+  const lb = { ...form };
+  PROFILE_WEIGHT_FIELDS.forEach((field) => {
+    lb[field] = readFormWeight(form, saved, field);
+  });
+  return lb;
 }
 
 function Panel({ title, children }) {
