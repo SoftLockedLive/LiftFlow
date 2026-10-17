@@ -291,7 +291,7 @@ export default function Workout() {
       const extraLifts = (Array.isArray(current.__extraLifts) ? current.__extraLifts : []).filter(
         (item) => item.id !== lift.id,
       );
-      const copy = { ...current, __extraLifts };
+      const copy = { ...current, __extraLifts: extraLifts };
       delete copy[lift.id];
 
       if (isPlainObject(copy.__variations)) {
