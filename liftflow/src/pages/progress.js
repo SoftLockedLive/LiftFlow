@@ -71,8 +71,8 @@ function StrengthSection({ data, goals, trend, units }) {
           <p style={heroMeta}>
             {leadGoal.target > 0 ? (
               <>
-                {w(leadGoal.current)} / {w(leadGoal.target)} {label} ·{" "}
-                {leadGoal.remaining > 0 ? `${formatWeight(leadGoal.remaining, units)} left` : "Goal hit"}
+                {leadGoal.noCurrent ? "--" : w(leadGoal.current)} / {w(leadGoal.target)} {label} ·{" "}
+                {goalStatus(leadGoal, units, "left")}
               </>
             ) : (
               <>{formatWeight(leadGoal.current, units)} · No goal set</>
@@ -136,7 +136,7 @@ function GoalRow({ goal, first, units }) {
           <h3 style={goalTitle}>{goal.label}</h3>
           <p style={goalMeta}>
             {hasTarget
-              ? `${w(goal.current)} / ${w(goal.target)} ${unitLabel(units)}`
+              ? `${goal.noCurrent ? "--" : w(goal.current)} / ${w(goal.target)} ${unitLabel(units)}`
               : formatWeight(goal.current, units)}
           </p>
         </div>
@@ -149,11 +149,16 @@ function GoalRow({ goal, first, units }) {
       {hasTarget && (
         <>
           <ProgressBar percent={goal.percent} />
-          <p style={goalCopy}>{goal.remaining > 0 ? `${formatWeight(goal.remaining, units)} to go` : "Goal hit"}</p>
+          <p style={goalCopy}>{goalStatus(goal, units, "to go")}</p>
         </>
       )}
     </article>
   );
+}
+
+function goalStatus(goal, units, suffix) {
+  if (goal.noCurrent) return "Add your bodyweight in Profile";
+  return goal.remaining > 0 ? `${formatWeight(goal.remaining, units)} ${suffix}` : "Goal hit";
 }
 
 function ProgressBar({ percent }) {
@@ -197,6 +202,8 @@ function buildGoals(profile, bigThree) {
 function withProgress(goal) {
   const { current, target, start } = goal;
   if (!(target > 0)) return { ...goal, percent: 0, remaining: 0 };
+  // A bodyweight goal can't be measured without a current bodyweight (0 would read as a finished cut).
+  if (goal.label === "Bodyweight" && !(current > 0)) return { ...goal, percent: 0, remaining: 0, noCurrent: true };
 
   // A bodyweight goal below the current (or starting) weight is a cut: progress means going down.
   const losing = goal.label === "Bodyweight" && (target < current || start > target);
@@ -284,7 +291,7 @@ const heroTrendValue = { ...type.number, fontSize: 22, fontWeight: 650, lineHeig
 const heroMini = { maxWidth: 150, color: colors.mutedStrong, fontSize: 12, lineHeight: 1.35 };
 const grid = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 };
 const goalList = { display: "grid", marginTop: 12 };
-const goalRow = { padding: "12px 0", borderTop: `1px solid ${colors.borderSoft}` };
+const goalRow = { paddingTop: 12, paddingBottom: 12, borderTop: `1px solid ${colors.borderSoft}` };
 const goalTop = { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 };
 const goalTitle = { margin: 0, color: colors.text, fontSize: 15, fontWeight: 550, lineHeight: 1.3 };
 const goalMeta = { ...type.meta, ...type.number, margin: "2px 0 0" };

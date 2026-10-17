@@ -17,7 +17,7 @@ import {
   normalizeExerciseName,
 } from "../lib/workoutAnalytics";
 import { colors, radii, type } from "../lib/theme";
-import { formatVolume, formatWeight, fromDisplay, unitLabel, useUnits } from "../lib/units";
+import { displayNumber, formatVolume, formatWeight, fromDisplay, unitLabel, useUnits } from "../lib/units";
 
 export default function History() {
   const router = useRouter();
@@ -93,7 +93,11 @@ export default function History() {
       const original = editingLift.originalSets[index];
       if (original && part === formatEditableSet(original, editUnits)) return original;
       const parsed = parseEditableSet(part);
-      return parsed && { ...parsed, weight: fromDisplay(parsed.weight, editUnits) };
+      if (!parsed) return null;
+      // Only the reps or time changed: keep the stored lb weight rather than re-deriving it
+      // from the rounded kg text (83.91 kg would save back as 184.99 lb, not 185).
+      const sameWeight = original && parsed.weight === displayNumber(original.weight, editUnits);
+      return { ...parsed, weight: sameWeight ? Number(original.weight) : fromDisplay(parsed.weight, editUnits) };
     });
     if (sets.some((set) => !set)) {
       setEditingLift({
@@ -104,6 +108,10 @@ export default function History() {
     }
 
     const exercise = normalizeExerciseName(editingLift.exercise);
+    if (!exercise) {
+      setEditingLift({ ...editingLift, error: "Enter an exercise name." });
+      return;
+    }
     setWorkouts(
       updateLiftInWorkout(editingLift.sessionId, editingLift.liftIndex, {
         exercise,
@@ -300,7 +308,7 @@ export default function History() {
                 <span style={fieldLabel}>Exercise</span>
                 <input
                   value={editingLift.exercise}
-                  onChange={(event) => setEditingLift({ ...editingLift, exercise: event.target.value })}
+                  onChange={(event) => setEditingLift({ ...editingLift, exercise: event.target.value, error: "" })}
                 />
               </label>
               <label style={field}>
@@ -466,7 +474,9 @@ function filterSessions(sessions, search) {
 }
 
 function formatLoggedSet(set, units) {
-  const duration = String(set?.duration || "").trim();
+  const rawDuration = String(set?.duration || "").trim();
+  // Bare numbers are seconds; "45" alone would read like a rep count.
+  const duration = /^\d+(\.\d+)?$/.test(rawDuration) ? `${rawDuration}s` : rawDuration;
   const weight = Number(set?.weight || 0);
   if (duration) return weight > 0 ? `${duration} × ${formatWeight(weight, units)}` : duration;
   return `${set?.reps || "--"} reps × ${weight > 0 ? formatWeight(weight, units) : `-- ${unitLabel(units)}`}`;

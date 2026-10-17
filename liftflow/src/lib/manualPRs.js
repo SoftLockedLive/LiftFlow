@@ -41,7 +41,16 @@ export function upsertManualPR(pr) {
     ? prs.find((item) => item.id === pr.id)
     : prs.find((item) => normalizeExerciseName(item.exercise) === nextPr.exercise);
   const savedPr = existing ? { ...nextPr, id: existing.id } : nextPr;
-  const updated = existing ? prs.map((item) => (item.id === existing.id ? savedPr : item)) : [nextPr, ...prs];
+  // One manual PR per exercise: renaming an edited PR onto another exercise replaces that one's
+  // entry instead of leaving a hidden duplicate that resurfaces when this one is deleted.
+  const others = prs.filter(
+    (item) => item.id !== savedPr.id && normalizeExerciseName(item.exercise) !== savedPr.exercise,
+  );
+  const updated = existing
+    ? prs
+        .filter((item) => item.id === existing.id || others.includes(item))
+        .map((item) => (item.id === existing.id ? savedPr : item))
+    : [nextPr, ...others];
 
   return saveManualPRs(updated);
 }

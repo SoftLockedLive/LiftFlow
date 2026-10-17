@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { deleteManualPR, getManualPRs, upsertManualPR } from "../lib/manualPRs";
 import { buildPRRecords } from "../lib/prRecords";
@@ -19,6 +19,8 @@ export default function PRs() {
   const [openGroups, setOpenGroups] = useState({});
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const units = useUnits();
+  const formRef = useRef(null);
+  const exerciseInputRef = useRef(null);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -33,13 +35,15 @@ export default function PRs() {
   const groupedPrs = useMemo(() => groupPRs(prs, search), [prs, search]);
 
   function savePR() {
-    if (!form.exercise || !form.weight) return;
+    if (!form.exercise.trim() || !form.weight) return;
 
     const original = form.original;
     const weight =
       original && original.units === units && original.text === form.weight
         ? original.weight
         : fromDisplay(form.weight, units);
+    // A zero or negative weight would be stored but never shown as a record.
+    if (!(weight > 0)) return;
     setManualPrs(upsertManualPR({ id: form.id, exercise: form.exercise, weight, reps: form.reps }));
     setForm(EMPTY_FORM);
   }
@@ -53,7 +57,12 @@ export default function PRs() {
       reps: pr.reps === "" || pr.reps === undefined ? "" : String(pr.reps),
       original: { weight: Number(pr.weight || 0), text, units },
     });
+    // The form sits above the list; bring it into view so Edit visibly does something on a phone.
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    exerciseInputRef.current?.focus({ preventScroll: true });
   }
+
+  const editing = Boolean(form.id || form.original);
 
   return (
     <div style={wrap}>
@@ -62,7 +71,7 @@ export default function PRs() {
         <h1 style={type.pageTitle}>PRs</h1>
       </header>
 
-      <section style={formCard}>
+      <section ref={formRef} style={formCard}>
         <div style={{ display: "grid", gap: 4 }}>
           <h2 style={type.sectionTitle}>{form.id ? "Edit PR" : "Add a PR"}</h2>
           <p style={formNote}>
@@ -72,6 +81,7 @@ export default function PRs() {
         <label style={field}>
           <span style={fieldLabel}>Exercise</span>
           <input
+            ref={exerciseInputRef}
             placeholder="e.g. Bench Press"
             value={form.exercise}
             onChange={(event) => setForm({ ...form, exercise: event.target.value })}
@@ -99,9 +109,16 @@ export default function PRs() {
             />
           </label>
         </div>
-        <button type="button" className="primary" onClick={savePR} style={fullButton}>
-          {form.id ? "Save PR" : "Add PR"}
-        </button>
+        <div style={formActions}>
+          {editing && (
+            <button type="button" onClick={() => setForm(EMPTY_FORM)} style={fullButton}>
+              Cancel
+            </button>
+          )}
+          <button type="button" className="primary" onClick={savePR} style={fullButton}>
+            {form.id ? "Save PR" : "Add PR"}
+          </button>
+        </div>
       </section>
 
       <section style={{ display: "grid", gap: 10 }}>
@@ -275,6 +292,11 @@ const fullButton = {
   width: "100%",
   padding: "12px 16px",
   marginTop: 2,
+};
+
+const formActions = {
+  display: "flex",
+  gap: 10,
 };
 
 const emptyState = {

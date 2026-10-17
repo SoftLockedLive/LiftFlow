@@ -7,10 +7,13 @@ import { getBaseExercise, getLiftSets, getWorkoutItems, normalizeExerciseName } 
 export function buildPRRecords(workouts = [], manualPrs = getManualPRs()) {
   const logged = {};
   (Array.isArray(workouts) ? workouts : []).forEach((session) => {
-    const date = Number(session?.date || 0);
-    getWorkoutItems(session).forEach((lift) => {
+    const items = getWorkoutItems(session);
+    // Old sessions were bare arrays with the date on each lift.
+    const sessionDate = toTime(session?.date || items[0]?.date);
+    items.forEach((lift) => {
       const exercise = getBaseExercise(lift);
       if (!exercise) return;
+      const date = (Array.isArray(session) && toTime(lift?.date)) || sessionDate;
       getLiftSets(lift).forEach((set) => {
         const weight = Number(set.weight || 0);
         if (weight <= 0) return;
@@ -26,7 +29,7 @@ export function buildPRRecords(workouts = [], manualPrs = getManualPRs()) {
     const weight = Number(pr.weight || 0);
     if (!exercise || weight <= 0) return;
     // If an exercise somehow has several manual entries, the most recent one is the override.
-    if (manual[exercise] && Number(manual[exercise].date || 0) > Number(pr.date || 0)) return;
+    if (manual[exercise] && toTime(manual[exercise].date) > toTime(pr.date)) return;
     manual[exercise] = pr;
   });
 
@@ -35,8 +38,9 @@ export function buildPRRecords(workouts = [], manualPrs = getManualPRs()) {
     .map((exercise) => {
       const sets = logged[exercise] || [];
       const pr = manual[exercise];
-      const manualDate = Number(pr?.date || 0);
-      const contenders = pr ? sets.filter((set) => set.date > manualDate) : sets;
+      const manualDate = toTime(pr?.date);
+      // Undated manual PRs (migrated profile fields) can be beaten by any logged set.
+      const contenders = pr && manualDate ? sets.filter((set) => set.date > manualDate) : sets;
       const bestLogged = contenders.reduce(
         (best, set) => (!best || beats(set.weight, set.reps, best) ? set : best),
         null,
@@ -65,6 +69,15 @@ export function buildPRRecords(workouts = [], manualPrs = getManualPRs()) {
       };
     })
     .sort((a, b) => b.weight - a.weight);
+}
+
+// Epoch ms from a stored date (timestamp or date string); 0 when missing or invalid.
+function toTime(value) {
+  if (!value) return 0;
+  const number = Number(value);
+  if (Number.isFinite(number)) return number;
+  const parsed = new Date(value).getTime();
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 // Heavier wins; at the same weight, more reps wins.

@@ -275,10 +275,7 @@ export default function Home() {
                             <p style={recentDate}>
                               {lift.variation ? `${lift.variation} · ` : ""}
                               {getLiftSets(lift)
-                                .map(
-                                  (set) =>
-                                    `${Number(set.weight) > 0 ? formatWeight(set.weight, units, { unit: false }) : "--"} × ${set.reps || "--"}`,
-                                )
+                                .map((set) => formatRecentSet(set, units))
                                 .join(", ") || "No sets logged"}
                             </p>
                           </div>
@@ -517,6 +514,17 @@ function buildRecentSessions(workouts) {
     .reverse();
 }
 
+// "185 × 5"; timed sets show their time ("25 × 45s", or "45s" with no weight).
+function formatRecentSet(set, units) {
+  const weight = Number(set?.weight) > 0 ? formatWeight(set.weight, units, { unit: false }) : "";
+  const rawDuration = String(set?.duration || "").trim();
+  if (rawDuration) {
+    const duration = /^\d+(\.\d+)?$/.test(rawDuration) ? `${rawDuration}s` : rawDuration;
+    return weight ? `${weight} × ${duration}` : duration;
+  }
+  return `${weight || "--"} × ${set?.reps || "--"}`;
+}
+
 function formatDate(date) {
   if (!date) return "Logged";
   const parsed = new Date(date);
@@ -548,7 +556,7 @@ const card = {
 
 const resumeCard = {
   ...card,
-  borderColor: tint(colors.brand, 0.35),
+  border: `1px solid ${tint(colors.brand, 0.35)}`,
   background: tint(colors.brand, 0.06),
   display: "flex",
   justifyContent: "space-between",
