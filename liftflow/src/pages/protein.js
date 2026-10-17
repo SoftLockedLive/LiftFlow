@@ -1,12 +1,12 @@
-export default function ProteinRedirect() {
-  return null;
-}
+import { useEffect } from "react";
+import { useRouter } from "next/router";
 
-export function getServerSideProps() {
-  return {
-    redirect: {
-      destination: "/nutrition",
-      permanent: true,
-    },
-  };
+export default function ProteinRedirect() {
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace("/nutrition");
+  }, [router]);
+
+  return null;
 }
