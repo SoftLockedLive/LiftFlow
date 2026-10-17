@@ -1,8 +1,7 @@
 import { useRef, useState } from "react";
 import ConfirmDialog from "../components/ConfirmDialog";
+import { downloadBackup, importBackup, STORAGE_PREFIX } from "../lib/backup";
 import { colors, tint } from "../lib/theme";
-
-const STORAGE_PREFIX = "liftflow_";
 
 export default function Settings() {
   const fileRef = useRef(null);
@@ -16,18 +15,7 @@ export default function Settings() {
 
   function exportData() {
     if (typeof window === "undefined") return;
-    const payload = {
-      exportedAt: new Date().toISOString(),
-      version: 1,
-      data: getLiftFlowStorage(),
-    };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `liftflow-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
+    downloadBackup();
     showStatus("Backup exported");
   }
 
@@ -38,18 +26,12 @@ export default function Settings() {
 
     try {
       const text = await file.text();
-      const parsed = JSON.parse(text);
-      const data = parsed?.data && typeof parsed.data === "object" ? parsed.data : parsed;
-      const entries = Object.entries(data).filter(([key]) => key.startsWith(STORAGE_PREFIX));
-      if (!entries.length) {
+      const imported = importBackup(JSON.parse(text));
+      if (!imported) {
         showStatus("No LiftFlow data found");
         return;
       }
 
-      entries.forEach(([key, value]) => {
-        localStorage.setItem(key, typeof value === "string" ? value : JSON.stringify(value));
-      });
-      window.dispatchEvent(new Event("liftflow-profile-updated"));
       showStatus("Backup imported. Refresh if a page looks stale.");
     } catch {
       showStatus("Import failed. Check the backup file.");
@@ -112,16 +94,6 @@ export default function Settings() {
       />
     </section>
   );
-}
-
-function getLiftFlowStorage() {
-  return Object.keys(localStorage)
-    .filter((key) => key.startsWith(STORAGE_PREFIX))
-    .sort()
-    .reduce((data, key) => {
-      data[key] = localStorage.getItem(key);
-      return data;
-    }, {});
 }
 
 const wrap = {

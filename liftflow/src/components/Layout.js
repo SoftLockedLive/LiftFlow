@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/router";
+import MoveNotice from "./MoveNotice";
 import { getManualPRs } from "../lib/manualPRs";
 import { buildPRMap } from "../lib/prRecords";
 import { getProfile, saveProfile } from "../lib/profile";
@@ -95,6 +96,7 @@ export default function Layout({ children }) {
 
   return (
     <div style={shell}>
+      <MoveNotice />
       <header className="app-hero" style={hero}>
         <div style={heroTitleBlock}>
           <button

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
+import { arrivedWithTransfer } from "../lib/backup";
 import { getManualPRs } from "../lib/manualPRs";
 import { getPlan, savePlan } from "../lib/plan";
 import { getDailyCheckIns, saveProgressTargets } from "../lib/progressTracking";
@@ -35,13 +36,17 @@ export default function Home() {
     const timer = window.setTimeout(() => {
       setWorkouts(getWorkouts());
       setManualPrs(getManualPRs());
-      setPlan(getPlan());
+      const savedPlan = getPlan();
+      setPlan(savedPlan);
       const currentDay = getTodayName();
       setToday(currentDay);
       setFlowIndex(Math.max(0, DAYS.indexOf(currentDay)));
       setCheckInPrompt(getCheckInPrompt(getDailyCheckIns().find((entry) => entry.date === getTodayKey())));
       setResumeDraft(getResumeDraftDay());
-      setOnboardingOpen(shouldShowOnboarding(savedPlan, getWorkouts(), getProfile()));
+      // Someone arriving with a move link is bringing their data; MoveNotice handles that.
+      if (!arrivedWithTransfer) {
+        setOnboardingOpen(shouldShowOnboarding(savedPlan, getWorkouts(), getProfile()));
+      }
     }, 0);
 
     return () => window.clearTimeout(timer);

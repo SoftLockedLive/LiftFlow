@@ -1,40 +1,35 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
+# LiftFlow
 
-## Getting Started
+Live at https://liftflow.softlockedlive.com
 
-First, run the development server:
+LiftFlow is a Next.js (Pages Router) app built as a static export: `npm run build` writes plain
+HTML/CSS/JS to `out/`, and any static file host can serve it. All user data lives in the browser's
+localStorage under `liftflow_*` keys, so there is no backend or database. Users move data between
+devices with Settings → Export Data / Import Data.
+
+## Development
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev     # http://localhost:3000
+npm run lint
+npm run build   # static site in out/
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Because this is a static export, server-only Next.js features (API routes, `getServerSideProps`,
+`redirects` in next.config, image optimization) will fail the build.
 
-You can start editing the page by modifying `pages/index.js`. The page auto-updates as you edit the file.
+## Deploying
 
-[API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.js`.
+The site is served from `/srv/www/liftflow.softlockedlive.com/` on Atlas:
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) instead of React pages.
+```bash
+npm run build
+tar -C out -cf - . | ssh atlas 'tar -C /srv/www/liftflow.softlockedlive.com --no-same-owner -xf -'
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/pages/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Moving from the old Vercel site
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn-pages-router) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/pages/building-your-application/deploying) for more details.
+`src/components/MoveNotice.js` shows a banner on `*.vercel.app` asking people to move. "Move my data"
+opens the new site with the data in the URL fragment (never sent to a server); the new site asks
+before importing it.
