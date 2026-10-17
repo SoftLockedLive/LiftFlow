@@ -24,7 +24,7 @@ export function upsertCustomExercise(exercise) {
     id: exercise.id || crypto.randomUUID(),
     exercise: exercise.exercise || "",
     muscleGroup: exercise.muscleGroup || "other",
-    loadType: exercise.loadType || "free",
+    loadType: exercise.loadType || "",
     minimumLoad: Number(exercise.minimumLoad || exercise.minLoad || 0) || undefined,
     sets: exercise.sets || "3",
     reps: exercise.reps || "8-12",

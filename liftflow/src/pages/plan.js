@@ -26,7 +26,7 @@ export default function Plan() {
   const [targetType, setTargetType] = useState("reps");
   const [duration, setDuration] = useState("");
   const [stretches, setStretches] = useState("");
-  const [loadType, setLoadType] = useState("free");
+  const [loadType, setLoadType] = useState("");
   const [warmupName, setWarmupName] = useState("");
   const [warmupMode, setWarmupMode] = useState("reps");
   const [warmupSets, setWarmupSets] = useState("");
@@ -64,6 +64,7 @@ export default function Plan() {
     setSelectedDay(day);
     setDayName(plan.__meta?.[day]?.name || "");
     clearForm();
+    clearWarmupForm();
   }
 
   function saveDayName(value) {
@@ -97,6 +98,7 @@ export default function Plan() {
         lift.id === editingId
           ? {
               ...lift,
+              ...(exercise !== lift.exercise ? { baseExercise: exercise, variations: [], defaultVariation: "" } : {}),
               exercise,
               muscleGroup,
               loadType: loadProfile.type,
@@ -127,6 +129,10 @@ export default function Plan() {
           stretches,
         },
       ];
+      updated.__meta = {
+        ...(updated.__meta || {}),
+        [selectedDay]: { ...(updated.__meta?.[selectedDay] || {}), type: "training", recovery: null },
+      };
     }
 
     setPlan(updated);
@@ -200,7 +206,7 @@ export default function Plan() {
     setTargetType("reps");
     setDuration("");
     setStretches("");
-    setLoadType("free");
+    setLoadType("");
     setMuscleGroup("chest");
   }
 
@@ -379,6 +385,15 @@ export default function Plan() {
   function saveCurrentThenApply(templateId) {
     setSavedSplits(saveCurrentSplit(plan, "Before Template Swap"));
     applyTemplateNow(templateId);
+  }
+
+  function confirmRestoreSavedSplit(split) {
+    setConfirmAction({
+      title: "Restore this split?",
+      message: `Your current program will be replaced by "${split.name || "this split"}". Save it first if you want to keep it.`,
+      confirmLabel: "Restore",
+      onConfirm: () => restoreSavedSplit(split),
+    });
   }
 
   function restoreSavedSplit(split) {
@@ -694,7 +709,7 @@ export default function Plan() {
                     <p style={rowMeta}>{formatSavedSplitMeta(split.plan)}</p>
                   </div>
                   <div style={actions}>
-                    <button type="button" onClick={() => restoreSavedSplit(split)} style={smallBtn}>
+                    <button type="button" onClick={() => confirmRestoreSavedSplit(split)} style={smallBtn}>
                       Restore
                     </button>
                     <button
@@ -1203,6 +1218,7 @@ function renderExerciseEditor({
         <label style={field}>
           <span style={fieldLabel}>Load type</span>
           <select value={loadType} onChange={(event) => setLoadType(event.target.value)}>
+            <option value="">Auto ({formatLoadType(getLoadProfile({ exercise }).type)})</option>
             {LOAD_TYPES.map((type) => (
               <option key={type} value={type}>
                 {formatLoadType(type)}

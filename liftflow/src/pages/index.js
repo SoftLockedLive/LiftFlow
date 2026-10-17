@@ -52,7 +52,7 @@ export default function Home() {
         new Intl.DateTimeFormat("en", { weekday: "long", month: "short", day: "numeric" }).format(new Date()),
       );
       setFlowIndex(Math.max(0, DAYS.indexOf(currentDay)));
-      setResumeDraft(getResumeDraftDay());
+      setResumeDraft(getResumeDraftDay(savedPlan));
       // Skip first-run setup on the old site (people should move instead) and for someone
       // arriving with a move link, who is bringing their data; MoveNotice handles both.
       if (!arrivedWithTransfer && !isOldSite()) {
@@ -428,22 +428,35 @@ function skipOnboarding(setOnboardingOpen) {
   setOnboardingOpen(false);
 }
 
-function getResumeDraftDay() {
+function getResumeDraftDay(plan) {
   if (typeof window === "undefined") return null;
   try {
     const drafts = JSON.parse(localStorage.getItem(DRAFT_KEY) || "{}");
     if (!drafts || typeof drafts !== "object" || Array.isArray(drafts)) return null;
-    return DAYS.map((day) => ({ day, count: countDraftItems(drafts[day]) })).find((draft) => draft.count > 0) || null;
+    return (
+      DAYS.map((day) => ({ day, count: countDraftItems(drafts[day], day, plan?.[day]) })).find(
+        (draft) => draft.count > 0,
+      ) || null
+    );
   } catch {
     return null;
   }
 }
 
-function countDraftItems(draft) {
+// Sets are keyed by lift id; ignore ids no longer in the plan (the Workout page can't show them).
+function countDraftItems(draft, day, dayLifts) {
   if (!draft || typeof draft !== "object" || Array.isArray(draft)) return 0;
+  // Same id fallback as lib/trainingEngine for lifts saved without one.
+  const liftIds = new Set(
+    (Array.isArray(dayLifts) ? dayLifts : []).map(
+      (lift, index) => lift?.id || `${day}-${index}-${String(lift?.exercise || "lift").replace(/[^a-z0-9]+/gi, "-")}`,
+    ),
+  );
+  const extraLifts = Array.isArray(draft.__extraLifts) ? draft.__extraLifts : [];
+  extraLifts.forEach((lift) => liftIds.add(lift?.id));
   return Object.entries(draft).reduce((count, [key, value]) => {
-    if (key === "__extraLifts" && Array.isArray(value)) return count + value.length;
-    if (key.startsWith("__")) return count;
+    if (key === "__extraLifts") return count + extraLifts.length;
+    if (key.startsWith("__") || !liftIds.has(key)) return count;
     return count + (Array.isArray(value) ? value.filter(Boolean).length : 0);
   }, 0);
 }

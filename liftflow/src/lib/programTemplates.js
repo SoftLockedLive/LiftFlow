@@ -272,7 +272,7 @@ export const PROGRAM_TEMPLATES = [
         "Push",
         [
           lift("Bench Press", "chest", "3", "6-8", "Primary lift. Controlled reps with strong drive."),
-          lift("Seated Overhead Press", "shoulders", "2", "8-12", "Superset with Incline Smith Machine Press."),
+          lift("Seated Overhead Press", "shoulders", "2", "8-12", "Superset with Incline Bench Press."),
           lift("Incline Bench Press", "chest", "2", "8-12", "Superset with Seated Overhead Press."),
           lift("Pec Deck", "chest", "3", "10-15", "Controlled stretch and squeeze."),
           lift("Lateral Raise", "shoulders", "3", "10-15", "Superset with Overhead Triceps Extension."),

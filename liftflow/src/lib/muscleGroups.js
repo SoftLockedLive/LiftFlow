@@ -7,6 +7,7 @@ export const MUSCLE_GROUPS = [
   { id: "shoulders", label: "Shoulders", color: colors.textSoft },
   { id: "arms", label: "Arms", color: colors.textSoft },
   { id: "core", label: "Core", color: colors.textSoft },
+  { id: "neck", label: "Neck", color: colors.textSoft },
   { id: "conditioning", label: "Conditioning", color: colors.textSoft },
   { id: "other", label: "Other", color: colors.muted },
 ];
