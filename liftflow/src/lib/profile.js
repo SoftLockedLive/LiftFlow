@@ -57,10 +57,6 @@ export function saveProfile(profile) {
   return safeProfile;
 }
 
-export function calculateTotal(profile) {
-  return Number(profile.benchPR || 0) + Number(profile.squatPR || 0) + Number(profile.deadliftPR || 0);
-}
-
 export function calculateLeanMass(profile) {
   const weight = Number(profile.weight || 0);
   const bf = Number(profile.bodyFat || 0);

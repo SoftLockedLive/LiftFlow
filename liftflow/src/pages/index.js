@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import { isOldSite } from "../components/MoveNotice";
 import { arrivedWithTransfer } from "../lib/backup";
+import { getBigThree } from "../lib/bigThree";
 import { getManualPRs } from "../lib/manualPRs";
 import { getPlan, savePlan } from "../lib/plan";
 import { getProfile, saveProfile } from "../lib/profile";
@@ -15,7 +16,6 @@ import {
   getBaseExercise,
   getLiftSets,
   getWorkoutItems,
-  normalizeExerciseName,
 } from "../lib/workoutAnalytics";
 import { colors, dayColors, radii, tint, type } from "../lib/theme";
 
@@ -86,10 +86,7 @@ export default function Home() {
   const flowAccent = getFlowAccent(flowItem);
   const recentSessions = useMemo(() => buildRecentSessions(workouts).slice(0, 5), [workouts]);
   const prs = useMemo(() => buildPRMap(workouts, manualPrs), [workouts, manualPrs]);
-  const bigThree = useMemo(
-    () => buildBigThree(profile, prs, getBigThreeBestSets(workouts, manualPrs)),
-    [profile, prs, workouts, manualPrs],
-  );
+  const bigThree = useMemo(() => getBigThree(profile, workouts, manualPrs), [profile, workouts, manualPrs]);
   const units = profile.units || "lbs";
   const firstName = String(profile.name || "")
     .trim()
@@ -479,60 +476,6 @@ function getLiftPR(lift, prs) {
   const base = getBaseExercise(lift);
   const record = prs[base] || prs[lift?.exercise];
   return record ? formatPR(record) : "";
-}
-
-function buildBigThree(profile, prs, bestSets) {
-  const benchRecord = prs["Bench Press"];
-  const squatRecord = prs.Squat;
-  const deadliftRecord = prs.Deadlift;
-  const bench = Math.max(Number(profile.benchPR || 0), Number(benchRecord?.weight || 0));
-  const squat = Math.max(Number(profile.squatPR || 0), Number(squatRecord?.weight || 0));
-  const deadlift = Math.max(Number(profile.deadliftPR || 0), Number(deadliftRecord?.weight || 0));
-
-  return {
-    total: bench + squat + deadlift,
-    lifts: [
-      { label: "Bench", value: bench, reps: benchRecord?.reps || bestSets.bench?.reps },
-      { label: "Squat", value: squat, reps: squatRecord?.reps || bestSets.squat?.reps },
-      { label: "Deadlift", value: deadlift, reps: deadliftRecord?.reps || bestSets.deadlift?.reps },
-    ],
-  };
-}
-
-function getBigThreeBestSets(workouts, manualPrs) {
-  const best = {};
-
-  (workouts || []).forEach((session) => {
-    getWorkoutItems(session).forEach((lift) => {
-      const key = getBigThreeKey(getBaseExercise(lift));
-      if (!key) return;
-
-      getLiftSets(lift).forEach((set) => {
-        const weight = Number(set.weight || 0);
-        if (weight > Number(best[key]?.weight || 0)) {
-          best[key] = { weight, reps: Number(set.reps || 0) || "" };
-        }
-      });
-    });
-  });
-
-  (manualPrs || []).forEach((pr) => {
-    const key = getBigThreeKey(normalizeExerciseName(pr.exercise));
-    const weight = Number(pr.weight || 0);
-    if (key && weight > 0) {
-      best[key] = { weight, reps: pr.reps || "" };
-    }
-  });
-
-  return best;
-}
-
-function getBigThreeKey(exercise) {
-  const name = String(exercise || "").toLowerCase();
-  if (name.includes("bench")) return "bench";
-  if (name.includes("squat")) return "squat";
-  if (name.includes("deadlift")) return "deadlift";
-  return "";
 }
 
 function buildRecentSessions(workouts) {

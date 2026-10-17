@@ -1,13 +1,22 @@
 import { useEffect, useState } from "react";
-import { calculateLeanMass, calculateTotal, getProfile, saveProfile } from "../lib/profile";
+import { getBigThree } from "../lib/bigThree";
+import { getManualPRs } from "../lib/manualPRs";
+import { calculateLeanMass, getProfile, saveProfile } from "../lib/profile";
+import { getWorkouts } from "../lib/workoutStorage";
 import { colors, radii, tint, type } from "../lib/theme";
 
 export default function Profile() {
   const [profile, setProfile] = useState({});
   const [saveState, setSaveState] = useState("");
+  const [workouts, setWorkouts] = useState([]);
+  const [manualPrs, setManualPrs] = useState([]);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setProfile(getProfile()), 0);
+    const timer = window.setTimeout(() => {
+      setProfile(getProfile());
+      setWorkouts(getWorkouts());
+      setManualPrs(getManualPRs());
+    }, 0);
     return () => window.clearTimeout(timer);
   }, []);
 
@@ -65,7 +74,7 @@ export default function Profile() {
     reader.readAsDataURL(file);
   }
 
-  const total = calculateTotal(profile);
+  const total = getBigThree(profile, workouts, manualPrs).total;
   const leanMass = calculateLeanMass(profile);
   const weightChange = Number(profile.weight || 0) - Number(profile.startWeight || 0);
   const dotsScore = calculateDotsScore({
