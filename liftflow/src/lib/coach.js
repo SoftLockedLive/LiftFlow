@@ -1,6 +1,18 @@
 import { getWorkouts } from "./workoutStorage";
 import { getBaseExercise, getLiftSets, getWorkoutItems, normalizeExerciseName } from "./workoutAnalytics";
-import { getLoadProfile } from "./loadProfiles";
+import {
+  decreaseLoad,
+  getLoadGrid,
+  getLoadProfile,
+  getProgressionStep,
+  gridNearest,
+  HEAVY_BARBELL_JUMP,
+  HEAVY_BARBELL_THRESHOLD,
+  increaseLoad,
+  LIGHT_LOAD_THRESHOLD,
+  RAMP_THRESHOLDS,
+  roundWeight,
+} from "./loadProfiles";
 
 export function buildCoachRecommendation(lift, workouts = getWorkouts()) {
   if (lift?.targetType === "time") {
@@ -19,13 +31,13 @@ export function buildCoachRecommendation(lift, workouts = getWorkouts()) {
   const loadProfile = getLoadProfile(lift);
   const history = collectLiftHistory(workouts, baseExercise, loadProfile.type === "bodyweight");
   const target = parseRepTarget(lift.reps);
-  const increment = getIncrement(lift);
+  const increment = getProgressionStep(loadProfile.type);
   const minimumLoad = loadProfile.minimumLoad;
 
   if (history.length === 0) {
     const prWeight = Number(lift?.prRecord?.weight || 0);
     if (prWeight > 0) {
-      const estimatedWeight = estimateFromPR(prWeight, target, increment, minimumLoad);
+      const estimatedWeight = estimateFromPR(prWeight, target, loadProfile);
       return {
         status: "estimated",
         headline: `${estimatedWeight} lb`,
@@ -67,14 +79,16 @@ export function buildCoachRecommendation(lift, workouts = getWorkouts()) {
     return buildBodyweightRecommendation(lift, grade, target, increment, context, loadProfile);
   }
 
-  const jump = getRecommendedJump(latestTopWeight, grade, increment, context, target, loadProfile);
-  const workingWeight = recommendWorkingWeight(latestTopWeight, grade, increment, context, minimumLoad, jump);
+  const plannedJump = getRecommendedJump(latestTopWeight, grade, increment, context, target, loadProfile);
+  const workingWeight = recommendWorkingWeight(latestTopWeight, grade, increment, context, loadProfile, plannedJump);
   const direction = workingWeight > latestTopWeight ? "increase" : workingWeight < latestTopWeight ? "reduce" : "hold";
+  // The actual change after snapping to a loadable weight, which is what the text reports.
+  const jump = direction === "increase" ? roundWeight(workingWeight - latestTopWeight) : 0;
 
   return {
     status: "ready",
     headline: `${workingWeight} lb`,
-    detail: buildDetail(direction, latestTopWeight, grade, target, context, jump, minimumLoad),
+    detail: buildDetail(direction, latestTopWeight, workingWeight, grade, target, context, minimumLoad),
     warmups: buildWarmupRamp(workingWeight, target, loadProfile),
     warmupLabel: "Ramp-up sets",
     workingWeight,
@@ -98,8 +112,14 @@ export function buildLiveSetRecommendation(lift, loggedSets, coach) {
   if (!coach?.workingWeight || sets.length === 0) return null;
 
   const target = coach.target || parseRepTarget(lift.reps);
-  const increment = coach.increment || getIncrement(lift);
-  const minimumLoad = coach.minimumLoad || getLoadProfile(lift).minimumLoad;
+  const liftProfile = getLoadProfile(lift);
+  const loadProfile = {
+    type: coach.loadType || liftProfile.type,
+    minimumLoad: coach.minimumLoad || liftProfile.minimumLoad,
+  };
+  const increment = coach.increment || getProgressionStep(loadProfile.type);
+  const minimumLoad = loadProfile.minimumLoad;
+  const grid = getLoadGrid(loadProfile);
   const last = sets[sets.length - 1];
   const lastWeight = Number(last.weight || 0);
   const lastReps = Number(last.reps || 0);
@@ -117,7 +137,7 @@ export function buildLiveSetRecommendation(lift, loggedSets, coach) {
 
   if (lastReps > target.max) {
     return {
-      label: `Next set: ${lastWeight + increment} lb`,
+      label: `Next set: ${increaseLoad(lastWeight, increment, grid)} lb`,
       detail: `You exceeded the target range at ${lastWeight} lb.`,
       tone: "up",
     };
@@ -125,7 +145,7 @@ export function buildLiveSetRecommendation(lift, loggedSets, coach) {
 
   if (lastReps < target.min) {
     return {
-      label: `Next set: ${reduceLoad(lastWeight, increment, minimumLoad)} lb`,
+      label: `Next set: ${decreaseLoad(lastWeight, increment, minimumLoad, grid)} lb`,
       detail: `You missed the low end of the range. Reduce slightly or rest longer.`,
       tone: "down",
     };
@@ -179,20 +199,19 @@ function getVariationNote(lift) {
   return variation;
 }
 
-// Holds keep the exact logged weight and jumps are added as-is, so the headline
-// always matches the text (17.5 lb stays 17.5 lb, 102.5 lb + 10 is 112.5 lb).
-function recommendWorkingWeight(latestWeight, grade, increment, context, minimumLoad, jump) {
+// Holds repeat the exact logged weight (it was just lifted, so it is loadable).
+// Increases and decreases land on the load type's grid of loadable weights:
+// 17.5 lb dumbbells pass -> 20, 102.5 lb bench +10 -> 110, 17.5 lb miss -> 15.
+function recommendWorkingWeight(latestWeight, grade, increment, context, loadProfile, jump) {
   if (!latestWeight) return null;
   if (context.confidence !== "high") return latestWeight;
-  if (grade.result === "strong-pass" || grade.result === "pass") return latestWeight + jump;
-  if (grade.result === "miss") return reduceLoad(latestWeight, increment, minimumLoad);
+  const grid = getLoadGrid(loadProfile);
+  if ((grade.result === "strong-pass" || grade.result === "pass") && jump > 0)
+    return increaseLoad(latestWeight, jump, grid);
+  // A miss never recommends more than the weight that was just missed, even if the
+  // configured minimum load is above it.
+  if (grade.result === "miss") return decreaseLoad(latestWeight, increment, loadProfile.minimumLoad, grid);
   return latestWeight;
-}
-
-// A miss never recommends more than the weight that was just missed, even if the
-// configured minimum load is above it.
-function reduceLoad(weight, increment, minimumLoad) {
-  return Math.min(weight, Math.max(minimumLoad, weight - increment));
 }
 
 function buildBodyweightRecommendation(lift, grade, target, increment, context, loadProfile) {
@@ -217,13 +236,14 @@ function buildBodyweightRecommendation(lift, grade, target, increment, context, 
   };
 
   if (confident && grade.result === "strong-pass") {
+    const added = increaseLoad(0, increment, getLoadGrid({ ...loadProfile, type: "bodyweight" }));
     return {
       ...base,
-      headline: `Add ${increment} lb`,
-      detail: `Last time: ${setSummary} at bodyweight against ${target.min}-${target.max}. Every set reached the top of the range, so add ${increment} lb (belt or held dumbbell) and rebuild reps.`,
-      workingWeight: increment,
-      jump: increment,
-      nextAction: `${lift.sets} x ${lift.reps} with about ${increment} lb added.`,
+      headline: `Add ${added} lb`,
+      detail: `Last time: ${setSummary} at bodyweight against ${target.min}-${target.max}. Every set reached the top of the range, so add ${added} lb (belt or held dumbbell) and rebuild reps.`,
+      workingWeight: added,
+      jump: added,
+      nextAction: `${lift.sets} x ${lift.reps} with about ${added} lb added.`,
     };
   }
 
@@ -258,33 +278,33 @@ function buildBodyweightRecommendation(lift, grade, target, increment, context, 
 }
 
 function buildWarmupRamp(workingWeight, target, loadProfile) {
-  if (!workingWeight || workingWeight < 50) return [];
+  if (!workingWeight || workingWeight < RAMP_THRESHOLDS.minWorking) return [];
 
   const ramp = [];
-  const barbellRamp = loadProfile.type === "barbell" && workingWeight >= 95;
+  const barbellRamp = loadProfile.type === "barbell" && workingWeight >= RAMP_THRESHOLDS.barbellStart;
 
   if (barbellRamp) {
     ramp.push({ weight: loadProfile.minimumLoad, reps: "8-10" });
   } else {
-    ramp.push({ weight: rampWeight(workingWeight, loadProfile.minimumLoad, 0.5), reps: "8-10" });
+    ramp.push({ weight: rampWeight(workingWeight, loadProfile, 0.5), reps: "8-10" });
   }
 
-  if (workingWeight >= 100) {
+  if (workingWeight >= RAMP_THRESHOLDS.secondSet) {
     ramp.push({
-      weight: rampWeight(workingWeight, loadProfile.minimumLoad, barbellRamp ? 0.6 : 0.7),
+      weight: rampWeight(workingWeight, loadProfile, barbellRamp ? 0.6 : 0.7),
       reps: target.max <= 5 ? 3 : 5,
     });
   }
 
-  if (workingWeight >= 185 || target.max <= 5) {
-    ramp.push({ weight: rampWeight(workingWeight, loadProfile.minimumLoad, 0.85), reps: "2-3" });
+  if (workingWeight >= RAMP_THRESHOLDS.heavySet || target.max <= 5) {
+    ramp.push({ weight: rampWeight(workingWeight, loadProfile, 0.85), reps: "2-3" });
   }
 
   return dedupeWarmups(ramp.filter((set) => set.weight < workingWeight));
 }
 
-function rampWeight(workingWeight, minimumLoad, percent) {
-  return Math.max(minimumLoad, roundToNearest(workingWeight * percent, 5));
+function rampWeight(workingWeight, loadProfile, percent) {
+  return Math.max(loadProfile.minimumLoad, gridNearest(workingWeight * percent, getLoadGrid(loadProfile)));
 }
 
 function dedupeWarmups(sets) {
@@ -352,18 +372,11 @@ function getRecommendedJump(latestWeight, grade, increment, context, target, loa
   if (!["pass", "strong-pass"].includes(grade.result)) return 0;
   if (latestWeight < loadProfile.minimumLoad) return 0;
 
-  const baseJump = loadProfile.type === "barbell" && latestWeight >= 100 ? 10 : increment;
+  const baseJump =
+    loadProfile.type === "barbell" && latestWeight >= HEAVY_BARBELL_THRESHOLD ? HEAVY_BARBELL_JUMP : increment;
   if (grade.result === "strong-pass") return baseJump;
   if (grade.lowestRep >= target.max) return increment;
-  return latestWeight >= 50 ? increment : 0;
-}
-
-function getIncrement(lift) {
-  return 5;
-}
-
-function roundToNearest(value, increment) {
-  return Math.round(Number(value || 0) / increment) * increment;
+  return latestWeight >= LIGHT_LOAD_THRESHOLD ? increment : 0;
 }
 
 function round1(value) {
@@ -391,18 +404,18 @@ function sameRepTarget(a, b) {
   return Number(a?.min || 0) === Number(b?.min || 0) && Number(a?.max || 0) === Number(b?.max || 0);
 }
 
-function estimateFromPR(prWeight, target, increment, minimumLoad) {
+function estimateFromPR(prWeight, target, loadProfile) {
   const repFactor = target.max <= 5 ? 0.86 : target.max <= 8 ? 0.78 : target.max <= 12 ? 0.7 : 0.62;
-  return Math.max(minimumLoad, roundToNearest(prWeight * repFactor, increment));
+  return Math.max(loadProfile.minimumLoad, gridNearest(prWeight * repFactor, getLoadGrid(loadProfile)));
 }
 
-function buildDetail(direction, latestWeight, grade, target, context, jump, minimumLoad) {
+function buildDetail(direction, latestWeight, workingWeight, grade, target, context, minimumLoad) {
   const confidence = context.confidence === "high" ? "" : " Treat this as an estimate.";
   const setSummary = `${grade.completedTopSets}/${grade.requiredSets} top sets, lowest ${grade.lowestRep || "--"} reps`;
   if (direction === "increase")
-    return `Last time: ${setSummary} at ${latestWeight} lb against ${target.min}-${target.max}. Add ${jump} lb because the programmed work was completed cleanly.${confidence}`;
+    return `Last time: ${setSummary} at ${latestWeight} lb against ${target.min}-${target.max}. Add ${roundWeight(workingWeight - latestWeight)} lb (to ${workingWeight} lb) because the programmed work was completed cleanly.${confidence}`;
   if (direction === "reduce")
-    return `Last time: ${setSummary} at ${latestWeight} lb, below the ${target.min}-${target.max} target. Reduce slightly and rebuild.${confidence}`;
+    return `Last time: ${setSummary} at ${latestWeight} lb, below the ${target.min}-${target.max} target. Drop ${roundWeight(latestWeight - workingWeight)} lb to ${workingWeight} lb and rebuild.${confidence}`;
   return `Last time: ${setSummary} at ${latestWeight} lb against ${target.min}-${target.max}. ${getHoldReason(latestWeight, grade, target, context, minimumLoad)}${confidence}`;
 }
 

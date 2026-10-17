@@ -1,3 +1,5 @@
+import { MIGRATIONS_KEY } from "./loadProfiles";
+
 export const STORAGE_PREFIX = "liftflow_";
 
 // Keys the app stores as a bare string rather than JSON.
@@ -45,6 +47,8 @@ export function importBackup(parsed) {
   entries.forEach(([key, value]) => {
     localStorage.setItem(key, value);
   });
+  // A backup from before a data migration brings back unmigrated data, so let migrations run again.
+  if (entries.length && !entries.some(([key]) => key === MIGRATIONS_KEY)) localStorage.removeItem(MIGRATIONS_KEY);
   if (entries.length) window.dispatchEvent(new Event("liftflow-profile-updated"));
   return entries.length;
 }

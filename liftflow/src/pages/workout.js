@@ -842,6 +842,9 @@ export default function Workout() {
                       value={addDraft.loadType}
                       onChange={(event) => setAddDraft({ ...addDraft, loadType: event.target.value })}
                     >
+                      <option value="">
+                        Auto ({formatLoadType(getLoadProfile({ exercise: addDraft.exercise }).type)})
+                      </option>
                       {["barbell", "machine", "dumbbell", "bodyweight", "free"].map((loadType) => (
                         <option key={loadType} value={loadType}>
                           {formatLoadType(loadType)}
@@ -921,7 +924,7 @@ function createEmptyAddDraft() {
   return {
     exercise: "",
     muscleGroup: "other",
-    loadType: "free",
+    loadType: "",
     sets: "3",
     reps: "8-12",
     targetType: "reps",

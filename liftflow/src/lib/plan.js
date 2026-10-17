@@ -1,11 +1,33 @@
+import { migrateStoredJson, repairPlanLoadProfiles, runStorageMigration } from "./loadProfiles";
+
 const STORAGE_KEY = "liftflow_plan";
 const SAVED_SPLITS_KEY = "liftflow_saved_splits";
+
+// One-time repair of loadType/minimumLoad written by older inference (see repairStoredLoadProfile).
+function migratePlanStorage() {
+  runStorageMigration("load-types-v1:plan", () => migrateStoredJson(STORAGE_KEY, repairPlanLoadProfiles));
+}
+
+function migrateSavedSplitStorage() {
+  runStorageMigration("load-types-v1:saved_splits", () =>
+    migrateStoredJson(SAVED_SPLITS_KEY, (splits) => {
+      if (!Array.isArray(splits)) return splits;
+      const next = splits.map((split) => {
+        if (!split || typeof split !== "object") return split;
+        const plan = repairPlanLoadProfiles(split.plan);
+        return plan === split.plan ? split : { ...split, plan };
+      });
+      return next.some((split, index) => split !== splits[index]) ? next : splits;
+    }),
+  );
+}
 
 /**
  * Get training plan
  */
 export function getPlan() {
   if (typeof window === "undefined") return {};
+  migratePlanStorage();
   try {
     const data = localStorage.getItem(STORAGE_KEY);
     const parsed = data ? JSON.parse(data) : {};
@@ -25,6 +47,7 @@ export function savePlan(plan) {
 
 export function getSavedSplits() {
   if (typeof window === "undefined") return [];
+  migrateSavedSplitStorage();
   try {
     const parsed = JSON.parse(localStorage.getItem(SAVED_SPLITS_KEY) || "[]");
     return Array.isArray(parsed) ? parsed : [];

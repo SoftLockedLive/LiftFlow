@@ -1,7 +1,21 @@
+import { migrateStoredJson, repairStoredLoadProfile, runStorageMigration } from "./loadProfiles";
+
 const KEY = "liftflow_custom_exercises";
+
+// One-time repair of loadType/minimumLoad written by older code (see repairStoredLoadProfile).
+function migrateCustomExerciseStorage() {
+  runStorageMigration("load-types-v1:custom_exercises", () =>
+    migrateStoredJson(KEY, (exercises) => {
+      if (!Array.isArray(exercises)) return exercises;
+      const next = exercises.map(repairStoredLoadProfile);
+      return next.some((exercise, index) => exercise !== exercises[index]) ? next : exercises;
+    }),
+  );
+}
 
 export function getCustomExercises() {
   if (typeof window === "undefined") return [];
+  migrateCustomExerciseStorage();
 
   try {
     const parsed = JSON.parse(localStorage.getItem(KEY) || "[]");
