@@ -46,11 +46,20 @@ export default class ErrorBoundary extends Component {
         <section style={card}>
           <p style={eyebrow}>Recovery</p>
           <h1 style={title}>Something went wrong</h1>
-          <p style={copy}>Your LiftFlow data is still on this device. Try reloading the page, go home, or export a backup before resetting anything.</p>
+          <p style={copy}>
+            Your LiftFlow data is still on this device. Try reloading the page, go home, or export a backup before
+            resetting anything.
+          </p>
           <div style={actions}>
-            <button type="button" className="primary" onClick={this.reset}>Try Again</button>
-            <button type="button" onClick={this.goHome} style={secondary}>Go Home</button>
-            <button type="button" onClick={this.exportData} style={secondary}>Export Data</button>
+            <button type="button" className="primary" onClick={this.reset}>
+              Try Again
+            </button>
+            <button type="button" onClick={this.goHome} style={secondary}>
+              Go Home
+            </button>
+            <button type="button" onClick={this.exportData} style={secondary}>
+              Export Data
+            </button>
           </div>
         </section>
       </main>

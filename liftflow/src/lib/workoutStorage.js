@@ -66,15 +66,13 @@ export function updateLiftInWorkout(workoutId, liftIndex, nextLift) {
     if (id !== workoutId) return workout;
 
     if (Array.isArray(workout)) {
-      return workout.map((lift, currentIndex) =>
-        currentIndex === liftIndex ? { ...lift, ...nextLift } : lift
-      );
+      return workout.map((lift, currentIndex) => (currentIndex === liftIndex ? { ...lift, ...nextLift } : lift));
     }
 
     return {
       ...workout,
       workout: (workout.workout || []).map((lift, currentIndex) =>
-        currentIndex === liftIndex ? { ...lift, ...nextLift } : lift
+        currentIndex === liftIndex ? { ...lift, ...nextLift } : lift,
       ),
     };
   });

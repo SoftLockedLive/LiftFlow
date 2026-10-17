@@ -53,11 +53,13 @@ export default function Mobility() {
   }
 
   function finishSession() {
-    setLog(addMobilityLog({
-      completed: completedCount,
-      total: routine.length,
-      routine: routine.map((item) => ({ ...item, done: Boolean(done[item.id]) })),
-    }));
+    setLog(
+      addMobilityLog({
+        completed: completedCount,
+        total: routine.length,
+        routine: routine.map((item) => ({ ...item, done: Boolean(done[item.id]) })),
+      }),
+    );
     setDone({});
   }
 
@@ -68,7 +70,9 @@ export default function Mobility() {
           <p style={eyebrow}>Mobility</p>
           <h1 style={title}>Daily Routine</h1>
         </div>
-        <span style={count}>{completedCount}/{routine.length}</span>
+        <span style={count}>
+          {completedCount}/{routine.length}
+        </span>
       </header>
 
       <section style={panel}>
@@ -90,7 +94,11 @@ export default function Mobility() {
               const checked = Boolean(done[item.id]);
               return (
                 <div key={item.id} style={{ ...routineRow, ...(checked ? routineDone : {}) }}>
-                  <button type="button" onClick={() => setDone({ ...done, [item.id]: !checked })} style={{ ...check, ...(checked ? checkDone : {}) }}>
+                  <button
+                    type="button"
+                    onClick={() => setDone({ ...done, [item.id]: !checked })}
+                    style={{ ...check, ...(checked ? checkDone : {}) }}
+                  >
                     {checked ? "✓" : ""}
                   </button>
                   <div style={routineMain}>
@@ -150,7 +158,9 @@ export default function Mobility() {
           {log.slice(0, 5).map((entry) => (
             <div key={entry.id} style={logRow}>
               <strong>{formatDate(entry.date)}</strong>
-              <span>{entry.completed}/{entry.total} done</span>
+              <span>
+                {entry.completed}/{entry.total} done
+              </span>
             </div>
           ))}
           {log.length === 0 && <div style={empty}>No mobility sessions logged yet.</div>}

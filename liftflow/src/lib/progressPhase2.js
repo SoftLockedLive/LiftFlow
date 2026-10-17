@@ -60,7 +60,12 @@ export function savePhase(phase) {
   });
   const next = existing.map((item) => {
     if (item.id === incoming.id) return incoming;
-    if (incoming.status === "active" && isNutritionPhase(incoming) && item.status === "active" && isNutritionPhase(item)) {
+    if (
+      incoming.status === "active" &&
+      isNutritionPhase(incoming) &&
+      item.status === "active" &&
+      isNutritionPhase(item)
+    ) {
       return { ...item, status: "completed", actualEndDate: incoming.startDate, updatedAt: now };
     }
     return item;
@@ -97,7 +102,9 @@ export function reorderPlannedPhase(id, direction) {
 }
 
 export function getActivePhase(phases = getPhases(), nutritionOnly = true) {
-  return (phases || []).find((phase) => phase.status === "active" && (!nutritionOnly || isNutritionPhase(phase))) || null;
+  return (
+    (phases || []).find((phase) => phase.status === "active" && (!nutritionOnly || isNutritionPhase(phase))) || null
+  );
 }
 
 export function buildPhaseTargets(baseTargets, activePhase) {
@@ -125,9 +132,13 @@ export function buildPhaseProgress(phase, checkIns) {
   const totalDays = Math.max(1, daysBetween(start, plannedEnd) + 1);
   const daysCompleted = Math.max(0, Math.min(totalDays, daysBetween(start, today) + 1));
   const daysRemaining = Math.max(0, totalDays - daysCompleted);
-  const weightChange = isNumber(currentWeight) && isNumber(startingWeight) ? round1(currentWeight - startingWeight) : null;
+  const weightChange =
+    isNumber(currentWeight) && isNumber(startingWeight) ? round1(currentWeight - startingWeight) : null;
   const targetDelta = isNumber(targetWeight) && isNumber(startingWeight) ? targetWeight - startingWeight : null;
-  const percent = targetDelta && isNumber(weightChange) ? Math.max(0, Math.min(100, Math.round((weightChange / targetDelta) * 100))) : null;
+  const percent =
+    targetDelta && isNumber(weightChange)
+      ? Math.max(0, Math.min(100, Math.round((weightChange / targetDelta) * 100)))
+      : null;
   const weeklyRate = calculatePhaseWeeklyRate(phase, checkIns);
   const completed = phase.status === "completed" ? daysBetween(start, end) + 1 : daysCompleted;
 
@@ -165,10 +176,14 @@ export function buildPhaseOverviewMessage(activePhase, checkIns) {
       ? "Your weight has been stable within the maintenance range."
       : "Your weight is drifting outside the selected maintenance range.";
   }
-  if (progress.weeklyRate >= Number(activePhase.targetWeeklyWeightChangeMin ?? -999) && progress.weeklyRate <= Number(activePhase.targetWeeklyWeightChangeMax ?? 999)) {
+  if (
+    progress.weeklyRate >= Number(activePhase.targetWeeklyWeightChangeMin ?? -999) &&
+    progress.weeklyRate <= Number(activePhase.targetWeeklyWeightChangeMax ?? 999)
+  ) {
     return `You are changing ${Math.abs(progress.weeklyRate)} lb per week, within your ${formatPhaseType(activePhase.type)} target.`;
   }
-  if (progress.weeklyRate > Number(activePhase.targetWeeklyWeightChangeMax ?? 999)) return `${activePhase.name} is progressing faster than planned.`;
+  if (progress.weeklyRate > Number(activePhase.targetWeeklyWeightChangeMax ?? 999))
+    return `${activePhase.name} is progressing faster than planned.`;
   return `${activePhase.name} is progressing slower than planned.`;
 }
 
@@ -186,7 +201,9 @@ export function saveWeekStartDay(day) {
 
 export function getWeeklyReviews() {
   if (typeof window === "undefined") return [];
-  return readArray(REVIEWS_KEY).map(normalizeReview).sort((a, b) => b.weekStart.localeCompare(a.weekStart));
+  return readArray(REVIEWS_KEY)
+    .map(normalizeReview)
+    .sort((a, b) => b.weekStart.localeCompare(a.weekStart));
 }
 
 export function saveWeeklyReview(review) {
@@ -206,20 +223,32 @@ export function saveWeeklyReview(review) {
   return getWeeklyReviews();
 }
 
-export function generateWeeklyReview({ checkIns, workouts, phases, measurements, weekStartDay = 1, weekDate = getTodayKey() }) {
+export function generateWeeklyReview({
+  checkIns,
+  workouts,
+  phases,
+  measurements,
+  weekStartDay = 1,
+  weekDate = getTodayKey(),
+}) {
   const weekStart = getWeekStartForDate(weekDate, weekStartDay);
   const weekEnd = addDays(weekStart, 6);
   const current = filterByDate(checkIns, weekStart, weekEnd);
   const previous = filterByDate(checkIns, addDays(weekStart, -7), addDays(weekStart, -1));
-  const activePhase = (phases || []).find((phase) => phase.startDate <= weekEnd && (phase.actualEndDate || phase.plannedEndDate || "9999-12-31") >= weekStart);
+  const activePhase = (phases || []).find(
+    (phase) => phase.startDate <= weekEnd && (phase.actualEndDate || phase.plannedEndDate || "9999-12-31") >= weekStart,
+  );
   const averageWeight = averageField(current, "morningWeight");
   const previousAverageWeight = averageField(previous, "morningWeight");
-  const workoutsInWeek = (workouts || []).filter((workout) => dateKeyFromMs(workout.date) >= weekStart && dateKeyFromMs(workout.date) <= weekEnd);
+  const workoutsInWeek = (workouts || []).filter(
+    (workout) => dateKeyFromMs(workout.date) >= weekStart && dateKeyFromMs(workout.date) <= weekEnd,
+  );
   const measurementSummary = getMeasurementChanges(measurements, activePhase, "Waist");
   const completeness = scoreDataCompleteness(current, workoutsInWeek, measurements, weekStart, weekEnd);
   const summaryLines = buildWeeklySummaryLines({
     averageWeight,
-    weightChange: isNumber(averageWeight) && isNumber(previousAverageWeight) ? round1(averageWeight - previousAverageWeight) : null,
+    weightChange:
+      isNumber(averageWeight) && isNumber(previousAverageWeight) ? round1(averageWeight - previousAverageWeight) : null,
     averageProtein: averageField(current, "protein"),
     proteinTarget: activePhase?.proteinTarget,
     averageSleep: averageField(current, "sleepHours"),
@@ -235,8 +264,14 @@ export function generateWeeklyReview({ checkIns, workouts, phases, measurements,
     weekEnd,
     phaseId: activePhase?.id,
     averageWeight,
-    weightChange: isNumber(averageWeight) && isNumber(previousAverageWeight) ? round1(averageWeight - previousAverageWeight) : undefined,
-    weeklyWeightRate: isNumber(averageWeight) && isNumber(previousAverageWeight) ? round1(averageWeight - previousAverageWeight) : undefined,
+    weightChange:
+      isNumber(averageWeight) && isNumber(previousAverageWeight)
+        ? round1(averageWeight - previousAverageWeight)
+        : undefined,
+    weeklyWeightRate:
+      isNumber(averageWeight) && isNumber(previousAverageWeight)
+        ? round1(averageWeight - previousAverageWeight)
+        : undefined,
     averageCalories: averageField(current, "calories"),
     averageProtein: averageField(current, "protein"),
     proteinAdherencePercent: adherencePercent(current, "protein", activePhase?.proteinTarget),
@@ -258,7 +293,9 @@ export function generateWeeklyReview({ checkIns, workouts, phases, measurements,
 
 export function scoreDataCompleteness(checkIns, workouts, measurements, weekStart, weekEnd) {
   const count = (field) => (checkIns || []).filter((entry) => entry[field] !== undefined).length;
-  const measurementCount = (measurements || []).filter((entry) => entry.date >= weekStart && entry.date <= weekEnd).length;
+  const measurementCount = (measurements || []).filter(
+    (entry) => entry.date >= weekStart && entry.date <= weekEnd,
+  ).length;
   const weighted =
     Math.min(7, count("morningWeight")) * 2 +
     Math.min(7, count("calories")) * 2 +
@@ -276,7 +313,9 @@ export function scoreDataCompleteness(checkIns, workouts, measurements, weekStar
 
 export function getCalorieRecommendations() {
   if (typeof window === "undefined") return [];
-  return readArray(RECOMMENDATIONS_KEY).map(normalizeRecommendation).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return readArray(RECOMMENDATIONS_KEY)
+    .map(normalizeRecommendation)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 export function saveCalorieRecommendation(recommendation) {
@@ -292,30 +331,75 @@ export function saveCalorieRecommendation(recommendation) {
 }
 
 export function buildCalorieRecommendation(activePhase, checkIns, recommendations) {
-  if (!activePhase || !isNutritionPhase(activePhase)) return baseRecommendation("insufficient-data", "Create or start a nutrition phase before calorie recommendations are available.");
+  if (!activePhase || !isNutritionPhase(activePhase))
+    return baseRecommendation(
+      "insufficient-data",
+      "Create or start a nutrition phase before calorie recommendations are available.",
+    );
   const weights = getWeightEntries(checkIns).filter((entry) => entry.date >= activePhase.startDate);
   const calories = (checkIns || []).filter((entry) => entry.date >= activePhase.startDate && isNumber(entry.calories));
   const daysActive = daysBetween(parseDate(activePhase.startDate), parseDate(getTodayKey())) + 1;
-  const lastApplied = (recommendations || []).find((item) => item.phaseId === activePhase.id && item.status === "applied");
-  if (weights.length < 10) return baseRecommendation("insufficient-data", "Log at least 10 weight entries before calorie recommendations are available.", activePhase);
-  if (calories.slice(-10).length < 7) return baseRecommendation("insufficient-data", "Log at least 7 recent calorie entries before adjusting calories.", activePhase);
-  if (daysActive < 10) return baseRecommendation("insufficient-data", "This phase needs at least 10 days of data first.", activePhase);
-  if (lastApplied && daysBetween(parseDate(lastApplied.appliedAt || lastApplied.createdAt), parseDate(getTodayKey())) < 7) {
-    return baseRecommendation("unstable-data", "Wait at least 7 days after applying a calorie change before generating another one.", activePhase);
+  const lastApplied = (recommendations || []).find(
+    (item) => item.phaseId === activePhase.id && item.status === "applied",
+  );
+  if (weights.length < 10)
+    return baseRecommendation(
+      "insufficient-data",
+      "Log at least 10 weight entries before calorie recommendations are available.",
+      activePhase,
+    );
+  if (calories.slice(-10).length < 7)
+    return baseRecommendation(
+      "insufficient-data",
+      "Log at least 7 recent calorie entries before adjusting calories.",
+      activePhase,
+    );
+  if (daysActive < 10)
+    return baseRecommendation("insufficient-data", "This phase needs at least 10 days of data first.", activePhase);
+  if (
+    lastApplied &&
+    daysBetween(parseDate(lastApplied.appliedAt || lastApplied.createdAt), parseDate(getTodayKey())) < 7
+  ) {
+    return baseRecommendation(
+      "unstable-data",
+      "Wait at least 7 days after applying a calorie change before generating another one.",
+      activePhase,
+    );
   }
   const recentCalories = calories.slice(-10).map((entry) => Number(entry.calories));
   const averageCalories = round1(recentCalories.reduce((sum, value) => sum + value, 0) / recentCalories.length);
   const calorieSpread = Math.max(...recentCalories) - Math.min(...recentCalories);
-  if (calorieSpread > 900) return baseRecommendation("unstable-data", "Average intake is inconsistent, so no calorie adjustment is recommended yet.", activePhase);
+  if (calorieSpread > 900)
+    return baseRecommendation(
+      "unstable-data",
+      "Average intake is inconsistent, so no calorie adjustment is recommended yet.",
+      activePhase,
+    );
   const weeklyRate = getWeeklyWeightChangeRate(weights);
-  if (!isNumber(weeklyRate)) return baseRecommendation("insufficient-data", "More weight trend data is needed.", activePhase);
-  if ((activePhase.notes || "").toLowerCase().includes("illness") || (activePhase.notes || "").toLowerCase().includes("sick")) {
+  if (!isNumber(weeklyRate))
+    return baseRecommendation("insufficient-data", "More weight trend data is needed.", activePhase);
+  if (
+    (activePhase.notes || "").toLowerCase().includes("illness") ||
+    (activePhase.notes || "").toLowerCase().includes("sick")
+  ) {
     return baseRecommendation("unstable-data", "Recent illness notes may distort the trend.", activePhase);
   }
   const min = Number(activePhase.targetWeeklyWeightChangeMin ?? 0);
   const max = Number(activePhase.targetWeeklyWeightChangeMax ?? 0);
-  if ((activePhase.type === "maintenance" || activePhase.type === "recomposition") && weeklyRate >= min && weeklyRate <= max) {
-    return baseRecommendation("keep", "You remain within the maintenance range. Keep calories unchanged.", activePhase, 0, "high", averageCalories, weeklyRate);
+  if (
+    (activePhase.type === "maintenance" || activePhase.type === "recomposition") &&
+    weeklyRate >= min &&
+    weeklyRate <= max
+  ) {
+    return baseRecommendation(
+      "keep",
+      "You remain within the maintenance range. Keep calories unchanged.",
+      activePhase,
+      0,
+      "high",
+      averageCalories,
+      weeklyRate,
+    );
   }
   let adjustment = 0;
   let reason = "Weight is changing within your target range. Keep calories unchanged.";
@@ -331,7 +415,15 @@ export function buildCalorieRecommendation(activePhase, checkIns, recommendation
       : "Weight is increasing faster than planned. Consider reducing calories by 100.";
   }
   adjustment = Math.max(-200, Math.min(200, adjustment));
-  return baseRecommendation(adjustment > 0 ? "increase" : adjustment < 0 ? "decrease" : "keep", reason, activePhase, adjustment, "moderate", averageCalories, weeklyRate);
+  return baseRecommendation(
+    adjustment > 0 ? "increase" : adjustment < 0 ? "decrease" : "keep",
+    reason,
+    activePhase,
+    adjustment,
+    "moderate",
+    averageCalories,
+    weeklyRate,
+  );
 }
 
 export function applyCalorieRecommendation(recommendation, phase) {
@@ -371,7 +463,9 @@ export function saveCalorieTargetHistory(entry) {
 
 export function getBodyMeasurements() {
   if (typeof window === "undefined") return [];
-  return readArray(MEASUREMENTS_KEY).map(normalizeMeasurement).sort((a, b) => a.date.localeCompare(b.date));
+  return readArray(MEASUREMENTS_KEY)
+    .map(normalizeMeasurement)
+    .sort((a, b) => a.date.localeCompare(b.date));
 }
 
 export function saveBodyMeasurement(entry) {
@@ -384,7 +478,10 @@ export function saveBodyMeasurement(entry) {
     createdAt: entry.createdAt || now,
     updatedAt: now,
   });
-  writeArray(MEASUREMENTS_KEY, [...existing.filter((item) => item.id !== nextEntry.id), nextEntry].sort((a, b) => a.date.localeCompare(b.date)));
+  writeArray(
+    MEASUREMENTS_KEY,
+    [...existing.filter((item) => item.id !== nextEntry.id), nextEntry].sort((a, b) => a.date.localeCompare(b.date)),
+  );
   return getBodyMeasurements();
 }
 
@@ -397,7 +494,9 @@ export function deleteBodyMeasurement(id) {
 }
 
 export function getMeasurementChanges(measurements, phase, type = "Waist") {
-  const entries = (measurements || []).filter((entry) => isNumber(entry.measurements?.[type])).sort((a, b) => a.date.localeCompare(b.date));
+  const entries = (measurements || [])
+    .filter((entry) => isNumber(entry.measurements?.[type]))
+    .sort((a, b) => a.date.localeCompare(b.date));
   const latest = entries[entries.length - 1] || null;
   const previous = entries[entries.length - 2] || null;
   const monthStart = addDays(getTodayKey(), -30);
@@ -424,7 +523,13 @@ export function saveTrackedLifts(lifts) {
   return next;
 }
 
-export function buildRelativeStrength(workouts, checkIns, trackedLifts = DEFAULT_TRACKED_LIFTS, activePhase = null, prRecords = []) {
+export function buildRelativeStrength(
+  workouts,
+  checkIns,
+  trackedLifts = DEFAULT_TRACKED_LIFTS,
+  activePhase = null,
+  prRecords = [],
+) {
   const weights = getWeightEntries(checkIns);
   const latestBodyweight = weights[weights.length - 1]?.value || null;
   return trackedLifts.map((liftName) => {
@@ -457,7 +562,8 @@ export function buildRelativeStrength(workouts, checkIns, trackedLifts = DEFAULT
     const sorted = sets.sort((a, b) => a.date.localeCompare(b.date));
     const bestLift = [...sorted].sort((a, b) => b.weight - a.weight)[0] || null;
     const best1rm = [...sorted].sort((a, b) => b.estimated1rm - a.estimated1rm)[0] || null;
-    const bestRatio = [...sorted].filter((set) => isNumber(set.e1rmRatio)).sort((a, b) => b.e1rmRatio - a.e1rmRatio)[0] || null;
+    const bestRatio =
+      [...sorted].filter((set) => isNumber(set.e1rmRatio)).sort((a, b) => b.e1rmRatio - a.e1rmRatio)[0] || null;
     const manualPr = (prRecords || []).find((pr) => pr.source === "manual" && sameLift(pr.exercise, liftName));
     const manualWeight = Number(manualPr?.weight || 0);
     const manualReps = Number(manualPr?.reps || 1) || 1;
@@ -488,8 +594,10 @@ export function buildRelativeStrength(workouts, checkIns, trackedLifts = DEFAULT
       currentBest,
       currentEstimated1rm,
       bestRatio: currentBestRatio,
-      monthChange: currentEstimated1rm && monthBase ? round1(currentEstimated1rm.estimated1rm - monthBase.estimated1rm) : null,
-      phaseRatioChange: currentBestRatio && phaseBase?.e1rmRatio ? round2(currentBestRatio.e1rmRatio - phaseBase.e1rmRatio) : null,
+      monthChange:
+        currentEstimated1rm && monthBase ? round1(currentEstimated1rm.estimated1rm - monthBase.estimated1rm) : null,
+      phaseRatioChange:
+        currentBestRatio && phaseBase?.e1rmRatio ? round2(currentBestRatio.e1rmRatio - phaseBase.e1rmRatio) : null,
       entries: sorted,
     };
   });
@@ -497,7 +605,9 @@ export function buildRelativeStrength(workouts, checkIns, trackedLifts = DEFAULT
 
 export function buildPhaseCompletionSummary(phase, checkIns, workouts, measurements, relativeStrength) {
   const progress = buildPhaseProgress(phase, checkIns);
-  const inPhase = (checkIns || []).filter((entry) => entry.date >= phase.startDate && entry.date <= (phase.actualEndDate || getTodayKey()));
+  const inPhase = (checkIns || []).filter(
+    (entry) => entry.date >= phase.startDate && entry.date <= (phase.actualEndDate || getTodayKey()),
+  );
   return {
     startDate: phase.startDate,
     endDate: phase.actualEndDate || getTodayKey(),
@@ -510,7 +620,11 @@ export function buildPhaseCompletionSummary(phase, checkIns, workouts, measureme
     averageCalories: averageDaily(inPhase, "calories", inPhase.length || 7),
     averageProtein: averageDaily(inPhase, "protein", inPhase.length || 7),
     waistChange: getMeasurementChanges(measurements, phase, "Waist").phaseChange,
-    workoutsCompleted: (workouts || []).filter((workout) => dateKeyFromMs(workout.date) >= phase.startDate && dateKeyFromMs(workout.date) <= (phase.actualEndDate || getTodayKey())).length,
+    workoutsCompleted: (workouts || []).filter(
+      (workout) =>
+        dateKeyFromMs(workout.date) >= phase.startDate &&
+        dateKeyFromMs(workout.date) <= (phase.actualEndDate || getTodayKey()),
+    ).length,
     averageSleep: averageDaily(inPhase, "sleepHours", inPhase.length || 7),
     relativeStrengthChanges: (relativeStrength || []).map((item) => `${item.lift}: ${item.phaseRatioChange ?? "--"}x`),
   };
@@ -603,15 +717,27 @@ function normalizeRecommendation(recommendation) {
     currentTarget: Number(recommendation.currentTarget || 0),
     recommendedTarget: optionalNumber(recommendation.recommendedTarget),
     adjustment: optionalNumber(recommendation.adjustment),
-    outcome: ["keep", "increase", "decrease", "insufficient-data", "unstable-data"].includes(recommendation.outcome) ? recommendation.outcome : "insufficient-data",
+    outcome: ["keep", "increase", "decrease", "insufficient-data", "unstable-data"].includes(recommendation.outcome)
+      ? recommendation.outcome
+      : "insufficient-data",
     reason: recommendation.reason || "",
     confidence: ["high", "moderate", "low"].includes(recommendation.confidence) ? recommendation.confidence : "low",
-    status: ["pending", "applied", "dismissed", "snoozed"].includes(recommendation.status) ? recommendation.status : "pending",
+    status: ["pending", "applied", "dismissed", "snoozed"].includes(recommendation.status)
+      ? recommendation.status
+      : "pending",
     appliedAt: recommendation.appliedAt || "",
   };
 }
 
-function baseRecommendation(outcome, reason, phase = null, adjustment = 0, confidence = "low", averageCalories = null, weeklyRate = null) {
+function baseRecommendation(
+  outcome,
+  reason,
+  phase = null,
+  adjustment = 0,
+  confidence = "low",
+  averageCalories = null,
+  weeklyRate = null,
+) {
   const currentTarget = Number(phase?.currentCalorieTarget || 0);
   return normalizeRecommendation({
     phaseId: phase?.id || "",
@@ -660,11 +786,15 @@ function mapPhaseTypeToGoal(type) {
 
 function isMaintenanceInRange(phase, weeklyRate) {
   if (!isNumber(weeklyRate)) return false;
-  return weeklyRate >= Number(phase.targetWeeklyWeightChangeMin ?? -0.25) && weeklyRate <= Number(phase.targetWeeklyWeightChangeMax ?? 0.25);
+  return (
+    weeklyRate >= Number(phase.targetWeeklyWeightChangeMin ?? -0.25) &&
+    weeklyRate <= Number(phase.targetWeeklyWeightChangeMax ?? 0.25)
+  );
 }
 
 function projectPhaseEndDate(phase, currentWeight, weeklyRate) {
-  if (!isNumber(currentWeight) || !isNumber(weeklyRate) || !isNumber(phase.targetWeight) || weeklyRate === 0) return phase.plannedEndDate || "";
+  if (!isNumber(currentWeight) || !isNumber(weeklyRate) || !isNumber(phase.targetWeight) || weeklyRate === 0)
+    return phase.plannedEndDate || "";
   const weeksRemaining = (Number(phase.targetWeight) - currentWeight) / weeklyRate;
   if (!Number.isFinite(weeksRemaining) || weeksRemaining < 0) return phase.plannedEndDate || "";
   return addDays(getTodayKey(), Math.round(weeksRemaining * 7));
@@ -683,7 +813,9 @@ function closestWeightOnOrBefore(weights, date) {
 function closestBodyweight(weights, date) {
   if (!weights.length) return { value: null, estimated: true };
   const target = parseDate(date).getTime();
-  const closest = [...weights].sort((a, b) => Math.abs(parseDate(a.date).getTime() - target) - Math.abs(parseDate(b.date).getTime() - target))[0];
+  const closest = [...weights].sort(
+    (a, b) => Math.abs(parseDate(a.date).getTime() - target) - Math.abs(parseDate(b.date).getTime() - target),
+  )[0];
   const diffDays = Math.abs(daysBetween(parseDate(closest.date), parseDate(date)));
   return { value: closest.value, estimated: diffDays > 7 };
 }
@@ -699,7 +831,10 @@ function filterByDate(items, start, end) {
 }
 
 function averageField(items, field) {
-  const values = (items || []).map((item) => item[field]).filter(isNumber).map(Number);
+  const values = (items || [])
+    .map((item) => item[field])
+    .filter(isNumber)
+    .map(Number);
   return values.length ? round1(values.reduce((sum, value) => sum + value, 0) / values.length) : undefined;
 }
 
@@ -712,12 +847,23 @@ function adherencePercent(items, field, target) {
 
 function buildWeeklySummaryLines(review) {
   const lines = [];
-  if (isNumber(review.weightChange)) lines.push(`Your average weight ${review.weightChange >= 0 ? "increased" : "decreased"} ${Math.abs(review.weightChange)} lb.`);
-  if (isNumber(review.averageProtein) && review.proteinTarget) lines.push(`Protein averaged ${review.averageProtein}g against a ${review.proteinTarget}g target.`);
-  if (isNumber(review.averageSleep) && review.averageSleep < review.sleepGoal) lines.push(`Sleep averaged ${review.averageSleep} hours, below your ${review.sleepGoal}-hour goal.`);
-  if (isNumber(review.waistChange)) lines.push(`Waist changed ${review.waistChange > 0 ? "+" : ""}${review.waistChange}.`);
+  if (isNumber(review.weightChange))
+    lines.push(
+      `Your average weight ${review.weightChange >= 0 ? "increased" : "decreased"} ${Math.abs(review.weightChange)} lb.`,
+    );
+  if (isNumber(review.averageProtein) && review.proteinTarget)
+    lines.push(`Protein averaged ${review.averageProtein}g against a ${review.proteinTarget}g target.`);
+  if (isNumber(review.averageSleep) && review.averageSleep < review.sleepGoal)
+    lines.push(`Sleep averaged ${review.averageSleep} hours, below your ${review.sleepGoal}-hour goal.`);
+  if (isNumber(review.waistChange))
+    lines.push(`Waist changed ${review.waistChange > 0 ? "+" : ""}${review.waistChange}.`);
   if (review.daysLogged < 4) lines.push("Only a few days were logged, so this review has limited confidence.");
-  if (review.phase && isNumber(review.weightChange) && review.weightChange >= Number(review.phase.targetWeeklyWeightChangeMin ?? -999) && review.weightChange <= Number(review.phase.targetWeeklyWeightChangeMax ?? 999)) {
+  if (
+    review.phase &&
+    isNumber(review.weightChange) &&
+    review.weightChange >= Number(review.phase.targetWeeklyWeightChangeMin ?? -999) &&
+    review.weightChange <= Number(review.phase.targetWeeklyWeightChangeMax ?? 999)
+  ) {
     lines.push(`That matches your ${formatPhaseType(review.phase.type)} target.`);
   }
   lines.push(`Data confidence: ${review.completeness.label}.`);
@@ -735,7 +881,9 @@ function estimate1rm(weight, reps) {
 }
 
 function parseDate(dateKey) {
-  const [year, month, day] = String(dateKey || getTodayKey()).split("-").map(Number);
+  const [year, month, day] = String(dateKey || getTodayKey())
+    .split("-")
+    .map(Number);
   return new Date(year, month - 1, day);
 }
 

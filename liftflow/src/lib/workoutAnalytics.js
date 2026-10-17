@@ -14,16 +14,26 @@ export function getBaseExercise(lift) {
 
 export function normalizeExerciseName(exercise) {
   const raw = String(exercise || "").trim();
-  const name = raw.toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+  const name = raw
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
   if (!name) return "";
 
   if (/^(flat )?(barbell |bb )?bench( press)?$/.test(name) || /^(barbell |bb )?flat bench( press)?$/.test(name)) {
     return "Bench Press";
   }
-  if (/\b(squat|barbell squat|back squat|bb squat)\b/.test(name) && !/\bfront\b|\bhack\b|\bsplit\b|\bgoblet\b/.test(name)) {
+  if (
+    /\b(squat|barbell squat|back squat|bb squat)\b/.test(name) &&
+    !/\bfront\b|\bhack\b|\bsplit\b|\bgoblet\b/.test(name)
+  ) {
     return "Squat";
   }
-  if (/\b(deadlift|barbell deadlift|conventional deadlift|bb deadlift)\b/.test(name) && !/\brdl\b|\bromanian\b|\bstiff\b|\bsumo\b|\btrap\b/.test(name)) {
+  if (
+    /\b(deadlift|barbell deadlift|conventional deadlift|bb deadlift)\b/.test(name) &&
+    !/\brdl\b|\bromanian\b|\bstiff\b|\bsumo\b|\btrap\b/.test(name)
+  ) {
     return "Deadlift";
   }
   if (/\bohp\b|\boverhead press\b|\bbarbell overhead press\b|\bstanding press\b|\bmilitary press\b/.test(name)) {
@@ -43,10 +53,7 @@ export function normalizeExerciseName(exercise) {
 }
 
 export function calculateLiftVolume(lift) {
-  return getLiftSets(lift).reduce(
-    (sum, set) => sum + Number(set.weight || 0) * Number(set.reps || 0),
-    0
-  );
+  return getLiftSets(lift).reduce((sum, set) => sum + Number(set.weight || 0) * Number(set.reps || 0), 0);
 }
 
 export function calculateSessionSummary(lifts) {
@@ -60,7 +67,7 @@ export function calculateSessionSummary(lifts) {
         weight: Number(set.weight || 0),
         reps: Number(set.reps || 0),
         duration: set.duration || "",
-      }))
+      })),
     )
     .filter((set) => set.weight > 0)
     .sort((a, b) => b.weight - a.weight)[0];
@@ -92,7 +99,7 @@ export function detectPRs(workouts, completedLifts) {
         reps: Number(set.reps || 0),
         duration: set.duration || "",
         previous: existing[getBaseExercise(lift)] || 0,
-      }))
+      })),
   );
 }
 
@@ -119,12 +126,15 @@ export function buildExerciseHistory(workouts) {
       const volume = calculateLiftVolume(lift);
       const liftSets = getLiftSets(lift);
       const bestSet = liftSets.reduce(
-        (best, set) => (Number(set.weight || 0) > best.weight ? {
-          weight: Number(set.weight || 0),
-          reps: Number(set.reps || 0),
-          duration: set.duration || "",
-        } : best),
-        { weight: 0, reps: 0 }
+        (best, set) =>
+          Number(set.weight || 0) > best.weight
+            ? {
+                weight: Number(set.weight || 0),
+                reps: Number(set.reps || 0),
+                duration: set.duration || "",
+              }
+            : best,
+        { weight: 0, reps: 0 },
       );
 
       history[exercise].sessions += 1;

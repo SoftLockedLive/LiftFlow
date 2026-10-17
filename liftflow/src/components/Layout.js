@@ -59,9 +59,7 @@ export default function Layout({ children }) {
   const bodyweightValue = profile.bodyweight || profile.weight;
   const bodyweight = bodyweightValue ? `${bodyweightValue}${units}` : "Bodyweight --";
   const initials = getInitials(profile.name);
-  const goalLabel = (profile.goal || "strength")
-    .replace("_", " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  const goalLabel = (profile.goal || "strength").replace("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 
   const primaryTabs = [
     { name: "Home", path: "/" },
@@ -85,7 +83,12 @@ export default function Layout({ children }) {
   const liftCards = [
     { label: "Bench", value: bench, reps: benchRecord?.reps || bestSets.bench?.reps, accent: liftColors.bench },
     { label: "Squat", value: squat, reps: squatRecord?.reps || bestSets.squat?.reps, accent: liftColors.squat },
-    { label: "Dead", value: deadlift, reps: deadliftRecord?.reps || bestSets.deadlift?.reps, accent: liftColors.deadlift },
+    {
+      label: "Dead",
+      value: deadlift,
+      reps: deadliftRecord?.reps || bestSets.deadlift?.reps,
+      accent: liftColors.deadlift,
+    },
   ];
 
   function navigateTab(path) {
@@ -99,32 +102,18 @@ export default function Layout({ children }) {
       <MoveNotice />
       <header className="app-hero" style={hero}>
         <div style={heroTitleBlock}>
-          <button
-            type="button"
-            onClick={() => navigateTab("/")}
-            style={brandButton}
-            aria-label="Go to home"
-          >
-            <Image
-              src="/icons/icon-192.png"
-              alt=""
-              width={40}
-              height={40}
-              priority
-              style={logoMark}
-            />
+          <button type="button" onClick={() => navigateTab("/")} style={brandButton} aria-label="Go to home">
+            <Image src="/icons/icon-192.png" alt="" width={40} height={40} priority style={logoMark} />
             <h1 style={brand}>LiftFlow</h1>
           </button>
-          <p style={subhead}>{goalLabel} training · {bodyweight}</p>
+          <p style={subhead}>
+            {goalLabel} training · {bodyweight}
+          </p>
         </div>
 
         <div className="app-hero-right" style={heroRight}>
           <button style={profileButton} onClick={() => setProfileOpen(true)}>
-            {profile.photo ? (
-              <span style={{ ...avatarImage, backgroundImage: `url(${profile.photo})` }} />
-            ) : (
-              initials
-            )}
+            {profile.photo ? <span style={{ ...avatarImage, backgroundImage: `url(${profile.photo})` }} /> : initials}
           </button>
         </div>
       </header>
@@ -198,14 +187,17 @@ export default function Layout({ children }) {
               <strong style={{ ...metricValue, color: lift.value ? lift.accent : "#3e3e3e" }}>
                 {lift.value ? `${lift.value} ${units}` : "--"}
               </strong>
-              <span style={metricHint}>{lift.value && lift.reps ? `x ${lift.reps} reps` : lift.value ? "tracked" : "not logged"}</span>
+              <span style={metricHint}>
+                {lift.value && lift.reps ? `x ${lift.reps} reps` : lift.value ? "tracked" : "not logged"}
+              </span>
             </div>
           ))}
-
         </section>
       )}
 
-      <main className="app-page" style={page}>{children}</main>
+      <main className="app-page" style={page}>
+        {children}
+      </main>
 
       {profileOpen && (
         <div style={overlay} onClick={() => setProfileOpen(false)}>
@@ -496,8 +488,7 @@ const tabWrapper = {
   boxShadow: "none",
 };
 
-const tabBar = {
-};
+const tabBar = {};
 
 const moreWrap = {
   position: "relative",
@@ -554,8 +545,7 @@ const moreItemActive = {
   borderColor: colors.brand,
 };
 
-const page = {
-};
+const page = {};
 
 const overlay = {
   position: "fixed",

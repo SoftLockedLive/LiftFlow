@@ -71,7 +71,11 @@ function buildSafeCoachRecommendation(lift, history) {
 function stringifyField(value, fallback) {
   if (value === undefined || value === null || value === "") return fallback;
   if (typeof value === "string" || typeof value === "number") return String(value);
-  if (Array.isArray(value)) return value.filter(Boolean).map((item) => stringifyField(item, "")).join(", ");
+  if (Array.isArray(value))
+    return value
+      .filter(Boolean)
+      .map((item) => stringifyField(item, ""))
+      .join(", ");
   if (typeof value === "object") {
     if ("reps" in value || "sets" in value) return [value.sets, value.reps].filter(Boolean).join(" x ");
     if ("label" in value) return String(value.label || fallback);

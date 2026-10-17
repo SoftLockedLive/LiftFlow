@@ -1,10 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  calculateLeanMass,
-  calculateTotal,
-  getProfile,
-  saveProfile,
-} from "../lib/profile";
+import { calculateLeanMass, calculateTotal, getProfile, saveProfile } from "../lib/profile";
 
 export default function Profile() {
   const [profile, setProfile] = useState({});
@@ -104,7 +99,11 @@ export default function Profile() {
         <Panel title="Personal">
           <div style={photoRow}>
             <div style={photoPreview}>
-              {profile.photo ? <span style={{ ...photoImage, backgroundImage: `url(${profile.photo})` }} /> : getInitials(profile.name)}
+              {profile.photo ? (
+                <span style={{ ...photoImage, backgroundImage: `url(${profile.photo})` }} />
+              ) : (
+                getInitials(profile.name)
+              )}
             </div>
             <label style={uploadButton}>
               Choose Photo
@@ -123,11 +122,7 @@ export default function Profile() {
               value={profile.age || ""}
               onChange={(event) => update("age", event.target.value)}
             />
-            <Field
-              label="Sex"
-              value={profile.sex || ""}
-              onChange={(event) => update("sex", event.target.value)}
-            />
+            <Field label="Sex" value={profile.sex || ""} onChange={(event) => update("sex", event.target.value)} />
           </div>
           <div className="field-row" style={fieldRow}>
             <SelectField
@@ -257,7 +252,10 @@ export default function Profile() {
 }
 
 function getInitials(name) {
-  const parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+  const parts = String(name || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
   if (parts.length >= 2) return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
   if (parts.length === 1) return parts[0][0].toUpperCase();
   return "ME";
@@ -283,7 +281,7 @@ function calculateDotsScore({ total, bodyweight, sex, units }) {
       : [-0.000001093, 0.0007391293, -0.1918759221, 24.0900756, -307.75076];
   const denominator = coefficients.reduce(
     (sum, coefficient, index) => sum + coefficient * bodyweightKg ** (4 - index),
-    0
+    0,
   );
 
   if (denominator <= 0) return null;

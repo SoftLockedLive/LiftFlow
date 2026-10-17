@@ -44,7 +44,9 @@ export default function MoveNotice() {
         return;
       }
       downloadBackup();
-      setStatus("Your data is too big to move in one tap, so a backup file was downloaded. Import it in Settings on the new site.");
+      setStatus(
+        "Your data is too big to move in one tap, so a backup file was downloaded. Import it in Settings on the new site.",
+      );
     } catch {
       setStatus("Could not move your data. Use Download backup instead.");
     }
@@ -54,7 +56,11 @@ export default function MoveNotice() {
   function confirmImport() {
     const imported = importBackup(incoming);
     setIncoming(null);
-    setStatus(imported ? "Your data has been moved over. Welcome to the new LiftFlow!" : "No LiftFlow data was found in that link.");
+    setStatus(
+      imported
+        ? "Your data has been moved over. Welcome to the new LiftFlow!"
+        : "No LiftFlow data was found in that link.",
+    );
   }
 
   const itemCount = incoming ? Object.keys(incoming).length : 0;
@@ -65,8 +71,8 @@ export default function MoveNotice() {
         <section style={banner} role="region" aria-label="LiftFlow has moved">
           <strong style={bannerTitle}>LiftFlow has moved to {NEW_HOST}</strong>
           <p style={bannerCopy}>
-            Your workouts are saved on this device only, so bring them with you before this site shuts down.
-            Tap <b>Move my data</b> to copy everything to the new site.
+            Your workouts are saved on this device only, so bring them with you before this site shuts down. Tap{" "}
+            <b>Move my data</b> to copy everything to the new site.
           </p>
           <p style={bannerCopy}>
             Use LiftFlow from your home screen? Tap <b>Download backup</b>, add {NEW_HOST} to your home screen, then

@@ -22,9 +22,10 @@ export function getSettings() {
 
 export function saveSettings(settings) {
   if (typeof window === "undefined") return DEFAULT_SETTINGS;
-  const safeSettings = settings && typeof settings === "object" && !Array.isArray(settings)
-    ? { ...DEFAULT_SETTINGS, ...settings }
-    : DEFAULT_SETTINGS;
+  const safeSettings =
+    settings && typeof settings === "object" && !Array.isArray(settings)
+      ? { ...DEFAULT_SETTINGS, ...settings }
+      : DEFAULT_SETTINGS;
   localStorage.setItem(KEY, JSON.stringify(safeSettings));
   return safeSettings;
 }

@@ -102,7 +102,9 @@ export default function PRs() {
                     background: "#101010",
                   }}
                 >
-                  <span>{group.label} {expanded ? "▲" : "▼"}</span>
+                  <span>
+                    {group.label} {expanded ? "▲" : "▼"}
+                  </span>
                   <strong>{group.items.length}</strong>
                 </button>
 

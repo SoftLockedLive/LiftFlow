@@ -74,7 +74,15 @@ export function addMobilityLog(entry) {
 }
 
 function movement(name, mode, target) {
-  return { id: name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""), name, mode, target };
+  return {
+    id: name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, ""),
+    name,
+    mode,
+    target,
+  };
 }
 
 function read(key, fallback) {

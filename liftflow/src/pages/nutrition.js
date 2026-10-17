@@ -1,17 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  addProtein,
-  getProteinLog,
-  getTodayKey,
-  saveProteinTarget,
-  setProteinForDay,
-} from "../lib/protein";
-import {
-  getDailyCheckIns,
-  getProgressTargets,
-  saveDailyCheckIn,
-  saveProgressTargets,
-} from "../lib/progressTracking";
+import { addProtein, getProteinLog, getTodayKey, saveProteinTarget, setProteinForDay } from "../lib/protein";
+import { getDailyCheckIns, getProgressTargets, saveDailyCheckIn, saveProgressTargets } from "../lib/progressTracking";
 import { buildPhaseTargets, getActivePhase, getPhases } from "../lib/progressPhase2";
 import { colors, tint } from "../lib/theme";
 
@@ -50,9 +39,18 @@ export default function Nutrition() {
   const proteinToday = Number(entry.protein ?? proteinLog[dateKey] ?? 0);
   const calorieTarget = Number(activeTargets.calorieTarget || 0);
   const proteinTarget = Number(activeTargets.proteinTarget || 0);
-  const recentDays = useMemo(() => buildRecentDays(checkIns, proteinLog, activeTargets), [checkIns, proteinLog, activeTargets]);
-  const proteinStreak = useMemo(() => buildProteinStreak(checkIns, proteinLog, proteinTarget), [checkIns, proteinLog, proteinTarget]);
-  const calorieStreak = useMemo(() => buildCalorieStreak(checkIns, activeTargets, activePhase), [checkIns, activeTargets, activePhase]);
+  const recentDays = useMemo(
+    () => buildRecentDays(checkIns, proteinLog, activeTargets),
+    [checkIns, proteinLog, activeTargets],
+  );
+  const proteinStreak = useMemo(
+    () => buildProteinStreak(checkIns, proteinLog, proteinTarget),
+    [checkIns, proteinLog, proteinTarget],
+  );
+  const calorieStreak = useMemo(
+    () => buildCalorieStreak(checkIns, activeTargets, activePhase),
+    [checkIns, activeTargets, activePhase],
+  );
 
   function updateTargets(nextTargets) {
     const saved = saveProgressTargets(nextTargets);
@@ -112,20 +110,8 @@ export default function Nutrition() {
       </section>
 
       <section className="nutrition-hero" style={heroCard}>
-        <MacroHero
-          label="Calories"
-          value={caloriesToday}
-          target={calorieTarget}
-          unit=""
-          color={CYAN}
-        />
-        <MacroHero
-          label="Protein"
-          value={proteinToday}
-          target={proteinTarget}
-          unit="g"
-          color={ACCENT}
-        />
+        <MacroHero label="Calories" value={caloriesToday} target={calorieTarget} unit="" color={CYAN} />
+        <MacroHero label="Protein" value={proteinToday} target={proteinTarget} unit="g" color={ACCENT} />
       </section>
 
       <section style={grid}>
@@ -215,7 +201,11 @@ function MacroHero({ label, value, target, unit, color }) {
           {value.toLocaleString()}
           <span style={heroUnit}>{unit}</span>
         </div>
-        <p style={muted}>{remaining.toLocaleString()}{unit} left to hit {target.toLocaleString()}{unit}</p>
+        <p style={muted}>
+          {remaining.toLocaleString()}
+          {unit} left to hit {target.toLocaleString()}
+          {unit}
+        </p>
       </div>
       <div style={{ ...ring, borderColor: tint(color, 0.32), color }}>
         <span style={ringValue}>{percent}%</span>
@@ -224,7 +214,18 @@ function MacroHero({ label, value, target, unit, color }) {
   );
 }
 
-function MacroLogger({ title, value, target, quickAmounts, customValue, setCustomValue, onAdd, onSet, unit = "", color }) {
+function MacroLogger({
+  title,
+  value,
+  target,
+  quickAmounts,
+  customValue,
+  setCustomValue,
+  onAdd,
+  onSet,
+  unit = "",
+  color,
+}) {
   const percent = target > 0 ? Math.min(100, Math.round((value / target) * 100)) : 0;
 
   return (
@@ -232,9 +233,17 @@ function MacroLogger({ title, value, target, quickAmounts, customValue, setCusto
       <div style={cardHeader}>
         <div>
           <h2 style={cardTitle}>{title}</h2>
-          <p style={mutedSmall}>{value.toLocaleString()}{unit} / {target.toLocaleString()}{unit} · {percent}%</p>
+          <p style={mutedSmall}>
+            {value.toLocaleString()}
+            {unit} / {target.toLocaleString()}
+            {unit} · {percent}%
+          </p>
         </div>
-        <button type="button" onClick={() => onSet(0)} style={{ ...ghostButton, color, borderColor: tint(color, 0.32) }}>
+        <button
+          type="button"
+          onClick={() => onSet(0)}
+          style={{ ...ghostButton, color, borderColor: tint(color, 0.32) }}
+        >
           Clear
         </button>
       </div>
@@ -245,9 +254,15 @@ function MacroLogger({ title, value, target, quickAmounts, customValue, setCusto
             key={amount}
             type="button"
             onClick={() => onAdd(amount)}
-            style={{ ...quickButton, color: colors.textSoft, borderColor: colors.border, background: colors.surfaceSoft }}
+            style={{
+              ...quickButton,
+              color: colors.textSoft,
+              borderColor: colors.border,
+              background: colors.surfaceSoft,
+            }}
           >
-            +{amount}{unit}
+            +{amount}
+            {unit}
           </button>
         ))}
       </div>
@@ -297,8 +312,10 @@ function buildRecentDays(checkIns, proteinLog, targets) {
       label: i === 0 ? "Today" : formatter.format(date),
       calories,
       protein,
-      caloriePercent: targets.calorieTarget > 0 ? Math.min(100, Math.round((calories / targets.calorieTarget) * 100)) : 0,
-      proteinPercent: targets.proteinTarget > 0 ? Math.min(100, Math.round((protein / targets.proteinTarget) * 100)) : 0,
+      caloriePercent:
+        targets.calorieTarget > 0 ? Math.min(100, Math.round((calories / targets.calorieTarget) * 100)) : 0,
+      proteinPercent:
+        targets.proteinTarget > 0 ? Math.min(100, Math.round((protein / targets.proteinTarget) * 100)) : 0,
     });
   }
 
@@ -350,9 +367,8 @@ function getCalorieWindow(target, targets, activePhase) {
   const phaseType = activePhase?.type || targets?.goalType || "maintenance";
   const minRate = Number(targets?.targetWeeklyWeightChangeMin ?? 0);
   const maxRate = Number(targets?.targetWeeklyWeightChangeMax ?? 0);
-  const inferredType = phaseType === "custom"
-    ? maxRate < 0 ? "cut" : minRate > 0 ? "bulk" : "maintenance"
-    : phaseType;
+  const inferredType =
+    phaseType === "custom" ? (maxRate < 0 ? "cut" : minRate > 0 ? "bulk" : "maintenance") : phaseType;
 
   if (["lean-bulk", "bulk", "strength-block"].includes(inferredType)) {
     return { min: target - tolerance, max: target + tolerance * 2 };
@@ -539,8 +555,7 @@ const quickGrid = {
   gap: 10,
 };
 
-const quickButton = {
-};
+const quickButton = {};
 
 const customRow = {
   gridTemplateColumns: "1fr auto",

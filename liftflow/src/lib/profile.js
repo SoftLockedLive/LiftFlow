@@ -32,8 +32,7 @@ const DEFAULT_PROFILE = {
 };
 
 export function getProfile() {
-  if (typeof window === "undefined")
-    return DEFAULT_PROFILE;
+  if (typeof window === "undefined") return DEFAULT_PROFILE;
 
   try {
     const data = localStorage.getItem(KEY);
@@ -48,32 +47,23 @@ export function getProfile() {
 }
 
 export function saveProfile(profile) {
-  if (typeof window === "undefined")
-    return DEFAULT_PROFILE;
+  if (typeof window === "undefined") return DEFAULT_PROFILE;
 
-  const safeProfile = profile && typeof profile === "object" && !Array.isArray(profile)
-    ? { ...DEFAULT_PROFILE, ...profile }
-    : DEFAULT_PROFILE;
-  localStorage.setItem(
-    KEY,
-    JSON.stringify(safeProfile)
-  );
+  const safeProfile =
+    profile && typeof profile === "object" && !Array.isArray(profile)
+      ? { ...DEFAULT_PROFILE, ...profile }
+      : DEFAULT_PROFILE;
+  localStorage.setItem(KEY, JSON.stringify(safeProfile));
   return safeProfile;
 }
 
 export function calculateTotal(profile) {
-  return (
-    Number(profile.benchPR || 0) +
-    Number(profile.squatPR || 0) +
-    Number(profile.deadliftPR || 0)
-  );
+  return Number(profile.benchPR || 0) + Number(profile.squatPR || 0) + Number(profile.deadliftPR || 0);
 }
 
 export function calculateLeanMass(profile) {
   const weight = Number(profile.weight || 0);
   const bf = Number(profile.bodyFat || 0);
 
-  return Math.round(
-    weight * (1 - bf / 100)
-  );
+  return Math.round(weight * (1 - bf / 100));
 }

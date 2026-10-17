@@ -20,7 +20,8 @@ export function getLoadProfile(lift = {}) {
 export function inferLoadType(exercise) {
   const name = String(exercise || "").toLowerCase();
   if (/\bdumbbell\b|\bdb\b/.test(name)) return "dumbbell";
-  if (/\bcable\b|\bmachine\b|\bpulldown\b|\bpec deck\b|\bleg press\b|\bleg curl\b|\bleg extension\b/.test(name)) return "machine";
+  if (/\bcable\b|\bmachine\b|\bpulldown\b|\bpec deck\b|\bleg press\b|\bleg curl\b|\bleg extension\b/.test(name))
+    return "machine";
   if (/\bpull-up\b|\bpush-up\b|\bplank\b|\bhanging\b/.test(name)) return "bodyweight";
   if (/\bbarbell\b|\bbench press\b|\bsquat\b|\bdeadlift\b|\boverhead press\b|\bez-bar\b/.test(name)) return "barbell";
   return "free";

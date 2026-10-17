@@ -109,7 +109,7 @@ export default function Plan() {
               note: stretches,
               stretches,
             }
-          : lift
+          : lift,
       );
     } else {
       updated[selectedDay] = [
@@ -516,7 +516,9 @@ export default function Plan() {
           <article style={{ ...liftCard, borderColor: tint(dayColors.recovery, 0.36), background: colors.surface }}>
             <div>
               <h3 style={{ ...liftName, color: dayColors.recovery }}>{selectedMeta.name || "Recovery"}</h3>
-              <p style={liftMeta}>{recovery.activity} · {recovery.duration} · {recovery.intensity}</p>
+              <p style={liftMeta}>
+                {recovery.activity} · {recovery.duration} · {recovery.intensity}
+              </p>
               {recovery.notes && <p style={stretchPreview}>{recovery.notes}</p>}
             </div>
           </article>
@@ -540,27 +542,24 @@ export default function Plan() {
             const profile = getLoadProfile(lift);
 
             return (
-            <article
-              key={lift.id}
-              style={liftCard}
-            >
-              <div>
-                <h3 style={liftName}>{lift.exercise}</h3>
-                <p style={liftMeta}>
-                  {group.label} · {formatLoadType(profile.type)} · {formatExerciseTarget(lift)}
-                </p>
-                {(lift.note || lift.stretches) && <p style={stretchPreview}>{lift.note || lift.stretches}</p>}
-              </div>
+              <article key={lift.id} style={liftCard}>
+                <div>
+                  <h3 style={liftName}>{lift.exercise}</h3>
+                  <p style={liftMeta}>
+                    {group.label} · {formatLoadType(profile.type)} · {formatExerciseTarget(lift)}
+                  </p>
+                  {(lift.note || lift.stretches) && <p style={stretchPreview}>{lift.note || lift.stretches}</p>}
+                </div>
 
-              <div style={actions}>
-                <button type="button" onClick={() => startEdit(lift)} style={editBtn}>
-                  Edit
-                </button>
-                <button type="button" onClick={() => confirmDeleteExercise(lift.id)} style={removeBtn}>
-                  Remove
-                </button>
-              </div>
-            </article>
+                <div style={actions}>
+                  <button type="button" onClick={() => startEdit(lift)} style={editBtn}>
+                    Edit
+                  </button>
+                  <button type="button" onClick={() => confirmDeleteExercise(lift.id)} style={removeBtn}>
+                    Remove
+                  </button>
+                </div>
+              </article>
             );
           })
         )}
@@ -641,7 +640,12 @@ export default function Plan() {
           <p style={label}>Workout Day Templates</p>
           <div style={chipGrid}>
             {DAY_TEMPLATES.map((template) => (
-              <button key={template.id} type="button" onClick={() => previewDayTemplate(template)} style={smallTemplateBtn}>
+              <button
+                key={template.id}
+                type="button"
+                onClick={() => previewDayTemplate(template)}
+                style={smallTemplateBtn}
+              >
                 {template.name}
               </button>
             ))}
@@ -649,7 +653,12 @@ export default function Plan() {
           <p style={{ ...label, marginTop: 14 }}>Recovery Templates</p>
           <div style={chipGrid}>
             {RECOVERY_TEMPLATES.map((template) => (
-              <button key={template.id} type="button" onClick={() => previewDayTemplate(template, true)} style={recoveryTemplateBtn}>
+              <button
+                key={template.id}
+                type="button"
+                onClick={() => previewDayTemplate(template, true)}
+                style={recoveryTemplateBtn}
+              >
                 {template.name}
               </button>
             ))}
@@ -761,7 +770,9 @@ export default function Plan() {
               <select value={libraryGroup} onChange={(event) => setLibraryGroup(event.target.value)}>
                 <option value="all">All groups</option>
                 {MUSCLE_GROUPS.map((group) => (
-                  <option key={group.id} value={group.id}>{group.label}</option>
+                  <option key={group.id} value={group.id}>
+                    {group.label}
+                  </option>
                 ))}
               </select>
             </div>
@@ -769,21 +780,25 @@ export default function Plan() {
             <div style={libraryList}>
               {defaultLibrary.length === 0 ? (
                 <div style={empty}>No default exercises match.</div>
-              ) : defaultLibrary.map((lift) => {
-                const group = getMuscleGroup(lift.muscleGroup);
-                const profile = getLoadProfile(lift);
-                return (
-                  <div key={`${lift.exercise}-${lift.muscleGroup}`} style={libraryItem}>
-                    <div>
-                      <strong style={libraryLiftName}>{lift.exercise}</strong>
-                      <p style={liftMeta}>{group.label} · {formatLoadType(profile.type)} · {formatExerciseTarget(lift)}</p>
+              ) : (
+                defaultLibrary.map((lift) => {
+                  const group = getMuscleGroup(lift.muscleGroup);
+                  const profile = getLoadProfile(lift);
+                  return (
+                    <div key={`${lift.exercise}-${lift.muscleGroup}`} style={libraryItem}>
+                      <div>
+                        <strong style={libraryLiftName}>{lift.exercise}</strong>
+                        <p style={liftMeta}>
+                          {group.label} · {formatLoadType(profile.type)} · {formatExerciseTarget(lift)}
+                        </p>
+                      </div>
+                      <button type="button" onClick={() => addExerciseToDay(lift)} style={editBtn}>
+                        Add
+                      </button>
                     </div>
-                    <button type="button" onClick={() => addExerciseToDay(lift)} style={editBtn}>
-                      Add
-                    </button>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           </section>
 
@@ -802,7 +817,9 @@ export default function Plan() {
                     <div key={lift.id} style={libraryItem}>
                       <div>
                         <strong style={libraryLiftName}>{lift.exercise}</strong>
-                        <p style={liftMeta}>{group.label} · {formatLoadType(profile.type)} · {formatExerciseTarget(lift)}</p>
+                        <p style={liftMeta}>
+                          {group.label} · {formatLoadType(profile.type)} · {formatExerciseTarget(lift)}
+                        </p>
                       </div>
                       <div style={actions}>
                         <button type="button" onClick={() => addExerciseToDay(lift)} style={editBtn}>
@@ -841,8 +858,12 @@ export default function Plan() {
         <div style={modalOverlay} onClick={clearForm}>
           <section style={modalPanel} onClick={(event) => event.stopPropagation()}>
             <div style={modalHeader}>
-              <h2 style={modalTitle}>{editingId ? "Edit Day Exercise" : editingCustomId ? "Edit Custom Exercise" : "Create Custom Exercise"}</h2>
-              <button type="button" onClick={clearForm} style={closeBtn}>X</button>
+              <h2 style={modalTitle}>
+                {editingId ? "Edit Day Exercise" : editingCustomId ? "Edit Custom Exercise" : "Create Custom Exercise"}
+              </h2>
+              <button type="button" onClick={clearForm} style={closeBtn}>
+                X
+              </button>
             </div>
             <div style={modalBody}>
               {renderExerciseEditor({
@@ -878,7 +899,9 @@ export default function Plan() {
           <section style={previewPanel} onClick={(event) => event.stopPropagation()}>
             <div style={modalHeader}>
               <h2 style={modalTitle}>{templatePreview.template.name}</h2>
-              <button type="button" onClick={() => setTemplatePreview(null)} style={closeBtn}>X</button>
+              <button type="button" onClick={() => setTemplatePreview(null)} style={closeBtn}>
+                X
+              </button>
             </div>
             <div style={modalBody}>
               {templatePreview.kind === "split" ? (
@@ -895,10 +918,18 @@ export default function Plan() {
                     ))}
                   </div>
                   <div style={modalActions}>
-                    <button type="button" onClick={() => saveCurrentThenApply(templatePreview.template.id)} style={templateButton}>
+                    <button
+                      type="button"
+                      onClick={() => saveCurrentThenApply(templatePreview.template.id)}
+                      style={templateButton}
+                    >
                       Save Current + Apply
                     </button>
-                    <button type="button" className="primary" onClick={() => applyTemplateNow(templatePreview.template.id)}>
+                    <button
+                      type="button"
+                      className="primary"
+                      onClick={() => applyTemplateNow(templatePreview.template.id)}
+                    >
                       Apply Full Split
                     </button>
                   </div>
@@ -926,7 +957,9 @@ export default function Plan() {
           <section style={modalPanel} onClick={(event) => event.stopPropagation()}>
             <div style={modalHeader}>
               <h2 style={modalTitle}>Save Split</h2>
-              <button type="button" onClick={() => setSaveSplitOpen(false)} style={closeBtn}>X</button>
+              <button type="button" onClick={() => setSaveSplitOpen(false)} style={closeBtn}>
+                X
+              </button>
             </div>
             <div style={modalBody}>
               <input
@@ -977,7 +1010,8 @@ function filterExerciseLibrary(lifts, search, group) {
   const query = search.trim().toLowerCase();
   return (Array.isArray(lifts) ? lifts : []).filter((lift) => {
     const matchesGroup = group === "all" || lift.muscleGroup === group;
-    const matchesSearch = !query || `${lift.exercise} ${lift.note || ""} ${lift.stretches || ""}`.toLowerCase().includes(query);
+    const matchesSearch =
+      !query || `${lift.exercise} ${lift.note || ""} ${lift.stretches || ""}`.toLowerCase().includes(query);
     return matchesGroup && matchesSearch;
   });
 }
@@ -1007,11 +1041,7 @@ function renderExerciseEditor({
 }) {
   return (
     <>
-      <input
-        placeholder="Exercise"
-        value={exercise}
-        onChange={(event) => setExercise(event.target.value)}
-      />
+      <input placeholder="Exercise" value={exercise} onChange={(event) => setExercise(event.target.value)} />
 
       <label style={label}>Target Type</label>
       <select value={targetType} onChange={(event) => setTargetType(event.target.value)}>
@@ -1091,7 +1121,9 @@ function PreviewDay({ dayName, config, onUseDay }) {
     <article style={previewDayCard}>
       <div style={previewDayHeader}>
         <div>
-          <strong style={libraryLiftName}>{dayName} · {config?.name || "Training"}</strong>
+          <strong style={libraryLiftName}>
+            {dayName} · {config?.name || "Training"}
+          </strong>
           <p style={liftMeta}>
             {config?.recovery ? `${config.recovery.activity} · ${config.recovery.duration}` : `${lifts.length} lifts`}
           </p>

@@ -11,7 +11,13 @@ import { buildPlanFromTemplate, PROGRAM_TEMPLATES } from "../lib/programTemplate
 import { buildPRMap, formatPR } from "../lib/prRecords";
 import { getTodayName } from "../lib/today";
 import { getWorkouts } from "../lib/workoutStorage";
-import { calculateLiftVolume, calculateSessionSummary, getBaseExercise, getLiftSets, getWorkoutItems } from "../lib/workoutAnalytics";
+import {
+  calculateLiftVolume,
+  calculateSessionSummary,
+  getBaseExercise,
+  getLiftSets,
+  getWorkoutItems,
+} from "../lib/workoutAnalytics";
 import { colors, dayColors, tint } from "../lib/theme";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -69,7 +75,7 @@ export default function Home() {
           isToday: day === today,
         };
       }),
-    [plan, today]
+    [plan, today],
   );
 
   const flowItem = week[flowIndex] || week.find((day) => day.isToday) || week[0];
@@ -98,9 +104,16 @@ export default function Home() {
           <div>
             <p style={eyebrow}>Workout In Progress</p>
             <h2 style={resumeTitle}>Resume {resumeDraft.day}</h2>
-            <p style={resumeCopy}>{resumeDraft.count} logged item{resumeDraft.count === 1 ? "" : "s"} saved on this device.</p>
+            <p style={resumeCopy}>
+              {resumeDraft.count} logged item{resumeDraft.count === 1 ? "" : "s"} saved on this device.
+            </p>
           </div>
-          <button type="button" className="primary" onClick={() => router.push(`/workout?day=${encodeURIComponent(resumeDraft.day)}`)} style={checkInButton}>
+          <button
+            type="button"
+            className="primary"
+            onClick={() => router.push(`/workout?day=${encodeURIComponent(resumeDraft.day)}`)}
+            style={checkInButton}
+          >
             Resume
           </button>
         </section>
@@ -113,7 +126,12 @@ export default function Home() {
             <h2 style={checkInTitle}>{checkInPrompt.title}</h2>
             <p style={checkInCopy}>{checkInPrompt.copy}</p>
           </div>
-          <button type="button" className="primary" onClick={() => router.push(`/progress?checkIn=${checkInPrompt.target}`)} style={checkInButton}>
+          <button
+            type="button"
+            className="primary"
+            onClick={() => router.push(`/progress?checkIn=${checkInPrompt.target}`)}
+            style={checkInButton}
+          >
             Check In
           </button>
         </section>
@@ -137,16 +155,14 @@ export default function Home() {
       >
         <div style={flowTop}>
           <div>
-            <p style={{ ...eyebrow, color: getFlowAccent(flowItem) }}>
-              {getFlowLabel(flowItem?.day, today)}
-            </p>
+            <p style={{ ...eyebrow, color: getFlowAccent(flowItem) }}>{getFlowLabel(flowItem?.day, today)}</p>
             <h2 style={focusTitle}>{getDayTitle(flowItem)}</h2>
             <p style={focusCopy}>
               {flowItem?.recovery
                 ? `${flowItem.recovery.activity} · ${flowItem.recovery.duration} · ${flowItem.recovery.intensity || "Easy"}`
                 : flowItem?.lifts?.length > 0
-                ? `${flowItem.day} · ${flowItem.lifts.length} planned lift${flowItem.lifts.length === 1 ? "" : "s"}`
-                : `${flowItem?.day || "Today"} is open. Build your program or keep it for recovery.`}
+                  ? `${flowItem.day} · ${flowItem.lifts.length} planned lift${flowItem.lifts.length === 1 ? "" : "s"}`
+                  : `${flowItem?.day || "Today"} is open. Build your program or keep it for recovery.`}
             </p>
           </div>
 
@@ -175,7 +191,9 @@ export default function Home() {
               <div key={lift.id || lift.exercise} style={flowLiftRow}>
                 <div>
                   <strong style={flowLiftName}>{lift.exercise}</strong>
-                  <p style={flowLiftMeta}>{lift.sets || "--"} sets · {lift.reps || "--"} reps</p>
+                  <p style={flowLiftMeta}>
+                    {lift.sets || "--"} sets · {lift.reps || "--"} reps
+                  </p>
                 </div>
                 <span style={flowLiftPr}>{getLiftPR(lift, prs)}</span>
               </div>
@@ -184,7 +202,9 @@ export default function Home() {
             <div style={flowRecovery}>
               <strong>Recovery or planning day</strong>
               <span>No lifts are scheduled yet.</span>
-              <button type="button" onClick={() => router.push("/plan")} style={inlineAction}>Build Program</button>
+              <button type="button" onClick={() => router.push("/plan")} style={inlineAction}>
+                Build Program
+              </button>
             </div>
           )}
         </div>
@@ -193,7 +213,9 @@ export default function Home() {
           <button type="button" onClick={() => moveFlow(-1)} style={flowNavButton} aria-label="Previous day">
             Prev
           </button>
-          <span style={flowHint}>{flowIndex + 1} / {DAYS.length} · swipe for another day</span>
+          <span style={flowHint}>
+            {flowIndex + 1} / {DAYS.length} · swipe for another day
+          </span>
           <button type="button" onClick={() => moveFlow(1)} style={flowNavButton} aria-label="Next day">
             Next
           </button>
@@ -205,7 +227,9 @@ export default function Home() {
         {recentSessions.length === 0 ? (
           <div style={emptyState}>
             <span>No sets logged yet.</span>
-            <button type="button" onClick={() => router.push("/workout")} style={inlineAction}>Start Workout</button>
+            <button type="button" onClick={() => router.push("/workout")} style={inlineAction}>
+              Start Workout
+            </button>
           </div>
         ) : (
           <div style={recentList}>
@@ -217,7 +241,9 @@ export default function Home() {
                   <button type="button" onClick={() => setOpenRecent(expanded ? "" : session.id)} style={recentSummary}>
                     <div>
                       <h3 style={recentExercise}>{session.name}</h3>
-                      <p style={recentDate}>{session.date} · {session.sets} sets</p>
+                      <p style={recentDate}>
+                        {session.date} · {session.sets} sets
+                      </p>
                     </div>
                     <strong style={recentLoad}>{session.volume.toLocaleString()} lb</strong>
                   </button>
@@ -230,7 +256,9 @@ export default function Home() {
                             <strong style={recentLiftName}>{getBaseExercise(lift)}</strong>
                             <p style={recentDate}>
                               {lift.variation ? `${lift.variation} · ` : ""}
-                              {getLiftSets(lift).map((set) => `${set.reps || "--"} x ${set.weight || "--"} lb`).join(" · ") || "No sets logged"}
+                              {getLiftSets(lift)
+                                .map((set) => `${set.reps || "--"} x ${set.weight || "--"} lb`)
+                                .join(" · ") || "No sets logged"}
                             </p>
                           </div>
                           <span style={recentLiftVolume}>{calculateLiftVolume(lift).toLocaleString()} lb</span>
@@ -253,7 +281,9 @@ export default function Home() {
                 <p style={eyebrow}>First Run</p>
                 <h2 style={modalTitle}>Set up LiftFlow</h2>
               </div>
-              <button type="button" onClick={() => skipOnboarding(setOnboardingOpen)} style={closeBtn}>X</button>
+              <button type="button" onClick={() => skipOnboarding(setOnboardingOpen)} style={closeBtn}>
+                X
+              </button>
             </div>
             <div style={modalBody}>
               <input
@@ -262,7 +292,10 @@ export default function Home() {
                 value={onboardingDraft.bodyweight}
                 onChange={(event) => setOnboardingDraft({ ...onboardingDraft, bodyweight: event.target.value })}
               />
-              <select value={onboardingDraft.goal} onChange={(event) => setOnboardingDraft({ ...onboardingDraft, goal: event.target.value })}>
+              <select
+                value={onboardingDraft.goal}
+                onChange={(event) => setOnboardingDraft({ ...onboardingDraft, goal: event.target.value })}
+              >
                 <option value="strength">Strength</option>
                 <option value="hypertrophy">Hypertrophy</option>
                 <option value="fat_loss">Fat Loss</option>
@@ -281,13 +314,23 @@ export default function Home() {
                   onChange={(event) => setOnboardingDraft({ ...onboardingDraft, proteinTarget: event.target.value })}
                 />
               </div>
-              <select value={onboardingDraft.templateId} onChange={(event) => setOnboardingDraft({ ...onboardingDraft, templateId: event.target.value })}>
+              <select
+                value={onboardingDraft.templateId}
+                onChange={(event) => setOnboardingDraft({ ...onboardingDraft, templateId: event.target.value })}
+              >
                 <option value="">No starter split</option>
                 {PROGRAM_TEMPLATES.map((template) => (
-                  <option key={template.id} value={template.id}>{template.name}</option>
+                  <option key={template.id} value={template.id}>
+                    {template.name}
+                  </option>
                 ))}
               </select>
-              <button type="button" className="primary" onClick={() => completeOnboarding(onboardingDraft, setPlan, setOnboardingOpen)} style={fullButton}>
+              <button
+                type="button"
+                className="primary"
+                onClick={() => completeOnboarding(onboardingDraft, setPlan, setOnboardingOpen)}
+                style={fullButton}
+              >
                 Finish Setup
               </button>
             </div>
@@ -352,8 +395,7 @@ function getResumeDraftDay() {
   try {
     const drafts = JSON.parse(localStorage.getItem(DRAFT_KEY) || "{}");
     if (!drafts || typeof drafts !== "object" || Array.isArray(drafts)) return null;
-    return DAYS.map((day) => ({ day, count: countDraftItems(drafts[day]) }))
-      .find((draft) => draft.count > 0) || null;
+    return DAYS.map((day) => ({ day, count: countDraftItems(drafts[day]) })).find((draft) => draft.count > 0) || null;
   } catch {
     return null;
   }
@@ -455,26 +497,16 @@ function getCheckInPrompt(entry) {
 
 function hasMorningCheckIn(entry) {
   if (!entry) return false;
-  return [
-    "morningWeight",
-    "sleepHours",
-    "sleepScore",
-    "energy",
-    "hunger",
-    "soreness",
-    "stress",
-  ].some((field) => entry[field] !== undefined && entry[field] !== "");
+  return ["morningWeight", "sleepHours", "sleepScore", "energy", "hunger", "soreness", "stress"].some(
+    (field) => entry[field] !== undefined && entry[field] !== "",
+  );
 }
 
 function hasNightCheckIn(entry) {
   if (!entry) return false;
-  return [
-    "steps",
-    "restingHeartRate",
-    "activeMinutes",
-    "workoutDurationMinutes",
-    "notes",
-  ].some((field) => entry[field] !== undefined && entry[field] !== "");
+  return ["steps", "restingHeartRate", "activeMinutes", "workoutDurationMinutes", "notes"].some(
+    (field) => entry[field] !== undefined && entry[field] !== "",
+  );
 }
 
 const homeWrap = {

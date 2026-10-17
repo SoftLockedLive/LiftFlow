@@ -2,7 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { deleteLiftFromWorkout, deleteWorkout, getWorkouts, updateLiftInWorkout } from "../lib/workoutStorage";
-import { buildExerciseHistory, calculateLiftVolume, getBaseExercise, getLiftSets, getWorkoutItems } from "../lib/workoutAnalytics";
+import {
+  buildExerciseHistory,
+  calculateLiftVolume,
+  getBaseExercise,
+  getLiftSets,
+  getWorkoutItems,
+} from "../lib/workoutAnalytics";
 
 export default function History() {
   const router = useRouter();
@@ -34,9 +40,9 @@ export default function History() {
           sets: summary.sets + session.sets,
           sessions: summary.sessions + 1,
         }),
-        { volume: 0, sets: 0, sessions: 0 }
+        { volume: 0, sets: 0, sessions: 0 },
       ),
-    [sessions]
+    [sessions],
   );
 
   function handleDeleteLift(sessionId, liftIndex) {
@@ -56,7 +62,9 @@ export default function History() {
       sessionId,
       liftIndex,
       exercise: getBaseExercise(lift),
-      setsText: getLiftSets(lift).map((set) => `${set.weight || 0}x${set.reps || 0}`).join(", "),
+      setsText: getLiftSets(lift)
+        .map((set) => `${set.weight || 0}x${set.reps || 0}`)
+        .join(", "),
     });
   }
 
@@ -71,10 +79,12 @@ export default function History() {
         return { weight: Number(weight || 0), reps: Number(reps || 0) };
       });
 
-    setWorkouts(updateLiftInWorkout(editingLift.sessionId, editingLift.liftIndex, {
-      exercise: editingLift.exercise,
-      sets,
-    }));
+    setWorkouts(
+      updateLiftInWorkout(editingLift.sessionId, editingLift.liftIndex, {
+        exercise: editingLift.exercise,
+        sets,
+      }),
+    );
     setEditingLift(null);
   }
 
@@ -112,7 +122,9 @@ export default function History() {
       {filteredSessions.length === 0 ? (
         <section style={empty}>
           <span>No workouts logged yet.</span>
-          <button type="button" className="primary" onClick={() => router.push("/workout")}>Start Workout</button>
+          <button type="button" className="primary" onClick={() => router.push("/workout")}>
+            Start Workout
+          </button>
         </section>
       ) : (
         <section style={sessionList}>
@@ -120,63 +132,81 @@ export default function History() {
             const sessionOpen = Boolean(openSessions[session.id]);
 
             return (
-            <article key={session.id} style={sessionCard}>
-              <button type="button" onClick={() => toggleSession(session.id)} style={sessionHeader}>
-                <div>
-                  <h2 style={sessionTitle}>{session.name} {sessionOpen ? "▲" : "▼"}</h2>
-                  <p style={sessionMeta}>
-                    {formatDate(session.date)} · {session.sets} sets · Total weight lifted: {session.volume.toLocaleString()} lb
-                  </p>
-                </div>
-                <span style={liftVolume}>{session.volume.toLocaleString()} lb</span>
-              </button>
+              <article key={session.id} style={sessionCard}>
+                <button type="button" onClick={() => toggleSession(session.id)} style={sessionHeader}>
+                  <div>
+                    <h2 style={sessionTitle}>
+                      {session.name} {sessionOpen ? "▲" : "▼"}
+                    </h2>
+                    <p style={sessionMeta}>
+                      {formatDate(session.date)} · {session.sets} sets · Total weight lifted:{" "}
+                      {session.volume.toLocaleString()} lb
+                    </p>
+                  </div>
+                  <span style={liftVolume}>{session.volume.toLocaleString()} lb</span>
+                </button>
 
-              {sessionOpen && (
-                <div style={liftList}>
-                  {session.lifts.map(({ lift, index }) => {
-                    const liftId = `${session.id}-${index}`;
-                    const liftOpen = Boolean(openLifts[liftId]);
-                    const sets = getLiftSets(lift);
+                {sessionOpen && (
+                  <div style={liftList}>
+                    {session.lifts.map(({ lift, index }) => {
+                      const liftId = `${session.id}-${index}`;
+                      const liftOpen = Boolean(openLifts[liftId]);
+                      const sets = getLiftSets(lift);
 
-                    return (
-                      <div key={liftId} style={liftRow}>
-                        <button type="button" onClick={() => toggleLift(liftId)} style={liftSummary}>
-                          <div>
-                            <strong style={liftName}>{getBaseExercise(lift)} {liftOpen ? "▲" : "▼"}</strong>
-                            <p style={setLine}>
-                              {lift.variation ? `${lift.variation} · ` : ""}
-                              Total {getBaseExercise(lift).toLowerCase()} volume: {calculateLiftVolume(lift).toLocaleString()} lb
-                            </p>
-                          </div>
-                          <span style={liftVolume}>{sets.length} sets</span>
-                        </button>
-
-                        {liftOpen && (
-                          <div style={setDetails}>
-                            {sets.length > 0 ? sets.map((set, setIndex) => (
-                              <p key={setIndex} style={setDetailLine}>
-                                {formatLoggedSet(set)}
+                      return (
+                        <div key={liftId} style={liftRow}>
+                          <button type="button" onClick={() => toggleLift(liftId)} style={liftSummary}>
+                            <div>
+                              <strong style={liftName}>
+                                {getBaseExercise(lift)} {liftOpen ? "▲" : "▼"}
+                              </strong>
+                              <p style={setLine}>
+                                {lift.variation ? `${lift.variation} · ` : ""}
+                                Total {getBaseExercise(lift).toLowerCase()} volume:{" "}
+                                {calculateLiftVolume(lift).toLocaleString()} lb
                               </p>
-                            )) : <p style={setDetailLine}>No sets logged</p>}
-                            <div style={liftActions}>
-                              <button type="button" onClick={() => startEditLift(session.id, index, lift)} style={editBtn}>
-                                Edit
-                              </button>
-                              <button type="button" onClick={() => setConfirmDelete({ sessionId: session.id, liftIndex: index })} style={deleteBtn}>
-                                Delete
-                              </button>
                             </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                  <button type="button" onClick={() => setConfirmDeleteSession(session.id)} style={deleteWorkoutBtn}>
-                    Delete Workout
-                  </button>
-                </div>
-              )}
-            </article>
+                            <span style={liftVolume}>{sets.length} sets</span>
+                          </button>
+
+                          {liftOpen && (
+                            <div style={setDetails}>
+                              {sets.length > 0 ? (
+                                sets.map((set, setIndex) => (
+                                  <p key={setIndex} style={setDetailLine}>
+                                    {formatLoggedSet(set)}
+                                  </p>
+                                ))
+                              ) : (
+                                <p style={setDetailLine}>No sets logged</p>
+                              )}
+                              <div style={liftActions}>
+                                <button
+                                  type="button"
+                                  onClick={() => startEditLift(session.id, index, lift)}
+                                  style={editBtn}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setConfirmDelete({ sessionId: session.id, liftIndex: index })}
+                                  style={deleteBtn}
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                    <button type="button" onClick={() => setConfirmDeleteSession(session.id)} style={deleteWorkoutBtn}>
+                      Delete Workout
+                    </button>
+                  </div>
+                )}
+              </article>
             );
           })}
         </section>
@@ -280,7 +310,7 @@ function filterSessions(sessions, search) {
     .map((session) => ({
       ...session,
       lifts: session.lifts.filter(({ lift }) =>
-        `${session.name} ${getBaseExercise(lift)} ${lift.variation || ""}`.toLowerCase().includes(query)
+        `${session.name} ${getBaseExercise(lift)} ${lift.variation || ""}`.toLowerCase().includes(query),
       ),
     }))
     .filter((session) => session.lifts.length > 0);

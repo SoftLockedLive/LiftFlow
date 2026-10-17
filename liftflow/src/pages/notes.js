@@ -72,7 +72,9 @@ export default function Notes() {
                 <p style={eyebrow}>Workout Recap</p>
                 <h2 style={recapTitle}>{recap.focus}</h2>
               </div>
-              <button type="button" onClick={() => dismissRecap(setRecap)} style={dismissBtn}>Dismiss</button>
+              <button type="button" onClick={() => dismissRecap(setRecap)} style={dismissBtn}>
+                Dismiss
+              </button>
             </div>
             <div style={recapStats}>
               <RecapStat label="Lifts" value={recap.lifts || 0} />
@@ -80,7 +82,11 @@ export default function Notes() {
               <RecapStat label="Volume" value={`${Number(recap.volume || 0).toLocaleString()} lb`} />
               <RecapStat label="PRs" value={recap.prs?.length || 0} />
             </div>
-            {recap.addedLifts > 0 && <p style={recapCopy}>{recap.addedLifts} added lift{recap.addedLifts === 1 ? "" : "s"} included in history.</p>}
+            {recap.addedLifts > 0 && (
+              <p style={recapCopy}>
+                {recap.addedLifts} added lift{recap.addedLifts === 1 ? "" : "s"} included in history.
+              </p>
+            )}
           </div>
         )}
         <h2 style={cardTitle}>How did it go?</h2>
@@ -136,12 +142,16 @@ export default function Notes() {
           {editingId ? "Save Changes" : "Save Note"}
         </button>
         {editingId && (
-          <button type="button" onClick={() => {
-            setEditingId(null);
-            setLift("");
-            setText("");
-            setLevel("solid");
-          }} style={cancelBtn}>
+          <button
+            type="button"
+            onClick={() => {
+              setEditingId(null);
+              setLift("");
+              setText("");
+              setLevel("solid");
+            }}
+            style={cancelBtn}
+          >
             Cancel Edit
           </button>
         )}
@@ -168,7 +178,9 @@ export default function Notes() {
                       <span style={emoji}>{noteLevel.emoji}</span>
                       {note.lift || noteLevel.label}
                     </h2>
-                    <p style={dateText}>{formatDate(note.date)} · {noteLevel.label}</p>
+                    <p style={dateText}>
+                      {formatDate(note.date)} · {noteLevel.label}
+                    </p>
                   </div>
                   <div style={noteActions}>
                     <button type="button" onClick={() => startEdit(note)} style={editBtn}>

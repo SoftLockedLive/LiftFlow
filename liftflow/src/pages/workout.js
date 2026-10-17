@@ -288,7 +288,9 @@ export default function Workout() {
 
     setSession((prev) => {
       const current = getSafeSession(prev);
-      const extraLifts = (Array.isArray(current.__extraLifts) ? current.__extraLifts : []).filter((item) => item.id !== lift.id);
+      const extraLifts = (Array.isArray(current.__extraLifts) ? current.__extraLifts : []).filter(
+        (item) => item.id !== lift.id,
+      );
       const copy = { ...current, __extraLifts };
       delete copy[lift.id];
 
@@ -327,9 +329,13 @@ export default function Workout() {
   const program = [...baseProgram, ...extraProgram];
   const focusName = plan.__meta?.[selectedDay]?.name || selectedDay;
   const recovery = plan.__meta?.[selectedDay]?.recovery;
-  const warmup = Array.isArray(plan.__meta?.[selectedDay]?.warmup) ? plan.__meta[selectedDay].warmup.filter(Boolean) : [];
+  const warmup = Array.isArray(plan.__meta?.[selectedDay]?.warmup)
+    ? plan.__meta[selectedDay].warmup.filter(Boolean)
+    : [];
   const emphasis = plan.__meta?.[selectedDay]?.emphasis || "";
-  const actionCards = Array.isArray(plan.__meta?.[selectedDay]?.actionCards) ? plan.__meta[selectedDay].actionCards.filter(Boolean) : [];
+  const actionCards = Array.isArray(plan.__meta?.[selectedDay]?.actionCards)
+    ? plan.__meta[selectedDay].actionCards.filter(Boolean)
+    : [];
   const splitExerciseOptions = getSplitExerciseOptions(plan, selectedDay, addSearch);
 
   return (
@@ -374,14 +380,20 @@ export default function Workout() {
         <section style={recoveryCard}>
           <p style={eyebrow}>Recovery Day</p>
           <h2 style={recoveryTitle}>{focusName}</h2>
-          <p style={recoveryMeta}>{recovery.activity} · {recovery.duration} · {recovery.intensity}</p>
+          <p style={recoveryMeta}>
+            {recovery.activity} · {recovery.duration} · {recovery.intensity}
+          </p>
           {recovery.notes && <p style={recoveryNotes}>{recovery.notes}</p>}
         </section>
       ) : program.length === 0 ? (
         <section style={empty}>
           <span>No workout planned for {selectedDay}.</span>
-          <button type="button" onClick={() => router.push("/plan")} style={emptyAction}>Build Program</button>
-          <button type="button" onClick={openAddExercise} style={emptyAction}>Add One Lift</button>
+          <button type="button" onClick={() => router.push("/plan")} style={emptyAction}>
+            Build Program
+          </button>
+          <button type="button" onClick={openAddExercise} style={emptyAction}>
+            Add One Lift
+          </button>
         </section>
       ) : (
         <section style={list}>
@@ -396,7 +408,12 @@ export default function Workout() {
           {actionCards.length > 0 && (
             <section style={actionGrid}>
               {actionCards.map((card, index) => (
-                <button key={card.href || `${card.label}-${index}`} type="button" onClick={() => card.href && router.push(card.href)} style={actionCard}>
+                <button
+                  key={card.href || `${card.label}-${index}`}
+                  type="button"
+                  onClick={() => card.href && router.push(card.href)}
+                  style={actionCard}
+                >
                   <strong>{formatText(card.label, "Open")}</strong>
                   <span>{formatText(card.description, "")}</span>
                 </button>
@@ -480,7 +497,12 @@ export default function Workout() {
             const swapped = performedExercise !== lift.exercise;
             const loadProfile = getLoadProfile(swapped ? { exercise: performedExercise } : lift);
             const activeLift = swapped
-              ? { ...lift, exercise: performedExercise, baseExercise: normalizeExerciseName(performedExercise), ...loadProfile }
+              ? {
+                  ...lift,
+                  exercise: performedExercise,
+                  baseExercise: normalizeExerciseName(performedExercise),
+                  ...loadProfile,
+                }
               : { ...lift, ...loadProfile };
             const activePr = swapped ? prMap[normalizeExerciseName(performedExercise)] : lift.prRecord;
             const coach = swapped ? buildCoachRecommendation(activeLift, workouts) : lift.coachRecommendation;
@@ -516,11 +538,7 @@ export default function Workout() {
                         Remove
                       </button>
                     )}
-                    {lift.targetType !== "time" && activePr && (
-                      <span style={prBadge}>
-                        {formatPR(activePr)}
-                      </span>
-                    )}
+                    {lift.targetType !== "time" && activePr && <span style={prBadge}>{formatPR(activePr)}</span>}
                     <button
                       type="button"
                       onClick={() => updateVariation(lift.id, { open: !variationDraft.open })}
@@ -582,14 +600,21 @@ export default function Workout() {
                       <p style={coachContextNote}>No ramp needed before this working weight.</p>
                     )}
                     {coach.contextNotes?.map((note) => (
-                      <p key={note} style={coachContextNote}>{note}</p>
+                      <p key={note} style={coachContextNote}>
+                        {note}
+                      </p>
                     ))}
                     <div style={coachPlanRow}>
                       {coach.workingSetPlan && <span style={coachPlan}>{coach.workingSetPlan}</span>}
                       <strong style={coachAction}>{coach.nextAction}</strong>
                     </div>
                     {liveCoach && (
-                      <div style={{ ...liveCoachBox, ...(liveCoach.tone === "up" ? liveCoachUp : liveCoach.tone === "down" ? liveCoachDown : {}) }}>
+                      <div
+                        style={{
+                          ...liveCoachBox,
+                          ...(liveCoach.tone === "up" ? liveCoachUp : liveCoach.tone === "down" ? liveCoachDown : {}),
+                        }}
+                      >
                         <strong>{liveCoach.label}</strong>
                         <span>{liveCoach.detail}</span>
                       </div>
@@ -641,7 +666,9 @@ export default function Workout() {
 
                 <div style={workingSetHeader}>
                   <span style={workingSetLabel}>Working sets</span>
-                  <span style={workingSetMeta}>{lift.targetType === "time" ? "Track time for history." : "Counts for history and PRs."}</span>
+                  <span style={workingSetMeta}>
+                    {lift.targetType === "time" ? "Track time for history." : "Counts for history and PRs."}
+                  </span>
                 </div>
 
                 {workingSets.length === 0 ? (
@@ -651,42 +678,51 @@ export default function Workout() {
                 ) : (
                   <div style={setList}>
                     {workingSets.map((_, i) => (
-                    <div key={i} className="field-row" style={setRow}>
-                      <input
-                        type="number"
-                        placeholder={`Set ${i + 1} weight`}
-                        value={workingSets[i]?.weight || ""}
-                        onChange={(event) => updateSet(lift.id, i, "weight", event.target.value)}
-                      />
-                      {lift.targetType === "time" ? (
-                        <input
-                          placeholder={`Set ${i + 1} time`}
-                          value={workingSets[i]?.duration || ""}
-                          onChange={(event) => updateSet(lift.id, i, "duration", event.target.value)}
-                        />
-                      ) : (
+                      <div key={i} className="field-row" style={setRow}>
                         <input
                           type="number"
-                          placeholder={`Set ${i + 1} reps`}
-                          value={workingSets[i]?.reps || ""}
-                          onChange={(event) => updateSet(lift.id, i, "reps", event.target.value)}
+                          placeholder={`Set ${i + 1} weight`}
+                          value={workingSets[i]?.weight || ""}
+                          onChange={(event) => updateSet(lift.id, i, "weight", event.target.value)}
                         />
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => removeSet(lift.id, i)}
-                        style={removeSetBtn}
-                        aria-label={`Remove set ${i + 1}`}
-                      >
-                        -
-                      </button>
-                    </div>
+                        {lift.targetType === "time" ? (
+                          <input
+                            placeholder={`Set ${i + 1} time`}
+                            value={workingSets[i]?.duration || ""}
+                            onChange={(event) => updateSet(lift.id, i, "duration", event.target.value)}
+                          />
+                        ) : (
+                          <input
+                            type="number"
+                            placeholder={`Set ${i + 1} reps`}
+                            value={workingSets[i]?.reps || ""}
+                            onChange={(event) => updateSet(lift.id, i, "reps", event.target.value)}
+                          />
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeSet(lift.id, i)}
+                          style={removeSetBtn}
+                          aria-label={`Remove set ${i + 1}`}
+                        >
+                          -
+                        </button>
+                      </div>
                     ))}
                   </div>
                 )}
 
                 {workingSets.length > 0 && (
-                  <button type="button" onClick={() => addSet(lift.id)} style={{ ...addSetBtn, color: dayAccent, borderColor: tint(dayAccent, 0.38), background: colors.surfaceSoft }}>
+                  <button
+                    type="button"
+                    onClick={() => addSet(lift.id)}
+                    style={{
+                      ...addSetBtn,
+                      color: dayAccent,
+                      borderColor: tint(dayAccent, 0.38),
+                      background: colors.surfaceSoft,
+                    }}
+                  >
                     Add Set
                   </button>
                 )}
@@ -769,7 +805,9 @@ export default function Workout() {
                       >
                         <span style={libraryText}>
                           <strong style={libraryName}>{lift.exercise}</strong>
-                          <span style={libraryMeta}>{lift.sourceDay} · {getMuscleGroup(lift.muscleGroup).label} · {formatWorkoutTarget(lift)}</span>
+                          <span style={libraryMeta}>
+                            {lift.sourceDay} · {getMuscleGroup(lift.muscleGroup).label} · {formatWorkoutTarget(lift)}
+                          </span>
                         </span>
                         <span style={libraryAdd}>Add</span>
                       </button>
@@ -785,17 +823,30 @@ export default function Workout() {
                   value={addDraft.exercise}
                   onChange={(event) => setAddDraft({ ...addDraft, exercise: event.target.value })}
                 />
-                <select value={addDraft.muscleGroup} onChange={(event) => setAddDraft({ ...addDraft, muscleGroup: event.target.value })}>
+                <select
+                  value={addDraft.muscleGroup}
+                  onChange={(event) => setAddDraft({ ...addDraft, muscleGroup: event.target.value })}
+                >
                   {["chest", "back", "legs", "shoulders", "arms", "core", "other"].map((group) => (
-                    <option key={group} value={group}>{getMuscleGroup(group).label}</option>
+                    <option key={group} value={group}>
+                      {getMuscleGroup(group).label}
+                    </option>
                   ))}
                 </select>
-                <select value={addDraft.loadType} onChange={(event) => setAddDraft({ ...addDraft, loadType: event.target.value })}>
+                <select
+                  value={addDraft.loadType}
+                  onChange={(event) => setAddDraft({ ...addDraft, loadType: event.target.value })}
+                >
                   {["barbell", "machine", "dumbbell", "bodyweight", "free"].map((type) => (
-                    <option key={type} value={type}>{formatLoadType(type)}</option>
+                    <option key={type} value={type}>
+                      {formatLoadType(type)}
+                    </option>
                   ))}
                 </select>
-                <select value={addDraft.targetType} onChange={(event) => setAddDraft({ ...addDraft, targetType: event.target.value })}>
+                <select
+                  value={addDraft.targetType}
+                  onChange={(event) => setAddDraft({ ...addDraft, targetType: event.target.value })}
+                >
                   <option value="reps">Reps</option>
                   <option value="time">Time</option>
                 </select>
@@ -924,7 +975,9 @@ function getSplitExerciseOptions(plan, selectedDay, search = "") {
 }
 
 function dayHasExercise(plan, day, exerciseKey) {
-  return (Array.isArray(plan?.[day]) ? plan[day] : []).some((lift) => normalizeExerciseName(lift.exercise) === exerciseKey);
+  return (Array.isArray(plan?.[day]) ? plan[day] : []).some(
+    (lift) => normalizeExerciseName(lift.exercise) === exerciseKey,
+  );
 }
 
 function getLoggedSets(sets) {
@@ -1010,9 +1063,21 @@ function formatLoadType(type) {
 function formatText(value, fallback = "") {
   if (value === undefined || value === null || value === "") return fallback;
   if (typeof value === "string" || typeof value === "number") return String(value);
-  if (Array.isArray(value)) return value.map((item) => formatText(item, "")).filter(Boolean).join(", ") || fallback;
+  if (Array.isArray(value))
+    return (
+      value
+        .map((item) => formatText(item, ""))
+        .filter(Boolean)
+        .join(", ") || fallback
+    );
   if (typeof value === "object") {
-    if ("sets" in value || "reps" in value) return [value.sets, value.reps].filter(Boolean).map((item) => formatText(item, "")).join(" x ") || fallback;
+    if ("sets" in value || "reps" in value)
+      return (
+        [value.sets, value.reps]
+          .filter(Boolean)
+          .map((item) => formatText(item, ""))
+          .join(" x ") || fallback
+      );
     if ("label" in value) return formatText(value.label, fallback);
     if ("name" in value) return formatText(value.name, fallback);
   }
@@ -1033,7 +1098,12 @@ function getVariationOptions(lift) {
     options.push("Conventional Deadlift", "Romanian Deadlift", "Sumo Deadlift", "Trap Bar Deadlift");
   }
   if (name.includes("overhead press") || name.includes("shoulder press")) {
-    options.push("Standing Overhead Press", "Seated Shoulder Press", "Dumbbell Shoulder Press", "Machine Shoulder Press");
+    options.push(
+      "Standing Overhead Press",
+      "Seated Shoulder Press",
+      "Dumbbell Shoulder Press",
+      "Machine Shoulder Press",
+    );
   }
   if (name.includes("lateral raise")) {
     options.push("Dumbbell Lateral Raise", "Cable Lateral Raise", "Machine Lateral Raise");

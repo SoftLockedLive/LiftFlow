@@ -129,9 +129,10 @@ export function buildLiveSetRecommendation(lift, loggedSets, coach) {
 
   return {
     label: `Next set: stay at ${lastWeight} lb`,
-    detail: lastReps === target.max
-      ? "You hit the top of the range. Hold this weight for the workout; progress next time if the sets stay strong."
-      : "You are inside the target range.",
+    detail:
+      lastReps === target.max
+        ? "You hit the top of the range. Hold this weight for the workout; progress next time if the sets stay strong."
+        : "You are inside the target range.",
     tone: "hold",
   };
 }
@@ -186,7 +187,10 @@ function buildWarmupRamp(workingWeight, target, loadProfile) {
   }
 
   if (workingWeight >= 100) {
-    ramp.push({ weight: rampWeight(workingWeight, loadProfile.minimumLoad, barbellRamp ? 0.6 : 0.7), reps: target.max <= 5 ? 3 : 5 });
+    ramp.push({
+      weight: rampWeight(workingWeight, loadProfile.minimumLoad, barbellRamp ? 0.6 : 0.7),
+      reps: target.max <= 5 ? 3 : 5,
+    });
   }
 
   if (workingWeight >= 185 || target.max <= 5) {
@@ -210,20 +214,22 @@ function dedupeWarmups(sets) {
 }
 
 function parseRepTarget(reps) {
-  const numbers = String(reps || "")
-    .match(/\d+/g)
-    ?.map((value) => Number(value))
-    .filter((value) => Number.isFinite(value) && value > 0) || [];
+  const numbers =
+    String(reps || "")
+      .match(/\d+/g)
+      ?.map((value) => Number(value))
+      .filter((value) => Number.isFinite(value) && value > 0) || [];
 
   if (numbers.length === 0) return { min: 1, max: 1 };
   return { min: Math.min(...numbers), max: Math.max(...numbers) };
 }
 
 function parseSetCount(sets) {
-  const numbers = String(sets || "")
-    .match(/\d+/g)
-    ?.map((value) => Number(value))
-    .filter((value) => Number.isFinite(value) && value > 0) || [];
+  const numbers =
+    String(sets || "")
+      .match(/\d+/g)
+      ?.map((value) => Number(value))
+      .filter((value) => Number.isFinite(value) && value > 0) || [];
   return numbers[0] || 0;
 }
 
@@ -231,7 +237,8 @@ function gradeLatestSession(sets, latestWeight, target, setCount) {
   const latestSets = sets.filter((set) => Number(set.weight || 0) === latestWeight);
   const evaluatedSets = setCount > 0 ? sets.slice(0, setCount) : sets;
   const fullSetCount = setCount === 0 || evaluatedSets.length >= setCount;
-  const allAtTopWeight = evaluatedSets.length > 0 && evaluatedSets.every((set) => Number(set.weight || 0) === latestWeight);
+  const allAtTopWeight =
+    evaluatedSets.length > 0 && evaluatedSets.every((set) => Number(set.weight || 0) === latestWeight);
   const reps = latestSets.map((set) => Number(set.reps || 0));
   const evaluatedReps = evaluatedSets.map((set) => Number(set.reps || 0));
   const avgReps = reps.length ? round1(reps.reduce((sum, value) => sum + value, 0) / reps.length) : 0;
@@ -309,8 +316,10 @@ function estimateFromPR(prWeight, target, increment, minimumLoad) {
 function buildDetail(direction, latestWeight, grade, target, context, jump) {
   const confidence = context.confidence === "high" ? "" : " Treat this as an estimate.";
   const setSummary = `${grade.completedTopSets}/${grade.requiredSets} top sets, lowest ${grade.lowestRep || "--"} reps`;
-  if (direction === "increase") return `Last time: ${setSummary} at ${latestWeight} lb against ${target.min}-${target.max}. Add ${jump || 5} lb because the programmed work was completed cleanly.${confidence}`;
-  if (direction === "reduce") return `Last time: ${setSummary} at ${latestWeight} lb, below the ${target.min}-${target.max} target. Reduce slightly and rebuild.${confidence}`;
+  if (direction === "increase")
+    return `Last time: ${setSummary} at ${latestWeight} lb against ${target.min}-${target.max}. Add ${jump || 5} lb because the programmed work was completed cleanly.${confidence}`;
+  if (direction === "reduce")
+    return `Last time: ${setSummary} at ${latestWeight} lb, below the ${target.min}-${target.max} target. Reduce slightly and rebuild.${confidence}`;
   return `Last time: ${setSummary} at ${latestWeight} lb against ${target.min}-${target.max}. Hold until every set is clean.${confidence}`;
 }
 

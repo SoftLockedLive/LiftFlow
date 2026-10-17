@@ -60,7 +60,9 @@ export default function Settings() {
       <section style={card}>
         <div>
           <h2 style={cardTitle}>Data Backup</h2>
-          <p style={copy}>Export your local LiftFlow data before changing phones, clearing browser storage, or testing big edits.</p>
+          <p style={copy}>
+            Export your local LiftFlow data before changing phones, clearing browser storage, or testing big edits.
+          </p>
         </div>
         <div style={actions}>
           <button type="button" className="primary" onClick={exportData} style={actionBtn}>
@@ -76,7 +78,9 @@ export default function Settings() {
       <section style={dangerCard}>
         <div>
           <h2 style={cardTitle}>Reset</h2>
-          <p style={copy}>Clear only LiftFlow data stored on this device. This does not touch anything outside the app.</p>
+          <p style={copy}>
+            Clear only LiftFlow data stored on this device. This does not touch anything outside the app.
+          </p>
         </div>
         <button type="button" onClick={() => setConfirmReset(true)} style={dangerBtn}>
           Reset App Data

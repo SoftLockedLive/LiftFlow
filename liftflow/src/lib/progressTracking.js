@@ -60,10 +60,12 @@ export function getDailyCheckIns() {
 
   const normalized = [...checkIns, ...proteinMigrations]
     .filter((entry) => entry && entry.date)
-    .map((entry) => normalizeCheckIn({
-      ...entry,
-      protein: entry.protein ?? proteinLog[entry.date],
-    }))
+    .map((entry) =>
+      normalizeCheckIn({
+        ...entry,
+        protein: entry.protein ?? proteinLog[entry.date],
+      }),
+    )
     .sort((a, b) => a.date.localeCompare(b.date));
 
   if (!rawSaved && proteinMigrations.length) {
@@ -90,7 +92,7 @@ export function saveDailyCheckIn(entry) {
   });
 
   const next = [...existing.filter((item) => item.date !== date), nextEntry].sort((a, b) =>
-    a.date.localeCompare(b.date)
+    a.date.localeCompare(b.date),
   );
   localStorage.setItem(CHECK_INS_KEY, JSON.stringify(next));
   syncProteinForCheckIn(nextEntry);
@@ -200,7 +202,10 @@ export function buildRecoverySummary(checkIns, targets) {
   const stressAverage = averageDaily(recoveryEntries, "stress", 7);
   const factors = [];
 
-  if (isFiniteNumber(latest.sleepHours) && latest.sleepHours < Math.min(targets.sleepGoalHours, sleepAverage || targets.sleepGoalHours) - 0.5) {
+  if (
+    isFiniteNumber(latest.sleepHours) &&
+    latest.sleepHours < Math.min(targets.sleepGoalHours, sleepAverage || targets.sleepGoalHours) - 0.5
+  ) {
     factors.push("sleep below recent average");
   }
   if (Number(latest.soreness || 0) >= 4 || Number(sorenessAverage || 0) >= 4) factors.push("soreness is high");
@@ -213,7 +218,11 @@ export function buildRecoverySummary(checkIns, targets) {
   if (factors.length === 1) {
     return { label: "Normal", copy: `Recovery is normal with ${factors[0]} flagged.`, factors };
   }
-  return { label: "Good", copy: "Recovery looks good based on your recent check-ins.", factors: ["sleep, energy, soreness, and stress"] };
+  return {
+    label: "Good",
+    copy: "Recovery looks good based on your recent check-ins.",
+    factors: ["sleep, energy, soreness, and stress"],
+  };
 }
 
 export function buildInsights(checkIns, targets) {
@@ -227,13 +236,20 @@ export function buildInsights(checkIns, targets) {
   if (weights.length < 7) {
     insights.push("More bodyweight data is needed before calculating a reliable trend.");
   } else if (isFiniteNumber(rate)) {
-    insights.push(`Your 7-day average weight ${rate >= 0 ? "increased" : "decreased"} by ${Math.abs(rate)} ${targets.weightUnit}.`);
-    if (weights.length >= 10 && rate >= targets.targetWeeklyWeightChangeMin && rate <= targets.targetWeeklyWeightChangeMax) {
+    insights.push(
+      `Your 7-day average weight ${rate >= 0 ? "increased" : "decreased"} by ${Math.abs(rate)} ${targets.weightUnit}.`,
+    );
+    if (
+      weights.length >= 10 &&
+      rate >= targets.targetWeeklyWeightChangeMin &&
+      rate <= targets.targetWeeklyWeightChangeMax
+    ) {
       insights.push(`Your current rate matches your ${formatGoalType(targets.goalType)} target.`);
     }
   }
 
-  if (protein.days > 0) insights.push(`Protein has reached its target on ${protein.hits} of the last ${protein.days} days.`);
+  if (protein.days > 0)
+    insights.push(`Protein has reached its target on ${protein.hits} of the last ${protein.days} days.`);
   if (isFiniteNumber(sleep) && sleep < targets.sleepGoalHours) insights.push("Average sleep is below your goal.");
   if (isFiniteNumber(steps.delta) && steps.delta < 0) insights.push("Steps are lower than last week.");
 
@@ -256,8 +272,18 @@ function normalizeTargets(targets) {
     proteinTarget: clampNumber(targets.proteinTarget, 0, 1000, DEFAULT_TARGETS.proteinTarget),
     stepGoal: clampNumber(targets.stepGoal, 0, 100000, DEFAULT_TARGETS.stepGoal),
     sleepGoalHours: clampNumber(targets.sleepGoalHours, 0, 24, DEFAULT_TARGETS.sleepGoalHours),
-    targetWeeklyWeightChangeMin: clampNumber(range[0] ?? targets.targetWeeklyWeightChangeMin, -10, 10, DEFAULT_TARGETS.targetWeeklyWeightChangeMin),
-    targetWeeklyWeightChangeMax: clampNumber(range[1] ?? targets.targetWeeklyWeightChangeMax, -10, 10, DEFAULT_TARGETS.targetWeeklyWeightChangeMax),
+    targetWeeklyWeightChangeMin: clampNumber(
+      range[0] ?? targets.targetWeeklyWeightChangeMin,
+      -10,
+      10,
+      DEFAULT_TARGETS.targetWeeklyWeightChangeMin,
+    ),
+    targetWeeklyWeightChangeMax: clampNumber(
+      range[1] ?? targets.targetWeeklyWeightChangeMax,
+      -10,
+      10,
+      DEFAULT_TARGETS.targetWeeklyWeightChangeMax,
+    ),
     weightUnit: targets.weightUnit === "kg" ? "kg" : "lb",
   };
 }
@@ -288,9 +314,10 @@ function normalizeCheckIn(entry) {
 
   numericFields.forEach((field) => {
     const value = toOptionalNumber(entry[field]);
-    if (value !== undefined) next[field] = ["energy", "hunger", "soreness", "stress"].includes(field)
-      ? clampNumber(value, 1, 5, value)
-      : value;
+    if (value !== undefined)
+      next[field] = ["energy", "hunger", "soreness", "stress"].includes(field)
+        ? clampNumber(value, 1, 5, value)
+        : value;
   });
 
   return next;

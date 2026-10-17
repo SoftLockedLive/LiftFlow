@@ -222,7 +222,8 @@ export const PROGRAM_TEMPLATES = [
   {
     id: "peyto-split",
     name: "Peytonium ULPPL",
-    summary: "Five-day ULPPL powerbuilding split built around bench, squat, and deadlift with 55-minute lifting sessions.",
+    summary:
+      "Five-day ULPPL powerbuilding split built around bench, squat, and deadlift with 55-minute lifting sessions.",
     days: {
       Monday: day(
         "Upper",
@@ -233,7 +234,13 @@ export const PROGRAM_TEMPLATES = [
           lift("Incline Bench Press", "chest", "2", "8-12", "Controlled stretch and strong press."),
           lift("Lateral Raise", "shoulders", "2-3", "10-15", "Superset with Bayesian Curl. Control the weight."),
           lift("Bayesian Curl", "arms", "3", "8-12", "Superset with Lateral Raise. Full stretch at the bottom."),
-          lift("Triceps Extension", "arms", "3", "8-12", "Superset with Lateral Raise/Bayesian Curl. Keep elbows controlled."),
+          lift(
+            "Triceps Extension",
+            "arms",
+            "3",
+            "8-12",
+            "Superset with Lateral Raise/Bayesian Curl. Keep elbows controlled.",
+          ),
         ],
         [
           warmup("Easy row", "time", "3 min"),
@@ -322,11 +329,23 @@ export const PROGRAM_TEMPLATES = [
         [
           lift("Cable Crunch", "core", "3", "10-15", "Controlled reps. Focus on curling your torso with your abs."),
           lift("Hanging Leg Raise", "core", "3", "8-15", "Control the movement. Avoid swinging."),
-          lift("Neck Flexion", "neck", "2", "12-20", "Controlled reps. Use light resistance and a comfortable range of motion."),
-          lift("Neck Extension", "neck", "2", "12-20", "Controlled reps. Use light resistance and avoid forcing the range of motion."),
+          lift(
+            "Neck Flexion",
+            "neck",
+            "2",
+            "12-20",
+            "Controlled reps. Use light resistance and a comfortable range of motion.",
+          ),
+          lift(
+            "Neck Extension",
+            "neck",
+            "2",
+            "12-20",
+            "Controlled reps. Use light resistance and avoid forcing the range of motion.",
+          ),
           lift("Wrist Curl", "arms", "2", "10-15", "Controlled reps. Don't rush the eccentric."),
           lift("Reverse Wrist Curl", "arms", "2", "10-15", "Light weight and controlled movement."),
-        ], 
+        ],
         [
           warmup("Easy incline walk", "time", "3-5 min"),
           warmup("Ankle rocks", "reps", { sets: "1", reps: "10/side" }),
@@ -334,7 +353,13 @@ export const PROGRAM_TEMPLATES = [
         ],
       ),
 
-      Sunday: recovery("Rest", "Full Rest Day", "All day", "Easy", "No training. Prioritize sleep, hydration, and food."),
+      Sunday: recovery(
+        "Rest",
+        "Full Rest Day",
+        "All day",
+        "Easy",
+        "No training. Prioritize sleep, hydration, and food.",
+      ),
     },
   },
 ];
@@ -468,12 +493,24 @@ export const RECOVERY_TEMPLATES = [
   {
     id: "active-recovery",
     name: "Active Recovery",
-    config: recovery("Active Recovery", "Light movement", "20-40 min", "Easy", "Move enough to feel better, not tired."),
+    config: recovery(
+      "Active Recovery",
+      "Light movement",
+      "20-40 min",
+      "Easy",
+      "Move enough to feel better, not tired.",
+    ),
   },
   {
     id: "zone-2",
     name: "Zone 2 Cardio",
-    config: recovery("Zone 2", "Bike, incline walk, or easy cardio", "30-45 min", "Conversational", "Keep breathing controlled."),
+    config: recovery(
+      "Zone 2",
+      "Bike, incline walk, or easy cardio",
+      "30-45 min",
+      "Conversational",
+      "Keep breathing controlled.",
+    ),
   },
   {
     id: "running",
@@ -498,12 +535,24 @@ export const RECOVERY_TEMPLATES = [
   {
     id: "upper-mobility",
     name: "Upper-Body Mobility",
-    config: recovery("Upper Mobility", "Shoulders, pecs, lats, T-spine", "12-20 min", "Easy", "Keep shoulders pain-free."),
+    config: recovery(
+      "Upper Mobility",
+      "Shoulders, pecs, lats, T-spine",
+      "12-20 min",
+      "Easy",
+      "Keep shoulders pain-free.",
+    ),
   },
   {
     id: "lower-mobility",
     name: "Lower-Body Mobility",
-    config: recovery("Lower Mobility", "Hips, hamstrings, calves, ankles", "12-20 min", "Easy", "Move gently through range."),
+    config: recovery(
+      "Lower Mobility",
+      "Hips, hamstrings, calves, ankles",
+      "12-20 min",
+      "Easy",
+      "Move gently through range.",
+    ),
   },
 ];
 
