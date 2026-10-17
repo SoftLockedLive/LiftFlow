@@ -1,0 +1,3 @@
+# Formatting-only commits; GitHub blame and `git blame` skip these.
+# Prettier format of every file
+df632aab439b8dca41f6f1fb91c55ca30a0304cc
