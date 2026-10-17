@@ -38,6 +38,10 @@ export default function Notes() {
     };
 
     setNotes(editingId ? updateNote(editingId, note) : addNote(note));
+    resetForm();
+  }
+
+  function resetForm() {
     setEditingId(null);
     setLift("");
     setCustomLift("");
@@ -46,12 +50,17 @@ export default function Notes() {
   }
 
   function startEdit(note) {
+    const subject = note.lift || "";
+    // Subjects that aren't in the split dropdown (custom ones, or a renamed day) go in the custom field.
+    const inOptions = !subject || options.some((option) => option.value === subject);
     setEditingId(note.id);
-    setLift(note.lift || "");
-    setCustomLift("");
+    setLift(inOptions ? subject : "custom");
+    setCustomLift(inOptions ? "" : subject);
     setText(note.text || "");
     setLevel(note.level || "good");
   }
+
+  const recapPrs = getRecapPrs(recap);
 
   return (
     <div style={wrap}>
@@ -74,8 +83,20 @@ export default function Notes() {
             <RecapStat label="Lifts" value={recap.lifts || 0} />
             <RecapStat label="Sets" value={recap.sets || 0} />
             <RecapStat label="Volume" value={Number(recap.volume || 0).toLocaleString()} unit="lb" />
-            <RecapStat label="PRs" value={recap.prs?.length || 0} highlight={recap.prs?.length > 0} />
+            <RecapStat label="PRs" value={recapPrs.length} highlight={recapPrs.length > 0} />
           </div>
+          {recapPrs.length > 0 && (
+            <ul style={prList} aria-label="New PRs">
+              {recapPrs.map((pr) => (
+                <li key={pr.exercise} style={prRow}>
+                  <span style={prExercise}>{pr.exercise}</span>
+                  <span style={prSet}>
+                    <span style={prWeight}>{pr.weight} lb</span> × {pr.reps}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
           {recap.addedLifts > 0 && (
             <p style={recapCopy}>
               {recap.addedLifts} added lift{recap.addedLifts === 1 ? "" : "s"} included in history.
@@ -143,16 +164,7 @@ export default function Notes() {
         </label>
         <div style={formActions}>
           {editingId && (
-            <button
-              type="button"
-              onClick={() => {
-                setEditingId(null);
-                setLift("");
-                setText("");
-                setLevel("solid");
-              }}
-              style={cancelBtn}
-            >
+            <button type="button" onClick={resetForm} style={cancelBtn}>
               Cancel
             </button>
           )}
@@ -216,6 +228,7 @@ export default function Notes() {
         onConfirm={() => {
           if (!confirmDeleteId) return;
           setNotes(deleteNote(confirmDeleteId));
+          if (confirmDeleteId === editingId) resetForm();
           setConfirmDeleteId(null);
         }}
       />
@@ -232,13 +245,33 @@ function buildSessionOptions(plan) {
   return [...new Set(focuses)].map((focus) => ({ value: focus, label: `${focus} session` }));
 }
 
+// Imported notes may have a missing or junk date; show nothing rather than crash.
 function formatDate(date) {
+  if (date === null || date === undefined || date === "") return "";
+  const parsed = new Date(date);
+  if (Number.isNaN(parsed.getTime())) return "";
   return new Intl.DateTimeFormat("en", {
     month: "short",
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
-  }).format(new Date(date));
+  }).format(parsed);
+}
+
+// One row per exercise (older recaps could list a lift twice), keeping the heaviest set.
+function getRecapPrs(recap) {
+  const best = new Map();
+  (Array.isArray(recap?.prs) ? recap.prs : []).forEach((pr) => {
+    const exercise = String(pr?.exercise || "").trim();
+    if (!exercise) return;
+    const weight = Number(pr.weight) || 0;
+    const reps = Number(pr.reps) || 0;
+    const current = best.get(exercise);
+    if (!current || weight > current.weight || (weight === current.weight && reps > current.reps)) {
+      best.set(exercise, { exercise, weight, reps });
+    }
+  });
+  return [...best.values()];
 }
 
 function getWorkoutRecap() {
@@ -343,6 +376,42 @@ const recapUnit = {
   color: colors.muted,
   fontSize: 12,
   fontWeight: 500,
+};
+
+const prList = {
+  listStyle: "none",
+  margin: "12px 0 0",
+  padding: "4px 12px",
+  borderRadius: radii.lg,
+  border: `1px solid ${tint(colors.accent, 0.25)}`,
+  background: tint(colors.accent, 0.06),
+};
+
+const prRow = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "baseline",
+  gap: 12,
+  padding: "6px 0",
+};
+
+const prExercise = {
+  ...type.body,
+  color: colors.text,
+  minWidth: 0,
+  overflowWrap: "anywhere",
+};
+
+const prSet = {
+  ...type.body,
+  ...type.number,
+  flex: "0 0 auto",
+  whiteSpace: "nowrap",
+};
+
+const prWeight = {
+  color: colors.accent,
+  fontWeight: 600,
 };
 
 const recapCopy = {

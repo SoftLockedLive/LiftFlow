@@ -32,7 +32,9 @@ export default function Settings() {
         return;
       }
 
-      showStatus("Backup imported. Refresh if a page looks stale.");
+      // Pages read storage when they open, so only the header (already on screen) needs telling;
+      // importBackup does that.
+      showStatus("Backup imported");
     } catch {
       showStatus("Import failed. Check the backup file.");
     }
@@ -42,6 +44,8 @@ export default function Settings() {
     Object.keys(localStorage)
       .filter((key) => key.startsWith(STORAGE_PREFIX))
       .forEach((key) => localStorage.removeItem(key));
+    // The header avatar still shows the old name and photo until told to reload the profile.
+    window.dispatchEvent(new Event("liftflow-profile-updated"));
     setConfirmReset(false);
     showStatus("LiftFlow data reset");
   }

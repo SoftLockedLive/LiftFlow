@@ -5,6 +5,8 @@ import { colors, radii, tint, type } from "../lib/theme";
 
 export const NEW_ORIGIN = "https://liftflow.softlockedlive.com";
 const NEW_HOST = NEW_ORIGIN.replace("https://", "");
+// Survives the reload after a move so the welcome message still shows.
+const MOVED_FLAG = "liftflow-moved";
 
 export function isOldSite() {
   return window.location.hostname.endsWith(".vercel.app");
@@ -21,6 +23,7 @@ export default function MoveNotice() {
   useEffect(() => {
     const timer = window.setTimeout(async () => {
       setOnOldSite(isOldSite());
+      if (readMovedFlag()) setStatus("Your data has been moved over. Welcome to the new LiftFlow!");
 
       const encoded = takeTransfer();
       if (!encoded) return;
@@ -56,11 +59,15 @@ export default function MoveNotice() {
   function confirmImport() {
     const imported = importBackup(incoming);
     setIncoming(null);
-    setStatus(
-      imported
-        ? "Your data has been moved over. Welcome to the new LiftFlow!"
-        : "No LiftFlow data was found in that link.",
-    );
+    if (!imported) {
+      setStatus("No LiftFlow data was found in that link.");
+      return;
+    }
+    // The page underneath already loaded the (empty) storage; reload so it shows the moved data.
+    try {
+      sessionStorage.setItem(MOVED_FLAG, "1");
+    } catch {}
+    window.location.reload();
   }
 
   const itemCount = incoming ? Object.keys(incoming).length : 0;
@@ -111,6 +118,16 @@ export default function MoveNotice() {
       />
     </>
   );
+}
+
+function readMovedFlag() {
+  try {
+    const moved = sessionStorage.getItem(MOVED_FLAG);
+    sessionStorage.removeItem(MOVED_FLAG);
+    return Boolean(moved);
+  } catch {
+    return false;
+  }
 }
 
 function clearHash() {

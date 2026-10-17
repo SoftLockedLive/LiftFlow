@@ -1,4 +1,4 @@
-const CACHE_NAME = "liftflow-v1";
+const CACHE_NAME = "liftflow-v2";
 const APP_SHELL = [
   "/",
   "/manifest.webmanifest",
@@ -23,17 +23,21 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") {
+  const { request } = event;
+  if (request.method !== "GET" || new URL(request.url).origin !== self.location.origin) {
     return;
   }
 
+  // Network first; keep a copy of good responses for offline use, but never cache errors.
   event.respondWith(
-    fetch(event.request)
+    fetch(request)
       .then((response) => {
-        const responseCopy = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseCopy));
+        if (response.ok) {
+          const responseCopy = response.clone();
+          event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.put(request, responseCopy)));
+        }
         return response;
       })
-      .catch(() => caches.match(event.request)),
+      .catch(() => caches.match(request)),
   );
 });

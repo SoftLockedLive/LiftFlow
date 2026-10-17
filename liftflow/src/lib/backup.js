@@ -1,5 +1,8 @@
 export const STORAGE_PREFIX = "liftflow_";
 
+// Keys the app stores as a bare string rather than JSON.
+const RAW_STRING_KEYS = new Set(["liftflow_last_workout_day"]);
+
 const TRANSFER_PARAM = "transfer=";
 // Long URLs start failing somewhere past ~2 MB in Chrome; stay well under that.
 const MAX_TRANSFER_LENGTH = 1_000_000;
@@ -30,15 +33,32 @@ export function downloadBackup() {
 }
 
 // Accepts a parsed backup file ({ data }) or a bare key/value map. Returns how many keys were written.
+// Keys in the backup replace the same keys here; keys it doesn't mention are left alone.
+// Skips anything that isn't a LiftFlow key or whose value the app couldn't read back.
 export function importBackup(parsed) {
   const data = parsed?.data && typeof parsed.data === "object" ? parsed.data : parsed;
-  const entries = Object.entries(data || {}).filter(([key]) => key.startsWith(STORAGE_PREFIX));
+  const entries = Object.entries(data && typeof data === "object" ? data : {})
+    .filter(([key]) => key.startsWith(STORAGE_PREFIX))
+    .map(([key, value]) => [key, toStoredValue(key, value)])
+    .filter(([, value]) => value !== null);
 
   entries.forEach(([key, value]) => {
-    localStorage.setItem(key, typeof value === "string" ? value : JSON.stringify(value));
+    localStorage.setItem(key, value);
   });
   if (entries.length) window.dispatchEvent(new Event("liftflow-profile-updated"));
   return entries.length;
+}
+
+function toStoredValue(key, value) {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== "string") return JSON.stringify(value) ?? null;
+  if (RAW_STRING_KEYS.has(key)) return value;
+  try {
+    JSON.parse(value);
+    return value;
+  } catch {
+    return null;
+  }
 }
 
 // Builds a link that carries this device's data to another origin in the URL fragment,

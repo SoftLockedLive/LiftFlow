@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getBigThree } from "../lib/bigThree";
 import { getManualPRs } from "../lib/manualPRs";
-import { calculateLeanMass, getProfile, saveProfile } from "../lib/profile";
+import { calculateLeanMass, getProfile, normalizeSex, saveProfile } from "../lib/profile";
 import { getWorkouts } from "../lib/workoutStorage";
 import { colors, radii, tint, type } from "../lib/theme";
 
@@ -36,6 +36,7 @@ export default function Profile() {
   function save() {
     const normalized = {
       ...profile,
+      sex: normalizeSex(profile.sex),
       bodyweight: profile.bodyweight || profile.weight || "",
     };
 
@@ -76,11 +77,14 @@ export default function Profile() {
 
   const total = getBigThree(profile, workouts, manualPrs).total;
   const leanMass = calculateLeanMass(profile);
-  const weightChange = Number(profile.weight || 0) - Number(profile.startWeight || 0);
+  const currentWeight = Number(profile.weight || profile.bodyweight || 0);
+  const startWeight = Number(profile.startWeight || 0);
+  const weightChange =
+    currentWeight > 0 && startWeight > 0 ? Math.round((currentWeight - startWeight) * 10) / 10 : null;
   const dotsScore = calculateDotsScore({
     total,
     bodyweight: Number(profile.bodyweight || profile.weight || 0),
-    sex: profile.sex,
+    sex: normalizeSex(profile.sex),
     units: profile.units || "lbs",
   });
 
@@ -103,8 +107,12 @@ export default function Profile() {
         <div className="profile-stats" style={statsGrid}>
           <Stat label="Big 3" value={total} unit="lb" />
           <Stat label="DOTS" value={dotsScore || "--"} />
-          <Stat label="Lean mass" value={leanMass} unit="lb" />
-          <Stat label="Change" value={`${weightChange > 0 ? "+" : ""}${weightChange}`} unit="lb" />
+          <Stat label="Lean mass" value={leanMass ?? "--"} unit={leanMass === null ? "" : "lb"} />
+          <Stat
+            label="Change"
+            value={weightChange === null ? "--" : `${weightChange > 0 ? "+" : ""}${weightChange}`}
+            unit={weightChange === null ? "" : "lb"}
+          />
         </div>
       </section>
 
@@ -135,7 +143,14 @@ export default function Profile() {
               value={profile.age || ""}
               onChange={(event) => update("age", event.target.value)}
             />
-            <Field label="Sex" value={profile.sex || ""} onChange={(event) => update("sex", event.target.value)} />
+            <SelectField
+              label="Sex"
+              value={normalizeSex(profile.sex)}
+              onChange={(event) => update("sex", event.target.value)}
+            >
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </SelectField>
           </div>
           <div className="field-row" style={fieldRow}>
             <SelectField
@@ -292,7 +307,7 @@ function calculateDotsScore({ total, bodyweight, sex, units }) {
   const totalKg = units === "kg" ? total : total * 0.45359237;
   const bodyweightKg = units === "kg" ? bodyweight : bodyweight * 0.45359237;
   const coefficients =
-    String(sex || "").toLowerCase() === "female"
+    sex === "female"
       ? [-0.0000010706, 0.0005158568, -0.1126655495, 13.6175032, -57.96288]
       : [-0.000001093, 0.0007391293, -0.1918759221, 24.0900756, -307.75076];
   const denominator = coefficients.reduce(

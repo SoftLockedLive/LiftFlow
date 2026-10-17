@@ -57,9 +57,19 @@ export function saveProfile(profile) {
   return safeProfile;
 }
 
+// Null when weight or body fat is missing, so callers can show a placeholder instead of a wrong number.
 export function calculateLeanMass(profile) {
-  const weight = Number(profile.weight || 0);
+  const weight = Number(profile.weight || profile.bodyweight || 0);
   const bf = Number(profile.bodyFat || 0);
+  if (!(weight > 0) || !(bf > 0 && bf < 100)) return null;
 
   return Math.round(weight * (1 - bf / 100));
+}
+
+// Sex used to be a free-text field; read old values like "F", "Woman" or " Female " as female.
+export function normalizeSex(value) {
+  const text = String(value || "")
+    .trim()
+    .toLowerCase();
+  return text.startsWith("f") || text.startsWith("w") ? "female" : "male";
 }
