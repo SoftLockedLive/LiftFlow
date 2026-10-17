@@ -6,6 +6,10 @@ import { colors, tint } from "../lib/theme";
 export const NEW_ORIGIN = "https://liftflow.softlockedlive.com";
 const NEW_HOST = NEW_ORIGIN.replace("https://", "");
 
+export function isOldSite() {
+  return window.location.hostname.endsWith(".vercel.app");
+}
+
 // On the old Vercel deployment: tells people the app moved and carries their data over.
 // On any deployment: picks up a #transfer= link and asks before importing it.
 export default function MoveNotice() {
@@ -16,7 +20,7 @@ export default function MoveNotice() {
 
   useEffect(() => {
     const timer = window.setTimeout(async () => {
-      setOnOldSite(window.location.hostname.endsWith(".vercel.app"));
+      setOnOldSite(isOldSite());
 
       const encoded = takeTransfer();
       if (!encoded) return;

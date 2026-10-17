@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/router";
+import { isOldSite } from "../components/MoveNotice";
 import { arrivedWithTransfer } from "../lib/backup";
 import { getManualPRs } from "../lib/manualPRs";
 import { getPlan, savePlan } from "../lib/plan";
@@ -43,8 +44,9 @@ export default function Home() {
       setFlowIndex(Math.max(0, DAYS.indexOf(currentDay)));
       setCheckInPrompt(getCheckInPrompt(getDailyCheckIns().find((entry) => entry.date === getTodayKey())));
       setResumeDraft(getResumeDraftDay());
-      // Someone arriving with a move link is bringing their data; MoveNotice handles that.
-      if (!arrivedWithTransfer) {
+      // Skip first-run setup on the old site (people should move instead) and for someone
+      // arriving with a move link, who is bringing their data; MoveNotice handles both.
+      if (!arrivedWithTransfer && !isOldSite()) {
         setOnboardingOpen(shouldShowOnboarding(savedPlan, getWorkouts(), getProfile()));
       }
     }, 0);
