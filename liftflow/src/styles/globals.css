@@ -64,21 +64,12 @@ a {
 
 h1,
 h2,
-h3,
-.athletic-type {
+h3 {
   font-family:
     "Segoe UI Variable Display", "Aptos Display", "Segoe UI Variable", "Aptos", ui-sans-serif, system-ui, sans-serif;
   letter-spacing: 0;
   text-transform: none;
   font-weight: 850;
-}
-
-.card {
-  background: linear-gradient(180deg, var(--lf-surface-raised), var(--lf-surface));
-  border: 1px solid var(--lf-border);
-  border-radius: 8px;
-  padding: 18px;
-  margin-bottom: 14px;
 }
 
 button {
@@ -170,26 +161,14 @@ select:focus {
   padding: 24px 24px calc(120px + env(safe-area-inset-bottom));
 }
 
-.home-focus,
-.section-header,
-.nutrition-hero,
 .profile-header {
   display: flex;
 }
 
-.home-week-grid,
 .profile-grid,
 .profile-stats,
 .history-stats {
   display: grid;
-}
-
-.home-week-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.mobile-full-row {
-  grid-column: 1 / -1;
 }
 
 .profile-grid {
@@ -205,23 +184,9 @@ select:focus {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-.field-row,
-.nutrition-custom-row {
-  display: grid;
-}
-
 .field-row {
+  display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.nutrition-quick-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.nutrition-day-row {
-  display: grid;
-  grid-template-columns: 150px 1fr;
 }
 
 .notes-level-grid {
@@ -362,18 +327,8 @@ select:focus {
     font-size: 18px !important;
   }
 
-  .home-focus,
-  .section-header,
-  .nutrition-hero,
   .profile-header {
     align-items: center;
-  }
-
-  .home-week-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    overflow-x: visible;
-    padding-bottom: 0;
   }
 
   .history-stats {
@@ -382,19 +337,6 @@ select:focus {
 
   .profile-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .nutrition-quick-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .nutrition-day-row {
-    grid-template-columns: 1fr;
-  }
-
-  .phone-stack {
-    flex-direction: column;
-    align-items: stretch !important;
   }
 }
 
@@ -415,14 +357,6 @@ select:focus {
 
   .field-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .home-week-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .section-header {
-    justify-content: space-between;
   }
 }
 

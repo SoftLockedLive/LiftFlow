@@ -90,7 +90,7 @@ export default function Settings() {
       <ConfirmDialog
         open={confirmReset}
         title="Reset LiftFlow?"
-        message="This removes your local workouts, plan, PRs, notes, nutrition logs, and settings from this device."
+        message="This removes your local workouts, plan, PRs, notes, and settings from this device."
         confirmLabel="Reset"
         danger
         onCancel={() => setConfirmReset(false)}

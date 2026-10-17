@@ -4,8 +4,6 @@ import { isOldSite } from "../components/MoveNotice";
 import { arrivedWithTransfer } from "../lib/backup";
 import { getManualPRs } from "../lib/manualPRs";
 import { getPlan, savePlan } from "../lib/plan";
-import { getDailyCheckIns, saveProgressTargets } from "../lib/progressTracking";
-import { getTodayKey, saveProteinTarget } from "../lib/protein";
 import { getProfile, saveProfile } from "../lib/profile";
 import { buildPlanFromTemplate, PROGRAM_TEMPLATES } from "../lib/programTemplates";
 import { buildPRMap, formatPR } from "../lib/prRecords";
@@ -34,7 +32,6 @@ export default function Home() {
   const [flowIndex, setFlowIndex] = useState(0);
   const [touchStart, setTouchStart] = useState(null);
   const [flowMotion, setFlowMotion] = useState("");
-  const [checkInPrompt, setCheckInPrompt] = useState(null);
   const [resumeDraft, setResumeDraft] = useState(null);
   const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [onboardingDraft, setOnboardingDraft] = useState(createOnboardingDraft());
@@ -48,7 +45,6 @@ export default function Home() {
       const currentDay = getTodayName();
       setToday(currentDay);
       setFlowIndex(Math.max(0, DAYS.indexOf(currentDay)));
-      setCheckInPrompt(getCheckInPrompt(getDailyCheckIns().find((entry) => entry.date === getTodayKey())));
       setResumeDraft(getResumeDraftDay());
       // Skip first-run setup on the old site (people should move instead) and for someone
       // arriving with a move link, who is bringing their data; MoveNotice handles both.
@@ -112,27 +108,9 @@ export default function Home() {
             type="button"
             className="primary"
             onClick={() => router.push(`/workout?day=${encodeURIComponent(resumeDraft.day)}`)}
-            style={checkInButton}
+            style={resumeButton}
           >
             Resume
-          </button>
-        </section>
-      )}
-
-      {checkInPrompt && (
-        <section style={checkInCard}>
-          <div>
-            <p style={eyebrow}>{checkInPrompt.eyebrow}</p>
-            <h2 style={checkInTitle}>{checkInPrompt.title}</h2>
-            <p style={checkInCopy}>{checkInPrompt.copy}</p>
-          </div>
-          <button
-            type="button"
-            className="primary"
-            onClick={() => router.push(`/progress?checkIn=${checkInPrompt.target}`)}
-            style={checkInButton}
-          >
-            Check In
           </button>
         </section>
       )}
@@ -300,20 +278,6 @@ export default function Home() {
                 <option value="hypertrophy">Hypertrophy</option>
                 <option value="fat_loss">Fat Loss</option>
               </select>
-              <div className="field-row" style={onboardingRow}>
-                <input
-                  placeholder="Calories"
-                  inputMode="numeric"
-                  value={onboardingDraft.calorieTarget}
-                  onChange={(event) => setOnboardingDraft({ ...onboardingDraft, calorieTarget: event.target.value })}
-                />
-                <input
-                  placeholder="Protein"
-                  inputMode="numeric"
-                  value={onboardingDraft.proteinTarget}
-                  onChange={(event) => setOnboardingDraft({ ...onboardingDraft, proteinTarget: event.target.value })}
-                />
-              </div>
               <select
                 value={onboardingDraft.templateId}
                 onChange={(event) => setOnboardingDraft({ ...onboardingDraft, templateId: event.target.value })}
@@ -345,8 +309,6 @@ function createOnboardingDraft() {
   return {
     bodyweight: "",
     goal: "strength",
-    calorieTarget: "2800",
-    proteinTarget: "160",
     templateId: "upper-lower-4",
   };
 }
@@ -367,13 +329,6 @@ function completeOnboarding(draft, setPlan, setOnboardingOpen) {
     bodyweight: draft.bodyweight || profile.bodyweight,
     weight: draft.bodyweight || profile.weight,
     goal: draft.goal,
-  });
-  const proteinTarget = Number(draft.proteinTarget || 0) || 160;
-  saveProteinTarget(proteinTarget);
-  saveProgressTargets({
-    goalType: draft.goal === "fat_loss" ? "cut" : draft.goal === "hypertrophy" ? "lean-bulk" : "maintenance",
-    calorieTarget: Number(draft.calorieTarget || 0) || 2800,
-    proteinTarget,
   });
   if (draft.templateId) {
     const nextPlan = buildPlanFromTemplate(draft.templateId);
@@ -469,66 +424,20 @@ function formatDate(date) {
   }).format(parsed);
 }
 
-function getCheckInPrompt(entry) {
-  const hour = new Date().getHours();
-  const morningMissing = !hasMorningCheckIn(entry);
-  const nightMissing = !hasNightCheckIn(entry);
-
-  if (hour >= 17 && nightMissing) {
-    return {
-      target: "night",
-      eyebrow: "Night Check-In",
-      title: "Wrap up today",
-      copy: "Log steps, resting HR, active minutes, workout minutes, and notes before the day closes.",
-    };
-  }
-
-  if (morningMissing) {
-    return {
-      target: "morning",
-      eyebrow: "Morning Check-In",
-      title: "Log today’s readiness",
-      copy: "Bodyweight, sleep, energy, hunger, soreness, and stress keep your trends useful.",
-    };
-  }
-
-  return null;
-}
-
-function hasMorningCheckIn(entry) {
-  if (!entry) return false;
-  return ["morningWeight", "sleepHours", "sleepScore", "energy", "hunger", "soreness", "stress"].some(
-    (field) => entry[field] !== undefined && entry[field] !== "",
-  );
-}
-
-function hasNightCheckIn(entry) {
-  if (!entry) return false;
-  return ["steps", "restingHeartRate", "activeMinutes", "workoutDurationMinutes", "notes"].some(
-    (field) => entry[field] !== undefined && entry[field] !== "",
-  );
-}
-
 const homeWrap = {
   display: "grid",
   gap: 14,
 };
 
-const checkInCard = {
-  border: `1px solid ${tint(colors.accent, 0.36)}`,
+const resumeCard = {
+  border: `1px solid ${tint(colors.brand, 0.36)}`,
   borderRadius: 12,
-  background: `linear-gradient(135deg, ${tint(colors.accent, 0.12)}, ${tint(colors.brand, 0.08)}), ${colors.surface}`,
+  background: `linear-gradient(135deg, ${tint(colors.brand, 0.12)}, ${tint(colors.accent, 0.06)}), ${colors.surface}`,
   padding: 12,
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
   gap: 12,
-};
-
-const resumeCard = {
-  ...checkInCard,
-  borderColor: tint(colors.brand, 0.36),
-  background: `linear-gradient(135deg, ${tint(colors.brand, 0.12)}, ${tint(colors.accent, 0.06)}), ${colors.surface}`,
 };
 
 const resumeTitle = {
@@ -546,21 +455,7 @@ const resumeCopy = {
   fontWeight: 700,
 };
 
-const checkInTitle = {
-  margin: "4px 0 0",
-  color: colors.text,
-  fontSize: 18,
-  lineHeight: 1.1,
-};
-
-const checkInCopy = {
-  margin: "5px 0 0",
-  color: colors.muted,
-  fontSize: 12,
-  lineHeight: 1.35,
-};
-
-const checkInButton = {
+const resumeButton = {
   flex: "0 0 auto",
   padding: "8px 12px",
 };
@@ -713,105 +608,11 @@ const section = {
   marginTop: 0,
 };
 
-const sectionHeader = {
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: 14,
-  marginBottom: 9,
-};
-
 const sectionTitle = {
   margin: 0,
   color: "#f7f7f2",
   fontSize: 20,
   lineHeight: 1,
-};
-
-const sectionMeta = {
-  margin: "5px 0 0",
-  color: "#555",
-  fontWeight: 800,
-  fontSize: 13,
-};
-
-const ghostButton = {
-  color: colors.brand,
-  borderColor: tint(colors.brand, 0.4),
-  background: tint(colors.brand, 0.08),
-  whiteSpace: "nowrap",
-};
-
-const weekGrid = {
-  gap: 9,
-};
-
-const dayCard = {
-  minHeight: 108,
-  border: "1px solid",
-  borderRadius: 12,
-  padding: 10,
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "flex-start",
-};
-
-const sundayCard = {};
-
-const dayTopline = {
-  width: "100%",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: 10,
-};
-
-const dayMeta = {
-  margin: 0,
-  color: "#707070",
-  fontSize: 13,
-  fontWeight: 850,
-};
-
-const todayBadge = {
-  fontSize: 12,
-  fontWeight: 850,
-  textTransform: "uppercase",
-};
-
-const dayTitle = {
-  margin: "7px 0 7px",
-  fontSize: 16,
-  lineHeight: 1.1,
-};
-
-const liftPreview = {
-  display: "flex",
-  flexWrap: "wrap",
-  gap: 5,
-  marginBottom: 8,
-};
-
-const liftChip = {
-  border: "1px solid #262626",
-  borderRadius: 999,
-  padding: "4px 7px",
-  color: "#aaa",
-  background: "#0a0a0a",
-  fontSize: 11,
-  fontWeight: 750,
-};
-
-const restCopy = {
-  margin: "0 0 10px",
-  color: "#4d4d4d",
-  fontWeight: 800,
-};
-
-const openButton = {
-  marginTop: "auto",
-  minWidth: 72,
-  padding: "7px 13px",
-  fontSize: 12,
 };
 
 const emptyState = {
@@ -871,11 +672,6 @@ const modalBody = {
   display: "grid",
   gap: 10,
   padding: 14,
-};
-
-const onboardingRow = {
-  gap: 8,
-  gridTemplateColumns: "1fr 1fr",
 };
 
 const fullButton = {
