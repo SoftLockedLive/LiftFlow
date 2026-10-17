@@ -224,11 +224,12 @@ export default function Notes() {
 }
 
 function buildSessionOptions(plan) {
-  return DAYS.flatMap((day) => {
+  // Days can share a focus name (e.g. two "Upper" days); list each name once.
+  const focuses = DAYS.flatMap((day) => {
     const lifts = Array.isArray(plan[day]) ? plan[day] : [];
-    const focus = plan.__meta?.[day]?.name?.trim() || day;
-    return lifts.length > 0 ? [{ value: focus, label: `${focus} session` }] : [];
+    return lifts.length > 0 ? [plan.__meta?.[day]?.name?.trim() || day] : [];
   });
+  return [...new Set(focuses)].map((focus) => ({ value: focus, label: `${focus} session` }));
 }
 
 function formatDate(date) {
