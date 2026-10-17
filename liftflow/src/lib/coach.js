@@ -380,10 +380,11 @@ function parseSetCount(sets) {
 
 function gradeLatestSession(sets, latestWeight, target, setCount) {
   const latestSets = sets.filter((set) => Number(set.weight || 0) === latestWeight);
-  const evaluatedSets = setCount > 0 ? sets.slice(0, setCount) : sets;
+  // Grade the working sets at the top weight; lighter warm-up or back-off sets logged alongside
+  // them don't count for or against progression.
+  const evaluatedSets = setCount > 0 ? latestSets.slice(0, setCount) : latestSets;
   const fullSetCount = setCount === 0 || evaluatedSets.length >= setCount;
-  const allAtTopWeight =
-    evaluatedSets.length > 0 && evaluatedSets.every((set) => Number(set.weight || 0) === latestWeight);
+  const allAtTopWeight = evaluatedSets.length > 0;
   const reps = latestSets.map((set) => Number(set.reps || 0));
   const evaluatedReps = evaluatedSets.map((set) => Number(set.reps || 0));
   const avgReps = reps.length ? round1(reps.reduce((sum, value) => sum + value, 0) / reps.length) : 0;

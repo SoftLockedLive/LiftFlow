@@ -1255,7 +1255,13 @@ function renderExerciseEditor({
       </label>
 
       <div style={{ display: "grid", gap: 8, marginTop: 4 }}>
-        <button type="button" className="primary" onClick={handleSaveExercise} style={fullButton}>
+        <button
+          type="button"
+          className="primary"
+          onClick={handleSaveExercise}
+          disabled={!exercise || !sets || !(targetType === "time" ? duration : reps)}
+          style={fullButton}
+        >
           {editingId ? "Save exercise" : "Add to day"}
         </button>
         {!editingId && (

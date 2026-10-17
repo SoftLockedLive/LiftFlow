@@ -924,7 +924,15 @@ export default function Workout() {
                     style={textarea}
                   />
                 </label>
-                <button type="button" className="primary" onClick={addCustomDraftToWorkout} style={fullButton}>
+                <button
+                  type="button"
+                  className="primary"
+                  onClick={addCustomDraftToWorkout}
+                  disabled={
+                    !addDraft.exercise.trim() || !(addDraft.targetType === "time" ? addDraft.duration : addDraft.reps)
+                  }
+                  style={fullButton}
+                >
                   Add and save exercise
                 </button>
               </section>

@@ -260,7 +260,7 @@ export default function Home() {
                     <div style={{ minWidth: 0 }}>
                       <h3 style={recentName}>{session.name}</h3>
                       <p style={recentDate}>
-                        {session.date} · {session.sets} sets
+                        {session.date} · {session.sets} {session.sets === 1 ? "set" : "sets"}
                       </p>
                     </div>
                     <span style={recentLoad}>{formatVolume(session.volume, units)}</span>

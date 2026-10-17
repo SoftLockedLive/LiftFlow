@@ -188,7 +188,7 @@ export default function History() {
                     <div style={{ minWidth: 0 }}>
                       <h3 style={sessionName}>{session.name}</h3>
                       <p style={metaLine}>
-                        {formatDate(session.date)} · {session.sets} sets
+                        {formatDate(session.date)} · {session.sets} {session.sets === 1 ? "set" : "sets"}
                       </p>
                     </div>
                     <span style={summaryRight}>
@@ -449,7 +449,7 @@ function normalizeSessions(workouts) {
       return {
         id: getWorkoutId(workout, index),
         date,
-        name: workout?.focus || workout?.day || formatDate(date),
+        name: workout?.focus || workout?.day || "Workout",
         lifts: lifts.map((lift, liftIndex) => ({ lift, index: liftIndex })),
         sets,
         volume,
