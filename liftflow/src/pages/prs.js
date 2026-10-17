@@ -50,7 +50,12 @@ export default function PRs() {
       </header>
 
       <section style={formCard}>
-        <h2 style={type.sectionTitle}>{form.id ? "Edit PR" : "Add a PR"}</h2>
+        <div style={{ display: "grid", gap: 4 }}>
+          <h2 style={type.sectionTitle}>{form.id ? "Edit PR" : "Add a PR"}</h2>
+          <p style={formNote}>
+            For PRs you hit but didn&apos;t log. A manual PR overrides your logged sets until you log something heavier.
+          </p>
+        </div>
         <label style={field}>
           <span style={fieldLabel}>Exercise</span>
           <input
@@ -129,6 +134,7 @@ export default function PRs() {
                               {pr.weight} lb
                               {pr.reps ? <span style={prReps}> × {pr.reps} reps</span> : null}
                             </p>
+                            <p style={prSource}>{describeSource(pr)}</p>
                           </div>
                           <div style={actions}>
                             <button type="button" className="ghost" onClick={() => editPR(pr)} style={editBtn}>
@@ -159,7 +165,7 @@ export default function PRs() {
       <ConfirmDialog
         open={Boolean(confirmDeleteId)}
         title="Delete this PR?"
-        message="This manually saved PR will be removed. Workout-derived PRs will still appear from your history."
+        message="This manual PR will be removed. Your best logged set for this lift becomes the PR again."
         confirmLabel="Delete PR"
         danger
         onCancel={() => setConfirmDeleteId(null)}
@@ -190,6 +196,14 @@ function Chevron({ open }) {
       <path d="m6 9 6 6 6-6" />
     </svg>
   );
+}
+
+function describeSource(pr) {
+  const date = pr.date
+    ? new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(new Date(pr.date))
+    : "";
+  if (pr.source === "manual") return date ? `Manual · ${date}` : "Manual";
+  return date ? `Logged · ${date}` : "Logged";
 }
 
 function groupPRs(prs, search) {
@@ -359,4 +373,15 @@ const smallBtn = {
 const editBtn = {
   ...smallBtn,
   color: colors.brand,
+};
+
+const formNote = {
+  ...type.meta,
+  margin: 0,
+};
+
+const prSource = {
+  ...type.meta,
+  margin: "2px 0 0",
+  fontSize: 12,
 };

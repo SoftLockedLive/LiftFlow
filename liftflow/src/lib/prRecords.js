@@ -1,49 +1,69 @@
 import { getManualPRs } from "./manualPRs";
 import { getBaseExercise, getLiftSets, getWorkoutItems, normalizeExerciseName } from "./workoutAnalytics";
 
+// A manual PR overrides logged sets (e.g. a PR hit but never logged, or a bad log), until a set
+// logged after it beats it. Without a manual PR, the best logged set is the record.
 export function buildPRRecords(workouts = [], manualPrs = getManualPRs()) {
-  const records = {};
-
+  const logged = {};
   (Array.isArray(workouts) ? workouts : []).forEach((session) => {
+    const date = Number(session?.date || 0);
     getWorkoutItems(session).forEach((lift) => {
       const exercise = getBaseExercise(lift);
       if (!exercise) return;
-
       getLiftSets(lift).forEach((set) => {
         const weight = Number(set.weight || 0);
+        if (weight <= 0) return;
         const reps = set.reps === undefined ? "" : Number(set.reps || 0);
-        if (!records[exercise] || beats(weight, reps, records[exercise])) {
-          records[exercise] = {
-            exercise,
-            weight,
-            reps,
-            muscleGroup: lift.muscleGroup || inferMuscleGroup(exercise),
-            source: "history",
-          };
-        }
+        (logged[exercise] ||= []).push({ weight, reps, date, muscleGroup: lift.muscleGroup });
       });
     });
   });
 
+  const manual = {};
   (Array.isArray(manualPrs) ? manualPrs : []).forEach((pr) => {
     const exercise = normalizeExerciseName(pr.exercise);
     const weight = Number(pr.weight || 0);
     if (!exercise || weight <= 0) return;
-    const existing = records[exercise];
-    // The heaviest record wins, whether logged or entered by hand.
-    if (existing && !beats(weight, Number(pr.reps || 0), existing)) return;
-
-    records[exercise] = {
-      exercise,
-      weight,
-      reps: pr.reps || "",
-      muscleGroup: pr.muscleGroup || existing?.muscleGroup || inferMuscleGroup(exercise),
-      manualId: pr.id,
-      source: "manual",
-    };
+    // If an exercise somehow has several manual entries, the most recent one is the override.
+    if (manual[exercise] && Number(manual[exercise].date || 0) > Number(pr.date || 0)) return;
+    manual[exercise] = pr;
   });
 
-  return Object.values(records).sort((a, b) => b.weight - a.weight);
+  const exercises = new Set([...Object.keys(logged), ...Object.keys(manual)]);
+  return [...exercises]
+    .map((exercise) => {
+      const sets = logged[exercise] || [];
+      const pr = manual[exercise];
+      const manualDate = Number(pr?.date || 0);
+      const contenders = pr ? sets.filter((set) => set.date > manualDate) : sets;
+      const bestLogged = contenders.reduce(
+        (best, set) => (!best || beats(set.weight, set.reps, best) ? set : best),
+        null,
+      );
+      const muscleGroup =
+        pr?.muscleGroup || sets.find((set) => set.muscleGroup)?.muscleGroup || inferMuscleGroup(exercise);
+
+      if (pr && !(bestLogged && beats(bestLogged.weight, bestLogged.reps, pr))) {
+        return {
+          exercise,
+          weight: Number(pr.weight),
+          reps: pr.reps === undefined || pr.reps === null ? "" : pr.reps,
+          date: manualDate || null,
+          muscleGroup,
+          manualId: pr.id,
+          source: "manual",
+        };
+      }
+      return {
+        exercise,
+        weight: bestLogged.weight,
+        reps: bestLogged.reps,
+        date: bestLogged.date || null,
+        muscleGroup,
+        source: "history",
+      };
+    })
+    .sort((a, b) => b.weight - a.weight);
 }
 
 // Heavier wins; at the same weight, more reps wins.
@@ -51,6 +71,34 @@ function beats(weight, reps, record) {
   const recordWeight = Number(record?.weight || 0);
   if (weight !== recordWeight) return weight > recordWeight;
   return Number(reps || 0) > Number(record?.reps || 0);
+}
+
+// PRs set in a just-finished workout: per exercise, its best set if it beats the record as it
+// stood before this workout (logged history plus manual PRs).
+export function detectPRs(previousWorkouts, completedLifts, manualPrs = getManualPRs()) {
+  const before = buildPRMap(previousWorkouts, manualPrs);
+  const best = {};
+
+  (Array.isArray(completedLifts) ? completedLifts : []).forEach((lift) => {
+    const exercise = getBaseExercise(lift);
+    getLiftSets(lift).forEach((set) => {
+      const weight = Number(set.weight || 0);
+      const reps = Number(set.reps || 0);
+      if (!exercise || weight <= 0 || reps <= 0) return;
+      if (before[exercise] && !beats(weight, reps, before[exercise])) return;
+      if (best[exercise] && !beats(weight, reps, best[exercise])) return;
+      best[exercise] = {
+        exercise,
+        variation: lift.variation || "",
+        weight,
+        reps,
+        duration: set.duration || "",
+        previous: Number(before[exercise]?.weight || 0),
+      };
+    });
+  });
+
+  return Object.values(best);
 }
 
 export function buildPRMap(workouts = [], manualPrs = getManualPRs()) {

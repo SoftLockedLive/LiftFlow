@@ -29,10 +29,7 @@ export default function Progress() {
     () => ({ ...strengthData, exerciseBest: strengthBest }),
     [strengthData, strengthBest],
   );
-  const goals = useMemo(
-    () => buildGoals(profile, getBigThree(profile, workouts, manualPrs)),
-    [profile, workouts, manualPrs],
-  );
+  const goals = useMemo(() => buildGoals(profile, getBigThree(workouts, manualPrs)), [profile, workouts, manualPrs]);
   const strengthTrend = useMemo(() => buildTrend(strengthData.sessions), [strengthData.sessions]);
 
   return (

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import { getBigThree } from "../lib/bigThree";
 import { getManualPRs } from "../lib/manualPRs";
 import { calculateLeanMass, getProfile, normalizeSex, saveProfile } from "../lib/profile";
@@ -6,6 +7,7 @@ import { getWorkouts } from "../lib/workoutStorage";
 import { colors, radii, tint, type } from "../lib/theme";
 
 export default function Profile() {
+  const router = useRouter();
   const [profile, setProfile] = useState({});
   const [saveState, setSaveState] = useState("");
   const [workouts, setWorkouts] = useState([]);
@@ -13,9 +15,10 @@ export default function Profile() {
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
+      // Reading PRs first moves any old Profile PR fields into manual PRs before the profile loads.
+      setManualPrs(getManualPRs());
       setProfile(getProfile());
       setWorkouts(getWorkouts());
-      setManualPrs(getManualPRs());
     }, 0);
     return () => window.clearTimeout(timer);
   }, []);
@@ -75,7 +78,7 @@ export default function Profile() {
     reader.readAsDataURL(file);
   }
 
-  const total = getBigThree(profile, workouts, manualPrs).total;
+  const total = getBigThree(workouts, manualPrs).total;
   const leanMass = calculateLeanMass(profile);
   const currentWeight = Number(profile.weight || profile.bodyweight || 0);
   const startWeight = Number(profile.startWeight || 0);
@@ -215,27 +218,14 @@ export default function Profile() {
           </div>
         </Panel>
 
-        <Panel title="Current PRs">
-          <div className="field-row" style={fieldRow}>
-            <Field
-              label="Bench PR"
-              type="number"
-              value={profile.benchPR || ""}
-              onChange={(event) => update("benchPR", event.target.value)}
-            />
-            <Field
-              label="Squat PR"
-              type="number"
-              value={profile.squatPR || ""}
-              onChange={(event) => update("squatPR", event.target.value)}
-            />
-          </div>
-          <Field
-            label="Deadlift PR"
-            type="number"
-            value={profile.deadliftPR || ""}
-            onChange={(event) => update("deadliftPR", event.target.value)}
-          />
+        <Panel title="PRs">
+          <p style={panelNote}>
+            Your PRs come from logged workouts and the PRs page. Hit a PR you didn&apos;t log? Add it there and it
+            counts until you log something heavier.
+          </p>
+          <button type="button" onClick={() => router.push("/prs")} style={panelButton}>
+            Manage PRs
+          </button>
         </Panel>
 
         <Panel title="Goals">
@@ -487,4 +477,14 @@ const uploadButton = {
 
 const hiddenFile = {
   display: "none",
+};
+
+const panelNote = {
+  ...type.body,
+  margin: 0,
+  color: colors.muted,
+};
+
+const panelButton = {
+  justifySelf: "start",
 };

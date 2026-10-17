@@ -20,11 +20,6 @@ const DEFAULT_PROFILE = {
   startBodyFat: "",
   goalBodyFat: "",
 
-  // Strength
-  benchPR: "",
-  squatPR: "",
-  deadliftPR: "",
-
   // Goals
   goalBench: "",
   goalSquat: "",

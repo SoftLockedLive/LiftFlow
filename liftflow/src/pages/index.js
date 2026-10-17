@@ -86,7 +86,7 @@ export default function Home() {
   const flowAccent = getFlowAccent(flowItem);
   const recentSessions = useMemo(() => buildRecentSessions(workouts).slice(0, 5), [workouts]);
   const prs = useMemo(() => buildPRMap(workouts, manualPrs), [workouts, manualPrs]);
-  const bigThree = useMemo(() => getBigThree(profile, workouts, manualPrs), [profile, workouts, manualPrs]);
+  const bigThree = useMemo(() => getBigThree(workouts, manualPrs), [workouts, manualPrs]);
   const units = profile.units || "lbs";
   const firstName = String(profile.name || "")
     .trim()
