@@ -70,8 +70,6 @@ export default function Layout({ children }) {
   ];
 
   const secondaryTabs = [
-    { name: "Mobility", path: "/mobility" },
-    { name: "Running", path: "/running" },
     { name: "Notes", path: "/notes" },
     { name: "History", path: "/history" },
     { name: "PRs", path: "/prs" },

@@ -333,9 +333,6 @@ export default function Workout() {
     ? plan.__meta[selectedDay].warmup.filter(Boolean)
     : [];
   const emphasis = plan.__meta?.[selectedDay]?.emphasis || "";
-  const actionCards = Array.isArray(plan.__meta?.[selectedDay]?.actionCards)
-    ? plan.__meta[selectedDay].actionCards.filter(Boolean)
-    : [];
   const splitExerciseOptions = getSplitExerciseOptions(plan, selectedDay, addSearch);
 
   return (
@@ -402,22 +399,6 @@ export default function Workout() {
               <p style={eyebrow}>Recovery Emphasis</p>
               <h2 style={emphasisTitle}>{focusName}</h2>
               <p style={emphasisText}>{emphasis}</p>
-            </section>
-          )}
-
-          {actionCards.length > 0 && (
-            <section style={actionGrid}>
-              {actionCards.map((card, index) => (
-                <button
-                  key={card.href || `${card.label}-${index}`}
-                  type="button"
-                  onClick={() => card.href && router.push(card.href)}
-                  style={actionCard}
-                >
-                  <strong>{formatText(card.label, "Open")}</strong>
-                  <span>{formatText(card.description, "")}</span>
-                </button>
-              ))}
             </section>
           )}
 
@@ -1286,23 +1267,6 @@ const emphasisText = {
   margin: "8px 0 0",
   color: "#bdbdb8",
   lineHeight: 1.4,
-};
-
-const actionGrid = {
-  display: "grid",
-  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-  gap: 10,
-};
-
-const actionCard = {
-  borderRadius: 12,
-  color: colors.text,
-  borderColor: colors.border,
-  background: colors.surfaceSoft,
-  display: "grid",
-  gap: 5,
-  textAlign: "left",
-  padding: 12,
 };
 
 const warmupCard = {

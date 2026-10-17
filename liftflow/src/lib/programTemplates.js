@@ -587,7 +587,6 @@ export function buildPlanFromTemplate(templateId) {
         id: crypto.randomUUID(),
       })),
       emphasis: config.emphasis || "",
-      actionCards: config.actionCards || [],
     };
 
     plan[dayName] = (config.lifts || []).map((item) => ({
@@ -614,7 +613,6 @@ export function buildDayFromTemplate(templateId, recoveryTemplate = false) {
         id: crypto.randomUUID(),
       })),
       emphasis: template.config.emphasis || "",
-      actionCards: template.config.actionCards || [],
     },
     lifts: (template.config.lifts || []).map((item) => ({
       ...item,
@@ -650,16 +648,6 @@ function recovery(name, activity, duration, intensity, notes) {
 function warmup(name, mode, value, note = "") {
   if (mode === "time") return { name, mode, time: value, note };
   return { name, mode: "reps", sets: value?.sets || "", reps: value?.reps || "", note };
-}
-
-function recoveryOptions(emphasis) {
-  return {
-    emphasis,
-    actionCards: [
-      { label: "Running", href: "/running", description: "Log the easy walk or recovery cardio." },
-      { label: "Yoga", href: "/mobility", description: "Open mobility for yoga or flexibility work." },
-    ],
-  };
 }
 
 function defaultWarmupFor(dayName) {

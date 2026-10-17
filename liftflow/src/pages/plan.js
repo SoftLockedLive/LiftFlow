@@ -355,7 +355,6 @@ export default function Plan() {
           recovery: config.recovery || null,
           warmup: (config.warmup || []).map((item) => ({ ...item, id: crypto.randomUUID() })),
           emphasis: config.emphasis || "",
-          actionCards: config.actionCards || [],
         },
       },
       [selectedDay]: (config.lifts || []).map((lift) => ({ ...lift, id: crypto.randomUUID() })),
