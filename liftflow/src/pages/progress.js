@@ -4,11 +4,7 @@ import { getManualPRs } from "../lib/manualPRs";
 import { buildPRRecords } from "../lib/prRecords";
 import { getWorkouts } from "../lib/workoutStorage";
 import { buildProgressData } from "../lib/workoutAnalytics";
-
-const ACCENT = "#21d9ff";
-const YELLOW = "#efff38";
-const GREEN = "#43f08d";
-const ORANGE = "#ffb238";
+import { colors, radii, type } from "../lib/theme";
 
 export default function Progress() {
   const [workouts, setWorkouts] = useState([]);
@@ -37,11 +33,8 @@ export default function Progress() {
 
   return (
     <div style={wrap}>
-      <header style={header}>
-        <div>
-          <p style={eyebrow}>Trends Dashboard</p>
-          <h1 style={title}>Progress</h1>
-        </div>
+      <header style={pageHeader}>
+        <h1 style={type.pageTitle}>Progress</h1>
       </header>
 
       <StrengthSection data={strengthDisplayData} goals={goals} trend={strengthTrend} />
@@ -57,36 +50,42 @@ function StrengthSection({ data, goals, trend }) {
     percent: 0,
     remaining: 315,
   };
+  const exerciseBest = Object.entries(data.exerciseBest).slice(0, 6);
 
   return (
     <>
-      <section style={heroPanel}>
-        <div>
-          <p style={heroLabel}>Top Strength Target</p>
-          <h2 style={heroTitle}>{leadGoal.label}</h2>
-          <p style={muted}>
-            {leadGoal.current} / {leadGoal.target} lb ·{" "}
-            {leadGoal.remaining > 0 ? `${leadGoal.remaining} lb left` : "Goal hit"}
-          </p>
+      <section style={heroCard}>
+        <div style={heroTop}>
+          <div style={{ minWidth: 0 }}>
+            <p style={type.eyebrow}>Top strength target</p>
+            <h2 style={heroTitle}>{leadGoal.label}</h2>
+          </div>
+          <div style={heroTrend}>
+            <span style={type.meta}>Volume trend</span>
+            <strong style={{ ...heroTrendValue, color: trend.color }}>{trend.label}</strong>
+            <span style={heroMini}>Last 3 vs previous 3 workouts</span>
+          </div>
         </div>
-        <div style={heroTrend}>
-          <span style={heroLabel}>Volume Trend</span>
-          <strong style={{ ...heroTrendValue, color: trend.color }}>{trend.label}</strong>
-          <span style={heroMini}>Last 3 vs previous 3 workouts</span>
+        <div>
+          <p style={heroMeta}>
+            {leadGoal.target > 0 ? (
+              <>
+                {leadGoal.current} / {leadGoal.target} lb ·{" "}
+                {leadGoal.remaining > 0 ? `${leadGoal.remaining} lb left` : "Goal hit"}
+              </>
+            ) : (
+              <>{leadGoal.current} lb · No goal set</>
+            )}
+          </p>
+          {leadGoal.target > 0 && <ProgressBar percent={leadGoal.percent} />}
         </div>
       </section>
 
-      <section style={panel}>
-        <div style={panelHeader}>
-          <div>
-            <p style={eyebrow}>Goals</p>
-            <h2 style={sectionTitle}>Strength Targets</h2>
-          </div>
-        </div>
-
+      <section style={card}>
+        <h2 style={type.sectionTitle}>Strength targets</h2>
         <div style={goalList}>
-          {goals.map((goal) => (
-            <GoalCard key={goal.label} goal={goal} />
+          {goals.map((goal, index) => (
+            <GoalRow key={goal.label} goal={goal} first={index === 0} />
           ))}
           {goals.length === 0 && (
             <EmptyState copy="Log workouts or add profile goals to build your strength targets." />
@@ -95,29 +94,28 @@ function StrengthSection({ data, goals, trend }) {
       </section>
 
       <section style={grid}>
-        <section style={panel}>
-          <p style={eyebrow}>Recent Work</p>
-          <h2 style={sectionTitle}>Recent Volume</h2>
+        <section style={card}>
+          <h2 style={type.sectionTitle}>Recent volume</h2>
           <div style={trendBox}>
             <strong style={{ ...trendValue, color: trend.color }}>{trend.label}</strong>
-            <p style={muted}>{trend.copy}</p>
-            <p style={mutedSmall}>{trend.source}</p>
+            <p style={trendCopy}>{trend.copy}</p>
+            <p style={trendSource}>{trend.source}</p>
           </div>
         </section>
 
-        <section style={panel}>
-          <p style={eyebrow}>Best Work</p>
-          <h2 style={sectionTitle}>Top Lifts</h2>
+        <section style={card}>
+          <h2 style={type.sectionTitle}>Top lifts</h2>
           <div style={compactList}>
-            {Object.entries(data.exerciseBest)
-              .slice(0, 6)
-              .map(([exercise, weight]) => (
-                <div key={exercise} style={compactRow}>
-                  <span>{exercise}</span>
-                  <strong>{weight} lb</strong>
-                </div>
-              ))}
-            {Object.keys(data.exerciseBest).length === 0 && <div style={empty}>Log workouts to build this list.</div>}
+            {exerciseBest.map(([exercise, weight], index) => (
+              <div key={exercise} style={{ ...compactRow, ...(index === 0 ? { borderTop: 0 } : {}) }}>
+                <span style={compactName}>{exercise}</span>
+                <strong style={compactValue}>
+                  {weight}
+                  <span style={unit}> lb</span>
+                </strong>
+              </div>
+            ))}
+            {exerciseBest.length === 0 && <EmptyState copy="Log workouts to build this list." />}
           </div>
         </section>
       </section>
@@ -125,29 +123,47 @@ function StrengthSection({ data, goals, trend }) {
   );
 }
 
-function GoalCard({ goal }) {
+function GoalRow({ goal, first }) {
+  const hasTarget = goal.target > 0;
+  const hit = hasTarget && goal.percent >= 100;
+
   return (
-    <article style={goalCard}>
+    <article style={{ ...goalRow, ...(first ? { borderTop: 0, paddingTop: 0 } : {}) }}>
       <div style={goalTop}>
-        <div>
+        <div style={{ minWidth: 0 }}>
           <h3 style={goalTitle}>{goal.label}</h3>
-          <p style={muted}>
-            {goal.current} / {goal.target} lb
-          </p>
+          <p style={goalMeta}>{hasTarget ? `${goal.current} / ${goal.target} lb` : `${goal.current} lb`}</p>
         </div>
-        <strong style={{ ...goalPercent, color: goal.percent >= 100 ? YELLOW : ACCENT }}>{goal.percent}%</strong>
+        {hasTarget ? (
+          <strong style={{ ...goalPercent, color: hit ? colors.accent : colors.text }}>{goal.percent}%</strong>
+        ) : (
+          <span style={goalMeta}>No goal set</span>
+        )}
       </div>
-      <div style={barTrack}>
-        <div
-          style={{
-            ...barFill,
-            width: `${Math.min(100, goal.percent)}%`,
-            background: goal.percent >= 100 ? YELLOW : ACCENT,
-          }}
-        />
-      </div>
-      <p style={goalCopy}>{goal.remaining > 0 ? `${goal.remaining} lb to go` : "Goal hit"}</p>
+      {hasTarget && (
+        <>
+          <ProgressBar percent={goal.percent} />
+          <p style={goalCopy}>{goal.remaining > 0 ? `${goal.remaining} lb to go` : "Goal hit"}</p>
+        </>
+      )}
     </article>
+  );
+}
+
+function ProgressBar({ percent }) {
+  const hit = percent >= 100;
+  return (
+    <div
+      style={barTrack}
+      role="progressbar"
+      aria-valuenow={Math.min(100, percent)}
+      aria-valuemin={0}
+      aria-valuemax={100}
+    >
+      <div
+        style={{ ...barFill, width: `${Math.min(100, percent)}%`, background: hit ? colors.accent : colors.brand }}
+      />
+    </div>
   );
 }
 
@@ -209,7 +225,7 @@ function buildTrend(sessions) {
   if (sessions.length < 2) {
     return {
       label: "Building baseline",
-      color: "#777",
+      color: colors.muted,
       copy: "Log a few workouts and this will compare recent total volume.",
       source: "Needs at least two logged workouts.",
     };
@@ -220,7 +236,7 @@ function buildTrend(sessions) {
   if (!previous) {
     return {
       label: "Baseline set",
-      color: ACCENT,
+      color: colors.text,
       copy: `${recent.toLocaleString()} lb lifted across your latest sessions.`,
       source: "Needs at least six workouts for a last-3 vs previous-3 comparison.",
     };
@@ -229,94 +245,78 @@ function buildTrend(sessions) {
   const change = Math.round(((recent - previous) / previous) * 100);
   const source = `Last 3 workouts: ${recent.toLocaleString()} lb. Previous 3: ${previous.toLocaleString()} lb.`;
   if (change > 5)
-    return { label: `Up ${change}%`, color: GREEN, copy: "Recent total workout volume is trending up.", source };
+    return {
+      label: `Up ${change}%`,
+      color: colors.success,
+      copy: "Recent total workout volume is trending up.",
+      source,
+    };
   if (change < -5)
     return {
       label: `Down ${Math.abs(change)}%`,
-      color: ORANGE,
+      color: colors.warning,
       copy: "Recent total workout volume is lower. This may reflect recovery, fewer sets, or lighter sessions.",
       source,
     };
-  return { label: "Steady", color: ACCENT, copy: "Recent total workout volume is holding steady.", source };
+  return { label: "Steady", color: colors.muted, copy: "Recent total workout volume is holding steady.", source };
 }
 
-const wrap = { maxWidth: 980, margin: "0 auto" };
-const header = { marginBottom: 14 };
-const eyebrow = { margin: 0, color: ACCENT, fontSize: 12, fontWeight: 850, textTransform: "uppercase" };
-const title = { margin: "6px 0 0", fontSize: 34, lineHeight: 1 };
-const heroPanel = {
-  border: "1px solid rgba(33, 217, 255, 0.38)",
-  borderRadius: 12,
-  background: "linear-gradient(135deg, rgba(33, 217, 255, 0.18), rgba(239, 255, 56, 0.09)), #10151b",
-  padding: 14,
-  marginBottom: 14,
-  display: "flex",
-  justifyContent: "space-between",
-  gap: 14,
-  alignItems: "center",
-  boxShadow: "inset 0 1px 0 rgba(255, 253, 242, 0.08), 0 0 30px rgba(33, 217, 255, 0.08)",
+const wrap = { display: "grid", gap: 16 };
+const pageHeader = { display: "grid", gap: 6, padding: "8px 0 4px" };
+const card = {
+  border: `1px solid ${colors.border}`,
+  borderRadius: radii.xl,
+  background: colors.surface,
+  padding: 16,
 };
 
-const heroLabel = { display: "block", color: "#b8b3a4", fontSize: 12, fontWeight: 850, textTransform: "uppercase" };
-const heroTitle = { margin: "5px 0 0", color: ACCENT, fontSize: 28, lineHeight: 1 };
-const heroTrend = { minWidth: 120, textAlign: "right" };
-const heroTrendValue = { display: "block", marginTop: 5, fontSize: 24, lineHeight: 1 };
-const heroMini = { display: "block", marginTop: 6, color: "#9a9689", fontSize: 12, fontWeight: 750 };
-const panel = {
-  border: "1px solid #2f3844",
-  borderRadius: 12,
-  background: "linear-gradient(180deg, #151a20, #0f1217)",
-  padding: 14,
-  marginBottom: 14,
-  boxShadow: "inset 0 1px 0 rgba(255, 253, 242, 0.045)",
-};
-
-const panelHeader = { marginBottom: 12 };
-const sectionTitle = { margin: "5px 0 0", fontSize: 22 };
-const grid = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 14 };
-const goalList = { display: "grid", gap: 10 };
-const goalCard = {
-  border: "1px solid #26313d",
-  borderRadius: 10,
-  background: "linear-gradient(180deg, #11161c, #0a0d11)",
-  padding: 12,
-};
-
-const goalTop = { display: "flex", justifyContent: "space-between", gap: 12 };
-const goalTitle = { margin: 0, fontSize: 17 };
-const goalPercent = { fontSize: 22 };
-const muted = { margin: "7px 0 0", color: "#9a9689", fontWeight: 750, lineHeight: 1.35 };
-const mutedSmall = { margin: "4px 0 0", color: "#8b867a", fontSize: 13, fontWeight: 750 };
+const heroCard = { ...card, display: "grid", gap: 12 };
+const heroTop = { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 };
+const heroTitle = { ...type.pageTitle, fontSize: 24, marginTop: 2 };
+const heroMeta = { ...type.meta, ...type.number, margin: 0 };
+const heroTrend = { flex: "0 1 auto", minWidth: 0, display: "grid", gap: 2, justifyItems: "end", textAlign: "right" };
+const heroTrendValue = { ...type.number, fontSize: 22, fontWeight: 650, lineHeight: 1.2 };
+const heroMini = { maxWidth: 150, color: colors.mutedStrong, fontSize: 12, lineHeight: 1.35 };
+const grid = { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 };
+const goalList = { display: "grid", marginTop: 12 };
+const goalRow = { padding: "12px 0", borderTop: `1px solid ${colors.borderSoft}` };
+const goalTop = { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 };
+const goalTitle = { margin: 0, color: colors.text, fontSize: 15, fontWeight: 550, lineHeight: 1.3 };
+const goalMeta = { ...type.meta, ...type.number, margin: "2px 0 0" };
+const goalPercent = { ...type.number, fontSize: 17, fontWeight: 650 };
 const barTrack = {
-  height: 8,
-  borderRadius: 999,
-  background: "#06080b",
+  height: 6,
+  borderRadius: radii.pill,
+  background: colors.surfaceRaised,
   overflow: "hidden",
   marginTop: 8,
-  border: "1px solid #1d2630",
 };
 
-const barFill = { height: "100%", borderRadius: 999 };
-const goalCopy = { margin: "8px 0 0", color: "#b8b3a4", fontSize: 13, fontWeight: 750 };
-const trendBox = { marginTop: 12 };
-const trendValue = { fontSize: 30 };
-const compactList = { display: "grid", gap: 8, marginTop: 12 };
+const barFill = { height: "100%", borderRadius: radii.pill };
+const goalCopy = { ...type.meta, ...type.number, margin: "6px 0 0", fontSize: 12 };
+const trendBox = { display: "grid", gap: 4, marginTop: 12 };
+const trendValue = { ...type.number, fontSize: 24, fontWeight: 650, lineHeight: 1.2 };
+const trendCopy = { ...type.body, margin: 0 };
+const trendSource = { ...type.meta, ...type.number, margin: 0 };
+const compactList = { display: "grid", marginTop: 8 };
 const compactRow = {
   display: "flex",
   justifyContent: "space-between",
-  gap: 10,
-  borderBottom: "1px solid #1d2630",
-  padding: "8px 0",
-  color: "#e5e1d3",
   alignItems: "center",
+  gap: 12,
+  padding: "10px 0",
+  borderTop: `1px solid ${colors.borderSoft}`,
 };
 
-const empty = { color: "#716d63", fontWeight: 850 };
+const compactName = { ...type.body, color: colors.text, minWidth: 0, overflowWrap: "anywhere" };
+const compactValue = { ...type.number, color: colors.textSoft, fontSize: 14, fontWeight: 500, whiteSpace: "nowrap" };
+const unit = { color: colors.muted, fontWeight: 400 };
 const emptyState = {
-  color: "#9a9689",
-  border: "1px dashed #3a4654",
-  borderRadius: 10,
-  padding: 12,
-  fontWeight: 800,
-  background: "#0c0f13",
+  ...type.meta,
+  marginTop: 4,
+  padding: "16px 12px",
+  borderRadius: radii.lg,
+  background: colors.surfaceSoft,
+  border: `1px solid ${colors.borderSoft}`,
+  textAlign: "center",
 };

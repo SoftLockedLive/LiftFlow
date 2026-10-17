@@ -1,3 +1,5 @@
+import { colors, radii, type } from "../lib/theme";
+
 export default function ConfirmDialog({
   open,
   title,
@@ -12,20 +14,26 @@ export default function ConfirmDialog({
 
   return (
     <div style={overlay} onClick={onCancel}>
-      <section style={dialog} onClick={(event) => event.stopPropagation()}>
-        <h2 style={titleStyle}>{title}</h2>
+      <section
+        style={dialog}
+        onClick={(event) => event.stopPropagation()}
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="confirm-dialog-title"
+      >
+        <h2 id="confirm-dialog-title" style={titleStyle}>
+          {title}
+        </h2>
         <p style={messageStyle}>{message}</p>
         <div style={actions}>
-          <button type="button" onClick={onCancel} style={cancelButton}>
+          <button type="button" className="ghost" onClick={onCancel}>
             {cancelLabel}
           </button>
           <button
             type="button"
+            className={danger ? undefined : "primary"}
             onClick={onConfirm}
-            style={{
-              ...confirmButton,
-              ...(danger ? dangerButton : {}),
-            }}
+            style={danger ? dangerButton : undefined}
           >
             {confirmLabel}
           </button>
@@ -39,56 +47,43 @@ const overlay = {
   position: "fixed",
   inset: 0,
   zIndex: 200,
-  background: "rgba(0, 0, 0, 0.78)",
+  background: "rgba(0, 0, 0, 0.7)",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  padding: 18,
+  padding: 16,
 };
 
 const dialog = {
-  width: "min(420px, 100%)",
-  border: "1px solid rgba(50, 207, 255, 0.35)",
-  borderRadius: 16,
-  background: "#101010",
-  padding: 18,
-  boxShadow: "0 20px 60px rgba(0, 0, 0, 0.55)",
+  width: "min(400px, 100%)",
+  border: `1px solid ${colors.border}`,
+  borderRadius: radii.xl,
+  background: colors.surface,
+  padding: 20,
+  boxShadow: "0 24px 60px rgba(0, 0, 0, 0.5)",
 };
 
 const titleStyle = {
-  margin: 0,
-  color: "#f7f7f2",
-  fontSize: 24,
+  ...type.sectionTitle,
+  fontSize: 19,
 };
 
 const messageStyle = {
-  margin: "10px 0 0",
-  color: "#8a8a8a",
-  lineHeight: 1.45,
-  fontWeight: 750,
+  ...type.body,
+  margin: "8px 0 0",
+  color: colors.muted,
 };
 
 const actions = {
   display: "flex",
   justifyContent: "flex-end",
-  gap: 10,
-  marginTop: 18,
+  gap: 8,
+  marginTop: 20,
   flexWrap: "wrap",
 };
 
-const cancelButton = {
-  color: "#aaa",
-  borderColor: "#333",
-  background: "#0b0b0b",
-};
-
-const confirmButton = {
-  color: "#050505",
-  borderColor: "#32cfff",
-  background: "#32cfff",
-};
-
 const dangerButton = {
-  borderColor: "#ff6b2c",
-  background: "#ff6b2c",
+  color: "#fff",
+  borderColor: colors.danger,
+  background: colors.danger,
 };

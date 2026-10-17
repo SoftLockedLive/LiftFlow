@@ -15,8 +15,9 @@ import {
   getBaseExercise,
   getLiftSets,
   getWorkoutItems,
+  normalizeExerciseName,
 } from "../lib/workoutAnalytics";
-import { colors, dayColors, tint } from "../lib/theme";
+import { colors, dayColors, radii, tint, type } from "../lib/theme";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const ONBOARDING_KEY = "liftflow_onboarding_complete";
@@ -26,8 +27,10 @@ export default function Home() {
   const router = useRouter();
   const [workouts, setWorkouts] = useState([]);
   const [manualPrs, setManualPrs] = useState([]);
+  const [profile, setProfile] = useState({});
   const [plan, setPlan] = useState({});
   const [today, setToday] = useState("Monday");
+  const [dateLabel, setDateLabel] = useState("");
   const [openRecent, setOpenRecent] = useState("");
   const [flowIndex, setFlowIndex] = useState(0);
   const [touchStart, setTouchStart] = useState(null);
@@ -40,10 +43,14 @@ export default function Home() {
     const timer = window.setTimeout(() => {
       setWorkouts(getWorkouts());
       setManualPrs(getManualPRs());
+      setProfile(getProfile());
       const savedPlan = getPlan();
       setPlan(savedPlan);
       const currentDay = getTodayName();
       setToday(currentDay);
+      setDateLabel(
+        new Intl.DateTimeFormat("en", { weekday: "long", month: "short", day: "numeric" }).format(new Date()),
+      );
       setFlowIndex(Math.max(0, DAYS.indexOf(currentDay)));
       setResumeDraft(getResumeDraftDay());
       // Skip first-run setup on the old site (people should move instead) and for someone
@@ -76,8 +83,17 @@ export default function Home() {
 
   const flowItem = week[flowIndex] || week.find((day) => day.isToday) || week[0];
   const flowHasPlan = flowItem?.lifts?.length > 0 || flowItem?.recovery;
+  const flowAccent = getFlowAccent(flowItem);
   const recentSessions = useMemo(() => buildRecentSessions(workouts).slice(0, 5), [workouts]);
   const prs = useMemo(() => buildPRMap(workouts, manualPrs), [workouts, manualPrs]);
+  const bigThree = useMemo(
+    () => buildBigThree(profile, prs, getBigThreeBestSets(workouts, manualPrs)),
+    [profile, prs, workouts, manualPrs],
+  );
+  const units = profile.units || "lbs";
+  const firstName = String(profile.name || "")
+    .trim()
+    .split(/\s+/)[0];
 
   function moveFlow(direction) {
     setFlowMotion(direction > 0 ? "next" : "prev");
@@ -95,13 +111,18 @@ export default function Home() {
 
   return (
     <div style={homeWrap}>
+      <header style={pageHeader}>
+        <p style={type.eyebrow}>{dateLabel || " "}</p>
+        <h1 style={type.pageTitle}>{firstName ? `Hey, ${firstName}` : "Ready to train?"}</h1>
+      </header>
+
       {resumeDraft && (
         <section style={resumeCard}>
-          <div>
-            <p style={eyebrow}>Workout In Progress</p>
+          <div style={{ minWidth: 0 }}>
+            <p style={{ ...type.eyebrow, color: colors.brand }}>Workout in progress</p>
             <h2 style={resumeTitle}>Resume {resumeDraft.day}</h2>
             <p style={resumeCopy}>
-              {resumeDraft.count} logged item{resumeDraft.count === 1 ? "" : "s"} saved on this device.
+              {resumeDraft.count} logged item{resumeDraft.count === 1 ? "" : "s"} saved on this device
             </p>
           </div>
           <button
@@ -117,10 +138,7 @@ export default function Home() {
 
       <section
         className={flowMotion ? `home-flow-${flowMotion}` : ""}
-        style={{
-          ...focusCard,
-          borderColor: tint(getFlowAccent(flowItem), 0.42),
-        }}
+        style={focusCard}
         onTouchStart={(event) => {
           const touch = event.touches[0];
           setTouchStart(touch ? { x: touch.clientX, y: touch.clientY } : null);
@@ -132,111 +150,135 @@ export default function Home() {
         onAnimationEnd={() => setFlowMotion("")}
       >
         <div style={flowTop}>
-          <div>
-            <p style={{ ...eyebrow, color: getFlowAccent(flowItem) }}>{getFlowLabel(flowItem?.day, today)}</p>
+          <div style={{ minWidth: 0 }}>
+            <p style={{ ...type.eyebrow, color: flowAccent }}>{getFlowLabel(flowItem?.day, today)}</p>
             <h2 style={focusTitle}>{getDayTitle(flowItem)}</h2>
             <p style={focusCopy}>
               {flowItem?.recovery
                 ? `${flowItem.recovery.activity} · ${flowItem.recovery.duration} · ${flowItem.recovery.intensity || "Easy"}`
                 : flowItem?.lifts?.length > 0
-                  ? `${flowItem.day} · ${flowItem.lifts.length} planned lift${flowItem.lifts.length === 1 ? "" : "s"}`
-                  : `${flowItem?.day || "Today"} is open. Build your program or keep it for recovery.`}
+                  ? `${flowItem.day} · ${flowItem.lifts.length} exercise${flowItem.lifts.length === 1 ? "" : "s"}`
+                  : `${flowItem?.day || "Today"} is open`}
             </p>
           </div>
-
-          <button
-            type="button"
-            onClick={() => router.push(flowHasPlan ? `/workout?day=${encodeURIComponent(flowItem.day)}` : "/plan")}
-            style={{
-              ...focusButton,
-              borderColor: flowHasPlan ? tint(getFlowAccent(flowItem), 0.58) : colors.borderSoft,
-              color: flowHasPlan ? getFlowAccent(flowItem) : colors.muted,
-              background: flowHasPlan ? tint(getFlowAccent(flowItem), 0.1) : colors.surfaceSoft,
-            }}
-          >
-            {flowHasPlan ? "Open" : "Program"}
-          </button>
+          <div style={flowNav}>
+            <button type="button" onClick={() => moveFlow(-1)} style={iconButton} aria-label="Previous day">
+              <Chevron direction="left" />
+            </button>
+            <button type="button" onClick={() => moveFlow(1)} style={iconButton} aria-label="Next day">
+              <Chevron direction="right" />
+            </button>
+          </div>
         </div>
 
-        <div style={flowBody}>
-          {flowItem?.recovery ? (
-            <div style={flowRecovery}>
-              <strong>{flowItem.recovery.activity}</strong>
-              {flowItem.recovery.notes && <span>{flowItem.recovery.notes}</span>}
-            </div>
-          ) : flowItem?.lifts?.length > 0 ? (
-            flowItem.lifts.map((lift) => (
-              <div key={lift.id || lift.exercise} style={flowLiftRow}>
-                <div>
+        {flowItem?.recovery ? (
+          <div style={flowRecovery}>
+            <strong style={{ color: colors.text, fontWeight: 600 }}>{flowItem.recovery.activity}</strong>
+            {flowItem.recovery.notes && <span>{flowItem.recovery.notes}</span>}
+          </div>
+        ) : flowItem?.lifts?.length > 0 ? (
+          <ol style={flowList}>
+            {flowItem.lifts.map((lift, index) => (
+              <li key={lift.id || lift.exercise} style={{ ...flowLiftRow, ...(index === 0 ? { borderTop: 0 } : {}) }}>
+                <div style={{ minWidth: 0 }}>
                   <strong style={flowLiftName}>{lift.exercise}</strong>
                   <p style={flowLiftMeta}>
-                    {lift.sets || "--"} sets · {lift.reps || "--"} reps
+                    {lift.sets || "--"} × {lift.reps || "--"}
                   </p>
                 </div>
                 <span style={flowLiftPr}>{getLiftPR(lift, prs)}</span>
-              </div>
-            ))
-          ) : (
-            <div style={flowRecovery}>
-              <strong>Recovery or planning day</strong>
-              <span>No lifts are scheduled yet.</span>
-              <button type="button" onClick={() => router.push("/plan")} style={inlineAction}>
-                Build Program
-              </button>
-            </div>
-          )}
-        </div>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <div style={flowRecovery}>
+            <span>Nothing scheduled. Rest up, or add lifts to this day in your program.</span>
+          </div>
+        )}
 
-        <div style={flowFooter}>
-          <button type="button" onClick={() => moveFlow(-1)} style={flowNavButton} aria-label="Previous day">
-            Prev
-          </button>
-          <span style={flowHint}>
-            {flowIndex + 1} / {DAYS.length} · swipe for another day
+        <button
+          type="button"
+          className={flowHasPlan ? "primary" : undefined}
+          onClick={() => router.push(flowHasPlan ? `/workout?day=${encodeURIComponent(flowItem.day)}` : "/plan")}
+          style={flowCta}
+        >
+          {flowHasPlan ? (flowItem?.isToday ? "Start workout" : `Open ${flowItem.day}`) : "Build program"}
+        </button>
+      </section>
+
+      <section style={card} aria-label="Big 3">
+        <div style={bigThreeHeader}>
+          <h2 style={type.sectionTitle}>Big 3</h2>
+          <span style={bigThreeTotal}>
+            {bigThree.total > 0 ? `${bigThree.total.toLocaleString()} ${units}` : "--"}
+            <span style={bigThreeTotalLabel}>total</span>
           </span>
-          <button type="button" onClick={() => moveFlow(1)} style={flowNavButton} aria-label="Next day">
-            Next
-          </button>
+        </div>
+        <div style={bigThreeGrid}>
+          {bigThree.lifts.map((lift) => (
+            <div key={lift.label} style={bigThreeCell}>
+              <span style={type.meta}>{lift.label}</span>
+              <strong style={{ ...bigThreeValue, color: lift.value ? colors.text : colors.mutedStrong }}>
+                {lift.value ? lift.value : "--"}
+                {lift.value ? <span style={bigThreeUnit}> {units}</span> : null}
+              </strong>
+              <span style={bigThreeHint}>
+                {lift.value && lift.reps ? `× ${lift.reps}` : lift.value ? "tracked" : "not logged"}
+              </span>
+            </div>
+          ))}
         </div>
       </section>
 
-      <section style={section}>
-        <h2 style={sectionTitle}>Recent Sets</h2>
+      <section style={{ display: "grid", gap: 10 }}>
+        <div style={sectionHeader}>
+          <h2 style={type.sectionTitle}>Recent workouts</h2>
+          {recentSessions.length > 0 && (
+            <button type="button" className="ghost" onClick={() => router.push("/history")} style={linkButton}>
+              View all
+            </button>
+          )}
+        </div>
         {recentSessions.length === 0 ? (
-          <div style={emptyState}>
-            <span>No sets logged yet.</span>
-            <button type="button" onClick={() => router.push("/workout")} style={inlineAction}>
-              Start Workout
+          <div style={{ ...card, ...emptyState }}>
+            <span>No workouts logged yet.</span>
+            <button type="button" onClick={() => router.push("/workout")}>
+              Start a workout
             </button>
           </div>
         ) : (
           <div style={recentList}>
-            {recentSessions.map((session) => {
+            {recentSessions.map((session, sessionIndex) => {
               const expanded = openRecent === session.id;
 
               return (
-                <article key={session.id} style={recentCard}>
-                  <button type="button" onClick={() => setOpenRecent(expanded ? "" : session.id)} style={recentSummary}>
-                    <div>
-                      <h3 style={recentExercise}>{session.name}</h3>
+                <article key={session.id} style={{ ...recentItem, ...(sessionIndex === 0 ? { borderTop: 0 } : {}) }}>
+                  <button
+                    type="button"
+                    onClick={() => setOpenRecent(expanded ? "" : session.id)}
+                    style={recentSummary}
+                    aria-expanded={expanded}
+                  >
+                    <div style={{ minWidth: 0 }}>
+                      <h3 style={recentName}>{session.name}</h3>
                       <p style={recentDate}>
                         {session.date} · {session.sets} sets
                       </p>
                     </div>
-                    <strong style={recentLoad}>{session.volume.toLocaleString()} lb</strong>
+                    <span style={recentLoad}>{session.volume.toLocaleString()} lb</span>
                   </button>
 
                   {expanded && (
                     <div style={recentDetails}>
                       {session.lifts.map((lift, index) => (
                         <div key={`${session.id}-${lift.exercise}-${index}`} style={recentLift}>
-                          <div>
+                          <div style={{ minWidth: 0 }}>
                             <strong style={recentLiftName}>{getBaseExercise(lift)}</strong>
                             <p style={recentDate}>
                               {lift.variation ? `${lift.variation} · ` : ""}
                               {getLiftSets(lift)
-                                .map((set) => `${set.reps || "--"} x ${set.weight || "--"} lb`)
-                                .join(" · ") || "No sets logged"}
+                                .map((set) => `${set.weight || "--"} × ${set.reps || "--"}`)
+                                .join(", ") || "No sets logged"}
                             </p>
                           </div>
                           <span style={recentLiftVolume}>{calculateLiftVolume(lift).toLocaleString()} lb</span>
@@ -253,55 +295,99 @@ export default function Home() {
 
       {onboardingOpen && (
         <div style={modalOverlay} onClick={() => setOnboardingOpen(false)}>
-          <section style={modalPanel} onClick={(event) => event.stopPropagation()}>
+          <section
+            style={modalPanel}
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="onboarding-title"
+          >
             <div style={modalHeader}>
               <div>
-                <p style={eyebrow}>First Run</p>
-                <h2 style={modalTitle}>Set up LiftFlow</h2>
+                <p style={type.eyebrow}>Welcome</p>
+                <h2 id="onboarding-title" style={modalTitle}>
+                  Set up LiftFlow
+                </h2>
               </div>
-              <button type="button" onClick={() => skipOnboarding(setOnboardingOpen)} style={closeBtn}>
-                X
+              <button
+                type="button"
+                className="ghost"
+                onClick={() => skipOnboarding(setOnboardingOpen)}
+                style={closeBtn}
+                aria-label="Skip setup"
+              >
+                ✕
               </button>
             </div>
             <div style={modalBody}>
-              <input
-                placeholder="Bodyweight"
-                inputMode="decimal"
-                value={onboardingDraft.bodyweight}
-                onChange={(event) => setOnboardingDraft({ ...onboardingDraft, bodyweight: event.target.value })}
-              />
-              <select
-                value={onboardingDraft.goal}
-                onChange={(event) => setOnboardingDraft({ ...onboardingDraft, goal: event.target.value })}
-              >
-                <option value="strength">Strength</option>
-                <option value="hypertrophy">Hypertrophy</option>
-                <option value="fat_loss">Fat Loss</option>
-              </select>
-              <select
-                value={onboardingDraft.templateId}
-                onChange={(event) => setOnboardingDraft({ ...onboardingDraft, templateId: event.target.value })}
-              >
-                <option value="">No starter split</option>
-                {PROGRAM_TEMPLATES.map((template) => (
-                  <option key={template.id} value={template.id}>
-                    {template.name}
-                  </option>
-                ))}
-              </select>
+              <label style={field}>
+                <span style={fieldLabel}>Bodyweight</span>
+                <input
+                  placeholder="e.g. 180"
+                  inputMode="decimal"
+                  value={onboardingDraft.bodyweight}
+                  onChange={(event) => setOnboardingDraft({ ...onboardingDraft, bodyweight: event.target.value })}
+                />
+              </label>
+              <label style={field}>
+                <span style={fieldLabel}>Goal</span>
+                <select
+                  value={onboardingDraft.goal}
+                  onChange={(event) => setOnboardingDraft({ ...onboardingDraft, goal: event.target.value })}
+                >
+                  <option value="strength">Strength</option>
+                  <option value="hypertrophy">Hypertrophy</option>
+                  <option value="fat_loss">Fat Loss</option>
+                </select>
+              </label>
+              <label style={field}>
+                <span style={fieldLabel}>Starter program</span>
+                <select
+                  value={onboardingDraft.templateId}
+                  onChange={(event) => setOnboardingDraft({ ...onboardingDraft, templateId: event.target.value })}
+                >
+                  <option value="">No starter split</option>
+                  {PROGRAM_TEMPLATES.map((template) => (
+                    <option key={template.id} value={template.id}>
+                      {template.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <button
                 type="button"
                 className="primary"
-                onClick={() => completeOnboarding(onboardingDraft, setPlan, setOnboardingOpen)}
+                onClick={() => {
+                  completeOnboarding(onboardingDraft, setPlan, setOnboardingOpen);
+                  setProfile(getProfile());
+                }}
                 style={fullButton}
               >
-                Finish Setup
+                Finish setup
               </button>
             </div>
           </section>
         </div>
       )}
     </div>
+  );
+}
+
+function Chevron({ direction }) {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d={direction === "left" ? "m15 18-6-6 6-6" : "m9 18 6-6-6-6"} />
+    </svg>
   );
 }
 
@@ -369,19 +455,19 @@ function getDayTitle(day) {
   if (!day) return "Today";
   if (day.name) return day.name;
   if (day.recovery) return "Recovery";
-  if (day.lifts.length === 0) return "Recovery";
+  if (day.lifts.length === 0) return "Rest day";
   if (day.lifts.length === 1) return day.lifts[0].exercise;
   return `${day.lifts.length} Exercises`;
 }
 
 function getFlowLabel(day, today) {
-  if (!day) return "Today's Flow";
+  if (!day) return "Today";
   const dayIndex = DAYS.indexOf(day);
   const todayIndex = DAYS.indexOf(today);
-  if (dayIndex === todayIndex) return "Today's Flow";
-  if (dayIndex === (todayIndex + 1) % DAYS.length) return "Tomorrow's Flow";
-  if (dayIndex === (todayIndex + DAYS.length - 1) % DAYS.length) return "Yesterday's Flow";
-  return `${day}'s Flow`;
+  if (dayIndex === todayIndex) return "Today";
+  if (dayIndex === (todayIndex + 1) % DAYS.length) return "Tomorrow";
+  if (dayIndex === (todayIndex + DAYS.length - 1) % DAYS.length) return "Yesterday";
+  return day;
 }
 
 function getFlowAccent(day) {
@@ -391,7 +477,62 @@ function getFlowAccent(day) {
 
 function getLiftPR(lift, prs) {
   const base = getBaseExercise(lift);
-  return formatPR(prs[base] || prs[lift?.exercise]);
+  const record = prs[base] || prs[lift?.exercise];
+  return record ? formatPR(record) : "";
+}
+
+function buildBigThree(profile, prs, bestSets) {
+  const benchRecord = prs["Bench Press"];
+  const squatRecord = prs.Squat;
+  const deadliftRecord = prs.Deadlift;
+  const bench = Math.max(Number(profile.benchPR || 0), Number(benchRecord?.weight || 0));
+  const squat = Math.max(Number(profile.squatPR || 0), Number(squatRecord?.weight || 0));
+  const deadlift = Math.max(Number(profile.deadliftPR || 0), Number(deadliftRecord?.weight || 0));
+
+  return {
+    total: bench + squat + deadlift,
+    lifts: [
+      { label: "Bench", value: bench, reps: benchRecord?.reps || bestSets.bench?.reps },
+      { label: "Squat", value: squat, reps: squatRecord?.reps || bestSets.squat?.reps },
+      { label: "Deadlift", value: deadlift, reps: deadliftRecord?.reps || bestSets.deadlift?.reps },
+    ],
+  };
+}
+
+function getBigThreeBestSets(workouts, manualPrs) {
+  const best = {};
+
+  (workouts || []).forEach((session) => {
+    getWorkoutItems(session).forEach((lift) => {
+      const key = getBigThreeKey(getBaseExercise(lift));
+      if (!key) return;
+
+      getLiftSets(lift).forEach((set) => {
+        const weight = Number(set.weight || 0);
+        if (weight > Number(best[key]?.weight || 0)) {
+          best[key] = { weight, reps: Number(set.reps || 0) || "" };
+        }
+      });
+    });
+  });
+
+  (manualPrs || []).forEach((pr) => {
+    const key = getBigThreeKey(normalizeExerciseName(pr.exercise));
+    const weight = Number(pr.weight || 0);
+    if (key && weight > 0) {
+      best[key] = { weight, reps: pr.reps || "" };
+    }
+  });
+
+  return best;
+}
+
+function getBigThreeKey(exercise) {
+  const name = String(exercise || "").toLowerCase();
+  if (name.includes("bench")) return "bench";
+  if (name.includes("squat")) return "squat";
+  if (name.includes("deadlift")) return "deadlift";
+  return "";
 }
 
 function buildRecentSessions(workouts) {
@@ -419,6 +560,7 @@ function formatDate(date) {
   const parsed = new Date(date);
   if (Number.isNaN(parsed.getTime())) return "Logged";
   return new Intl.DateTimeFormat("en", {
+    weekday: "short",
     month: "short",
     day: "numeric",
   }).format(parsed);
@@ -426,14 +568,26 @@ function formatDate(date) {
 
 const homeWrap = {
   display: "grid",
-  gap: 14,
+  gap: 16,
+};
+
+const pageHeader = {
+  display: "grid",
+  gap: 6,
+  padding: "8px 0 4px",
+};
+
+const card = {
+  border: `1px solid ${colors.border}`,
+  borderRadius: radii.xl,
+  background: colors.surface,
+  padding: 16,
 };
 
 const resumeCard = {
-  border: `1px solid ${tint(colors.brand, 0.36)}`,
-  borderRadius: 12,
-  background: `linear-gradient(135deg, ${tint(colors.brand, 0.12)}, ${tint(colors.accent, 0.06)}), ${colors.surface}`,
-  padding: 12,
+  ...card,
+  borderColor: tint(colors.brand, 0.35),
+  background: tint(colors.brand, 0.06),
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
@@ -441,253 +595,206 @@ const resumeCard = {
 };
 
 const resumeTitle = {
-  margin: "4px 0 0",
-  color: colors.text,
-  fontSize: 18,
-  lineHeight: 1.1,
+  ...type.sectionTitle,
+  marginTop: 4,
 };
 
 const resumeCopy = {
-  margin: "5px 0 0",
-  color: colors.muted,
-  fontSize: 12,
-  lineHeight: 1.35,
-  fontWeight: 700,
+  ...type.meta,
+  margin: "2px 0 0",
 };
 
 const resumeButton = {
   flex: "0 0 auto",
-  padding: "8px 12px",
 };
 
 const focusCard = {
-  height: 306,
-  border: `1px solid ${tint(colors.brand, 0.22)}`,
-  borderRadius: 12,
-  background: colors.surface,
-  padding: 12,
+  ...card,
   display: "grid",
-  gridTemplateRows: "86px minmax(0, 1fr) 34px",
-  gap: 10,
-  overflow: "hidden",
+  gap: 14,
   touchAction: "pan-y",
 };
 
 const flowTop = {
-  display: "grid",
-  gridTemplateColumns: "minmax(0, 1fr) auto",
-  alignItems: "start",
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
   gap: 12,
-  minWidth: 0,
-  overflow: "hidden",
-};
-
-const eyebrow = {
-  margin: 0,
-  color: colors.brand,
-  fontSize: 12,
-  fontWeight: 850,
-  textTransform: "uppercase",
 };
 
 const focusTitle = {
-  margin: "4px 0",
-  color: colors.text,
-  fontSize: 20,
-  lineHeight: 1.05,
-  display: "-webkit-box",
-  WebkitLineClamp: 2,
-  WebkitBoxOrient: "vertical",
-  overflow: "hidden",
+  ...type.pageTitle,
+  fontSize: 24,
+  margin: "6px 0 2px",
+  overflowWrap: "anywhere",
 };
 
 const focusCopy = {
-  margin: "4px 0 0",
-  color: "#747474",
-  fontSize: 12,
-  lineHeight: 1.25,
-  fontWeight: 700,
-  whiteSpace: "nowrap",
-  overflow: "hidden",
-  textOverflow: "ellipsis",
+  ...type.meta,
+  margin: 0,
 };
 
-const focusButton = {
-  minWidth: 84,
+const flowNav = {
+  display: "flex",
+  gap: 6,
   flex: "0 0 auto",
 };
 
-const flowBody = {
-  minHeight: 0,
+const iconButton = {
+  width: 34,
+  height: 34,
+  padding: 0,
   display: "grid",
-  gap: 7,
-  overflowY: "auto",
-  paddingRight: 2,
-  paddingTop: 2,
-  alignContent: "start",
+  placeItems: "center",
+  color: colors.muted,
+  background: "transparent",
+};
+
+const flowList = {
+  listStyle: "none",
+  margin: 0,
+  padding: 0,
+  display: "grid",
   borderTop: `1px solid ${colors.borderSoft}`,
+  borderBottom: `1px solid ${colors.borderSoft}`,
 };
 
 const flowLiftRow = {
   display: "flex",
   justifyContent: "space-between",
-  gap: 10,
-  paddingTop: 7,
+  alignItems: "center",
+  gap: 12,
+  padding: "11px 0",
   borderTop: `1px solid ${colors.borderSoft}`,
-  minWidth: 0,
 };
 
 const flowLiftName = {
   display: "block",
-  color: colors.textSoft,
-  fontSize: 14,
-  lineHeight: 1.1,
+  color: colors.text,
+  fontSize: 15,
+  fontWeight: 550,
+  lineHeight: 1.3,
 };
 
 const flowLiftMeta = {
-  margin: "3px 0 0",
-  color: colors.mutedStrong,
-  fontSize: 12,
+  ...type.meta,
+  ...type.number,
+  margin: "2px 0 0",
 };
 
 const flowLiftPr = {
+  ...type.number,
   flex: "0 0 auto",
-  color: colors.accent,
-  border: `1px solid ${tint(colors.accent, 0.28)}`,
-  background: tint(colors.accent, 0.06),
-  borderRadius: 999,
-  padding: "4px 7px",
-  fontSize: 10,
-  fontWeight: 900,
-  lineHeight: 1.25,
-  alignSelf: "flex-start",
+  color: colors.muted,
+  fontSize: 12,
+  fontWeight: 500,
   whiteSpace: "nowrap",
 };
 
 const flowRecovery = {
-  minHeight: 96,
+  ...type.body,
   display: "grid",
-  alignContent: "center",
-  gap: 6,
-  color: colors.textSoft,
+  gap: 4,
+  padding: "12px 0",
+  borderTop: `1px solid ${colors.borderSoft}`,
+  borderBottom: `1px solid ${colors.borderSoft}`,
+  color: colors.muted,
 };
 
-const inlineAction = {
-  justifySelf: "flex-start",
-  marginTop: 4,
-  color: colors.brand,
-  borderColor: tint(colors.brand, 0.35),
-  background: tint(colors.brand, 0.08),
-  padding: "7px 10px",
-  fontSize: 12,
+const flowCta = {
+  width: "100%",
+  padding: "12px 16px",
+  fontSize: 15,
 };
 
-const flowFooter = {
+const bigThreeHeader = {
   display: "flex",
-  alignItems: "center",
+  alignItems: "baseline",
   justifyContent: "space-between",
+  gap: 12,
+  marginBottom: 14,
+};
+
+const bigThreeTotal = {
+  ...type.number,
+  color: colors.text,
+  fontSize: 17,
+  fontWeight: 650,
+};
+
+const bigThreeTotalLabel = {
+  marginLeft: 6,
+  color: colors.muted,
+  fontSize: 13,
+  fontWeight: 400,
+};
+
+const bigThreeGrid = {
+  display: "grid",
+  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
   gap: 8,
 };
 
-const flowHint = {
-  color: colors.mutedStrong,
-  fontSize: 11,
-  fontWeight: 800,
-  textAlign: "center",
-};
-
-const flowNavButton = {
-  padding: "6px 9px",
-  color: colors.muted,
+const bigThreeCell = {
+  display: "grid",
+  gap: 2,
+  padding: "10px 12px",
+  borderRadius: radii.lg,
   background: colors.surfaceSoft,
-  borderColor: colors.borderSoft,
-  fontSize: 11,
+  border: `1px solid ${colors.borderSoft}`,
+  minWidth: 0,
 };
 
-const section = {
-  marginTop: 0,
+const bigThreeValue = {
+  ...type.number,
+  fontSize: 22,
+  fontWeight: 650,
+  lineHeight: 1.2,
+  whiteSpace: "nowrap",
 };
 
-const sectionTitle = {
-  margin: 0,
-  color: "#f7f7f2",
-  fontSize: 20,
-  lineHeight: 1,
+const bigThreeUnit = {
+  color: colors.muted,
+  fontSize: 13,
+  fontWeight: 500,
+};
+
+const bigThreeHint = {
+  ...type.number,
+  color: colors.mutedStrong,
+  fontSize: 12,
+};
+
+const sectionHeader = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 12,
+};
+
+const linkButton = {
+  padding: "6px 8px",
+  fontSize: 13,
+  color: colors.brand,
 };
 
 const emptyState = {
-  minHeight: 96,
   display: "grid",
-  alignItems: "center",
-  justifyContent: "center",
-  gap: 10,
-  color: "#2f2f2f",
-  fontSize: 16,
-  fontWeight: 850,
+  justifyItems: "center",
+  gap: 12,
+  padding: "28px 16px",
+  color: colors.muted,
   textAlign: "center",
 };
 
-const modalOverlay = {
-  position: "fixed",
-  inset: 0,
-  zIndex: 230,
-  background: "rgba(0, 0, 0, 0.78)",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  padding: 16,
-};
-
-const modalPanel = {
-  width: "min(460px, 100%)",
-  maxHeight: "88vh",
-  overflow: "auto",
-  border: `1px solid ${colors.border}`,
-  borderRadius: 14,
-  background: colors.surface,
-};
-
-const modalHeader = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: 12,
-  padding: 14,
-  borderBottom: "1px solid #222",
-};
-
-const modalTitle = {
-  margin: "4px 0 0",
-  color: colors.text,
-  fontSize: 22,
-};
-
-const closeBtn = {
-  width: 36,
-  height: 36,
-  padding: 0,
-};
-
-const modalBody = {
-  display: "grid",
-  gap: 10,
-  padding: 14,
-};
-
-const fullButton = {
-  width: "100%",
-};
-
 const recentList = {
-  display: "grid",
-  gap: 9,
+  ...card,
+  padding: 0,
+  overflow: "hidden",
 };
 
-const recentCard = {
-  border: "1px solid #222",
-  borderRadius: 12,
-  background: "#0f0f0f",
-  overflow: "hidden",
+const recentItem = {
+  borderTop: `1px solid ${colors.borderSoft}`,
 };
 
 const recentSummary = {
@@ -695,50 +802,124 @@ const recentSummary = {
   border: 0,
   borderRadius: 0,
   background: "transparent",
-  padding: "10px 12px",
+  padding: "13px 16px",
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
   gap: 16,
   textAlign: "left",
+  fontWeight: 400,
 };
 
-const recentExercise = {
+const recentName = {
   margin: 0,
-  color: "#32cfff",
-  fontSize: 17,
+  color: colors.text,
+  fontSize: 15,
+  fontWeight: 550,
 };
 
 const recentDate = {
-  margin: "4px 0 0",
-  color: "#666",
-  fontSize: 12,
+  ...type.meta,
+  ...type.number,
+  margin: "2px 0 0",
 };
 
 const recentLoad = {
-  color: "#f7f7f2",
+  ...type.number,
+  color: colors.textSoft,
+  fontSize: 14,
+  fontWeight: 500,
   whiteSpace: "nowrap",
 };
 
 const recentDetails = {
-  borderTop: "1px solid #202020",
   display: "grid",
+  padding: "0 16px 8px",
+  background: colors.surfaceSoft,
+  borderTop: `1px solid ${colors.borderSoft}`,
 };
 
 const recentLift = {
   display: "flex",
   justifyContent: "space-between",
   gap: 12,
-  padding: "8px 12px",
-  borderBottom: "1px solid #171717",
+  padding: "10px 0",
+  borderBottom: `1px solid ${colors.borderSoft}`,
 };
 
 const recentLiftName = {
-  color: "#d7d7d2",
+  color: colors.textSoft,
+  fontSize: 14,
+  fontWeight: 550,
 };
 
 const recentLiftVolume = {
-  color: "#32cfff",
-  fontWeight: 850,
+  ...type.number,
+  color: colors.muted,
+  fontSize: 13,
   whiteSpace: "nowrap",
+};
+
+const modalOverlay = {
+  position: "fixed",
+  inset: 0,
+  zIndex: 230,
+  background: "rgba(0, 0, 0, 0.7)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: 16,
+};
+
+const modalPanel = {
+  width: "min(440px, 100%)",
+  maxHeight: "88vh",
+  overflow: "auto",
+  border: `1px solid ${colors.border}`,
+  borderRadius: radii.xl,
+  background: colors.surface,
+  boxShadow: "0 24px 60px rgba(0, 0, 0, 0.5)",
+};
+
+const modalHeader = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "flex-start",
+  gap: 12,
+  padding: "18px 18px 0",
+};
+
+const modalTitle = {
+  ...type.pageTitle,
+  fontSize: 22,
+  marginTop: 4,
+};
+
+const closeBtn = {
+  width: 34,
+  height: 34,
+  padding: 0,
+};
+
+const modalBody = {
+  display: "grid",
+  gap: 14,
+  padding: 18,
+};
+
+const field = {
+  display: "grid",
+  gap: 6,
+};
+
+const fieldLabel = {
+  color: colors.textSoft,
+  fontSize: 13,
+  fontWeight: 500,
+};
+
+const fullButton = {
+  width: "100%",
+  padding: "12px 16px",
+  marginTop: 4,
 };

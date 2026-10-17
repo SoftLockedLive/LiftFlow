@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { deleteCustomExercise, getCustomExercises, upsertCustomExercise } from "../lib/customExercises";
-import { getMuscleGroup, MUSCLE_GROUPS, tint } from "../lib/muscleGroups";
+import { getMuscleGroup, MUSCLE_GROUPS } from "../lib/muscleGroups";
 import { getLoadProfile, LOAD_TYPES } from "../lib/loadProfiles";
 import { deleteSavedSplit, getPlan, getSavedSplits, saveCurrentSplit, savePlan } from "../lib/plan";
-import { colors, dayColors } from "../lib/theme";
+import { colors, radii, tint, type } from "../lib/theme";
 import {
   DAY_TEMPLATES,
   DEFAULT_EXERCISES,
@@ -15,7 +15,6 @@ import {
 } from "../lib/programTemplates";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
-const ACCENT = colors.brand;
 
 export default function Plan() {
   const [plan, setPlan] = useState({});
@@ -397,7 +396,7 @@ export default function Plan() {
 
   function confirmDeleteExercise(id) {
     setConfirmAction({
-      title: "Remove Exercise?",
+      title: "Remove exercise?",
       message: "This exercise will be removed from the selected workout day.",
       confirmLabel: "Remove",
       danger: true,
@@ -407,7 +406,7 @@ export default function Plan() {
 
   function confirmDeleteCustom(id) {
     setConfirmAction({
-      title: "Delete Custom Exercise?",
+      title: "Delete custom exercise?",
       message: "This saved custom exercise will be removed from your exercise library.",
       confirmLabel: "Delete",
       danger: true,
@@ -422,82 +421,60 @@ export default function Plan() {
   const defaultLibrary = filterExerciseLibrary(DEFAULT_EXERCISES, librarySearch, libraryGroup);
   const customLibrary = filterExerciseLibrary(customExercises, librarySearch, libraryGroup);
 
+  const tools = [
+    { id: "templates", label: "Split templates", hint: "Swap in a full weekly program" },
+    { id: "days", label: "Day templates", hint: `Fill ${selectedDay} from a preset` },
+    { id: "library", label: "Exercise library", hint: "Browse and add exercises" },
+    { id: "warmup", label: "Warmup", hint: "Add warmup movements" },
+    {
+      id: "create",
+      label: "Custom exercise",
+      hint: "Create a reusable exercise",
+      onClick: () => {
+        clearForm();
+        setEditorOpen(true);
+      },
+    },
+    { id: "saved", label: "Saved splits", hint: "Save or restore your week" },
+  ];
+
   return (
     <div style={wrap}>
       <header style={header}>
-        <div>
-          <p style={eyebrow}>Program</p>
-          <h1 style={title}>Your Training Split</h1>
+        <div style={{ display: "grid", gap: 6 }}>
+          <p style={type.eyebrow}>Program</p>
+          <h1 style={type.pageTitle}>Your training split</h1>
         </div>
-        <span style={count}>{todayPlan.length} lifts</span>
+        <span style={count}>
+          {todayPlan.length} lift{todayPlan.length === 1 ? "" : "s"}
+        </span>
       </header>
 
-      <div style={dayRow}>
-        {DAYS.map((day) => (
-          <button
-            key={day}
-            type="button"
-            onClick={() => selectDay(day)}
-            style={{
-              ...dayBtn,
-              borderColor: tint(getDayAccent(day, plan), selectedDay === day ? 0.78 : 0.28),
-              color: selectedDay === day ? colors.inverse : getDayAccent(day, plan),
-              background: selectedDay === day ? getDayAccent(day, plan) : tint(getDayAccent(day, plan), 0.08),
-            }}
-          >
-            {day.slice(0, 3)}
-          </button>
-        ))}
+      <div style={dayRow} role="group" aria-label="Day">
+        {DAYS.map((day) => {
+          const selected = selectedDay === day;
+          return (
+            <button
+              key={day}
+              type="button"
+              onClick={() => selectDay(day)}
+              aria-pressed={selected}
+              style={{ ...dayChip, ...(selected ? dayChipSelected : {}) }}
+            >
+              {day.slice(0, 3)}
+              {plan.__meta?.[day]?.recovery && <span style={recoveryDot} aria-label="Recovery day" />}
+            </button>
+          );
+        })}
       </div>
 
       <section style={card}>
-        <label style={label}>Day Focus</label>
-        <input
-          placeholder="Upper A, Push, Legs, Zone 2..."
-          value={dayName}
-          onChange={(event) => saveDayName(event.target.value)}
-        />
-      </section>
-
-      <section style={compactPanel}>
-        <div style={currentHeader}>
-          <div>
-            <p style={label}>Warmup</p>
-            <h2 style={compactTitle}>{selectedWarmup.length ? `${selectedWarmup.length} movements` : "Not set"}</h2>
-          </div>
-          <button type="button" onClick={() => setBuilderPanel("warmup")} style={editBtn}>
-            Add
-          </button>
-        </div>
-        {selectedWarmup.length === 0 ? (
-          <p style={mutedLine}>No warmup set for this day.</p>
-        ) : (
-          <div style={warmupList}>
-            {selectedWarmup.map((movement) => (
-              <div key={movement.id} style={warmupItem}>
-                <div>
-                  <strong style={{ color: ACCENT }}>{movement.name}</strong>
-                  <p style={liftMeta}>{formatWarmupMovement(movement)}</p>
-                </div>
-                <div style={warmupActions}>
-                  <button type="button" onClick={() => startWarmupEdit(movement)} style={editBtn}>
-                    Edit
-                  </button>
-                  <button type="button" onClick={() => deleteWarmupMovement(movement.id)} style={removeBtn}>
-                    Remove
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section style={list}>
-        <div style={currentHeader}>
-          <div>
-            <p style={label}>Current Day</p>
+        <div style={cardHeader}>
+          <div style={{ minWidth: 0 }}>
             <h2 style={cardTitle}>{selectedMeta.name || selectedDay}</h2>
+            <p style={cardMeta}>
+              {selectedDay} · {recovery ? "Recovery" : `${todayPlan.length} lift${todayPlan.length === 1 ? "" : "s"}`}
+            </p>
           </div>
           <button
             type="button"
@@ -505,22 +482,36 @@ export default function Plan() {
               clearForm();
               setEditorOpen(true);
             }}
-            style={editBtn}
+            style={smallBtn}
           >
-            Add Lift
+            Add lift
           </button>
         </div>
 
+        <label style={field}>
+          <span style={fieldLabel}>Day focus</span>
+          <input
+            placeholder="Upper A, Push, Legs, Zone 2..."
+            value={dayName}
+            onChange={(event) => saveDayName(event.target.value)}
+          />
+        </label>
+
         {recovery ? (
-          <article style={{ ...liftCard, borderColor: tint(dayColors.recovery, 0.36), background: colors.surface }}>
-            <div>
-              <h3 style={{ ...liftName, color: dayColors.recovery }}>{selectedMeta.name || "Recovery"}</h3>
-              <p style={liftMeta}>
-                {recovery.activity} · {recovery.duration} · {recovery.intensity}
-              </p>
-              {recovery.notes && <p style={stretchPreview}>{recovery.notes}</p>}
+          <div style={rowList}>
+            <div style={{ ...row, borderTop: 0 }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={nameLine}>
+                  <h3 style={rowName}>{selectedMeta.name || "Recovery"}</h3>
+                  <span style={recoveryBadge}>Recovery</span>
+                </div>
+                <p style={rowMeta}>
+                  {recovery.activity} · {recovery.duration} · {recovery.intensity}
+                </p>
+                {recovery.notes && <p style={noteText}>{recovery.notes}</p>}
+              </div>
             </div>
-          </article>
+          </div>
         ) : todayPlan.length === 0 ? (
           <div style={empty}>
             <span>No exercises for {selectedDay} yet.</span>
@@ -530,103 +521,123 @@ export default function Plan() {
                 clearForm();
                 setEditorOpen(true);
               }}
-              style={editBtn}
             >
-              Add Lift
+              Add lift
             </button>
           </div>
         ) : (
-          todayPlan.map((lift) => {
-            const group = getMuscleGroup(lift.muscleGroup);
-            const profile = getLoadProfile(lift);
+          <div style={rowList}>
+            {todayPlan.map((lift, index) => {
+              const group = getMuscleGroup(lift.muscleGroup);
+              const profile = getLoadProfile(lift);
 
-            return (
-              <article key={lift.id} style={liftCard}>
-                <div>
-                  <h3 style={liftName}>{lift.exercise}</h3>
-                  <p style={liftMeta}>
-                    {group.label} · {formatLoadType(profile.type)} · {formatExerciseTarget(lift)}
-                  </p>
-                  {(lift.note || lift.stretches) && <p style={stretchPreview}>{lift.note || lift.stretches}</p>}
-                </div>
+              return (
+                <article key={lift.id} style={{ ...row, ...(index === 0 ? { borderTop: 0 } : {}) }}>
+                  <div style={{ minWidth: 0 }}>
+                    <h3 style={rowName}>{lift.exercise}</h3>
+                    <p style={rowMeta}>
+                      {group.label} · {formatLoadType(profile.type)} · {formatExerciseTarget(lift)}
+                    </p>
+                    {(lift.note || lift.stretches) && <p style={noteText}>{lift.note || lift.stretches}</p>}
+                  </div>
 
-                <div style={actions}>
-                  <button type="button" onClick={() => startEdit(lift)} style={editBtn}>
-                    Edit
-                  </button>
-                  <button type="button" onClick={() => confirmDeleteExercise(lift.id)} style={removeBtn}>
-                    Remove
-                  </button>
-                </div>
-              </article>
-            );
-          })
+                  <div style={actions}>
+                    <button type="button" onClick={() => startEdit(lift)} style={smallBtn}>
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      className="danger"
+                      onClick={() => confirmDeleteExercise(lift.id)}
+                      style={smallBtn}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
         )}
       </section>
 
-      <section style={toolsSection}>
-        <button
-          type="button"
-          onClick={() => setBuilderPanel(builderPanel === "templates" ? "" : "templates")}
-          style={{ ...toolTab, ...(builderPanel === "templates" ? activeToolTab : {}) }}
-        >
-          Split Templates
-        </button>
-        <button
-          type="button"
-          onClick={() => setBuilderPanel(builderPanel === "days" ? "" : "days")}
-          style={{ ...toolTab, ...(builderPanel === "days" ? activeToolTab : {}) }}
-        >
-          Day Templates
-        </button>
-        <button
-          type="button"
-          onClick={() => setBuilderPanel(builderPanel === "library" ? "" : "library")}
-          style={{ ...toolTab, ...(builderPanel === "library" ? activeToolTab : {}) }}
-        >
-          Exercise Library
-        </button>
-        <button
-          type="button"
-          onClick={() => setBuilderPanel(builderPanel === "warmup" ? "" : "warmup")}
-          style={{ ...toolTab, ...(builderPanel === "warmup" ? activeToolTab : {}) }}
-        >
-          Warmup
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            clearForm();
-            setEditorOpen(true);
-          }}
-          style={toolTab}
-        >
-          Create / Edit
-        </button>
-        <button
-          type="button"
-          onClick={() => setBuilderPanel(builderPanel === "saved" ? "" : "saved")}
-          style={{ ...toolTab, ...(builderPanel === "saved" ? activeToolTab : {}) }}
-        >
-          Saved Splits
-        </button>
+      <section style={card}>
+        <div style={cardHeader}>
+          <div style={{ minWidth: 0 }}>
+            <h2 style={cardTitle}>Warmup</h2>
+            <p style={cardMeta}>
+              {selectedWarmup.length
+                ? `${selectedWarmup.length} movement${selectedWarmup.length === 1 ? "" : "s"}`
+                : "No warmup set for this day"}
+            </p>
+          </div>
+          <button type="button" onClick={() => setBuilderPanel("warmup")} style={smallBtn}>
+            Add
+          </button>
+        </div>
+        {selectedWarmup.length > 0 && (
+          <div style={rowList}>
+            {selectedWarmup.map((movement, index) => (
+              <div key={movement.id} style={{ ...row, ...(index === 0 ? { borderTop: 0 } : {}) }}>
+                <div style={{ minWidth: 0 }}>
+                  <strong style={rowName}>{movement.name}</strong>
+                  <p style={rowMeta}>{formatWarmupMovement(movement)}</p>
+                </div>
+                <div style={actions}>
+                  <button type="button" onClick={() => startWarmupEdit(movement)} style={smallBtn}>
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    className="danger"
+                    onClick={() => deleteWarmupMovement(movement.id)}
+                    style={smallBtn}
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section style={toolsCard} aria-label="Program tools">
+        <h2 style={toolsTitle}>Tools</h2>
+        <div style={toolsGrid}>
+          {tools.map((tool) => {
+            const active = builderPanel === tool.id;
+            return (
+              <button
+                key={tool.id}
+                type="button"
+                onClick={tool.onClick || (() => setBuilderPanel(active ? "" : tool.id))}
+                aria-expanded={tool.onClick ? undefined : active}
+                style={{ ...toolRow, ...(active ? toolRowActive : {}) }}
+              >
+                <span style={{ minWidth: 0 }}>
+                  <span style={{ ...toolLabel, color: active ? colors.brand : colors.text }}>{tool.label}</span>
+                  <span style={toolHint}>{tool.hint}</span>
+                </span>
+                <Chevron direction={tool.onClick ? "right" : active ? "up" : "down"} />
+              </button>
+            );
+          })}
+        </div>
       </section>
 
       {builderPanel === "templates" && (
-        <section style={templateSection}>
-          <div style={templateHeader}>
-            <div>
-              <p style={label}>Templates</p>
-              <h2 style={cardTitle}>Start Faster</h2>
-            </div>
-          </div>
+        <section style={card}>
+          <h2 style={cardTitle}>Split templates</h2>
           <div style={templateGrid}>
             {PROGRAM_TEMPLATES.map((template) => (
               <article key={template.id} style={templateCard}>
-                <h3 style={templateName}>{template.name}</h3>
-                <p style={templateSummary}>{template.summary}</p>
-                <button type="button" onClick={() => previewSplitTemplate(template)} style={templateButton}>
-                  Preview Split
+                <div>
+                  <h3 style={rowName}>{template.name}</h3>
+                  <p style={rowMeta}>{template.summary}</p>
+                </div>
+                <button type="button" onClick={() => previewSplitTemplate(template)} style={smallBtn}>
+                  Preview
                 </button>
               </article>
             ))}
@@ -635,62 +646,63 @@ export default function Plan() {
       )}
 
       {builderPanel === "days" && (
-        <section style={templateSection}>
-          <p style={label}>Workout Day Templates</p>
-          <div style={chipGrid}>
-            {DAY_TEMPLATES.map((template) => (
-              <button
-                key={template.id}
-                type="button"
-                onClick={() => previewDayTemplate(template)}
-                style={smallTemplateBtn}
-              >
-                {template.name}
-              </button>
-            ))}
+        <section style={card}>
+          <div style={{ display: "grid", gap: 8 }}>
+            <h2 style={cardTitle}>Workout day templates</h2>
+            <div style={chipGrid}>
+              {DAY_TEMPLATES.map((template) => (
+                <button key={template.id} type="button" onClick={() => previewDayTemplate(template)} style={chip}>
+                  {template.name}
+                </button>
+              ))}
+            </div>
           </div>
-          <p style={{ ...label, marginTop: 14 }}>Recovery Templates</p>
-          <div style={chipGrid}>
-            {RECOVERY_TEMPLATES.map((template) => (
-              <button
-                key={template.id}
-                type="button"
-                onClick={() => previewDayTemplate(template, true)}
-                style={recoveryTemplateBtn}
-              >
-                {template.name}
-              </button>
-            ))}
+          <div style={{ display: "grid", gap: 8 }}>
+            <h2 style={cardTitle}>Recovery templates</h2>
+            <div style={chipGrid}>
+              {RECOVERY_TEMPLATES.map((template) => (
+                <button
+                  key={template.id}
+                  type="button"
+                  onClick={() => previewDayTemplate(template, true)}
+                  style={recoveryChip}
+                >
+                  {template.name}
+                </button>
+              ))}
+            </div>
           </div>
         </section>
       )}
 
       {builderPanel === "saved" && (
-        <section style={templateSection}>
-          <div style={templateHeader}>
-            <div>
-              <p style={label}>Saved Splits</p>
-              <h2 style={cardTitle}>Saved Splits</h2>
-            </div>
-            <button type="button" onClick={saveCurrentSplitSnapshot} style={editBtn}>
-              Save Current
+        <section style={card}>
+          <div style={cardHeader}>
+            <h2 style={cardTitle}>Saved splits</h2>
+            <button type="button" onClick={saveCurrentSplitSnapshot} style={smallBtn}>
+              Save current
             </button>
           </div>
           {savedSplits.length === 0 ? (
             <div style={empty}>No saved splits yet.</div>
           ) : (
-            <div style={libraryList}>
-              {savedSplits.map((split) => (
-                <div key={split.id} style={libraryItem}>
-                  <div>
-                    <strong style={libraryLiftName}>{split.name}</strong>
-                    <p style={liftMeta}>{formatSavedSplitMeta(split.plan)}</p>
+            <div style={rowList}>
+              {savedSplits.map((split, index) => (
+                <div key={split.id} style={{ ...row, ...(index === 0 ? { borderTop: 0 } : {}) }}>
+                  <div style={{ minWidth: 0 }}>
+                    <strong style={rowName}>{split.name}</strong>
+                    <p style={rowMeta}>{formatSavedSplitMeta(split.plan)}</p>
                   </div>
                   <div style={actions}>
-                    <button type="button" onClick={() => restoreSavedSplit(split)} style={editBtn}>
+                    <button type="button" onClick={() => restoreSavedSplit(split)} style={smallBtn}>
                       Restore
                     </button>
-                    <button type="button" onClick={() => removeSavedSplit(split.id)} style={removeBtn}>
+                    <button
+                      type="button"
+                      className="danger"
+                      onClick={() => removeSavedSplit(split.id)}
+                      style={smallBtn}
+                    >
                       Delete
                     </button>
                   </div>
@@ -703,131 +715,135 @@ export default function Plan() {
 
       {builderPanel === "warmup" && (
         <section style={card}>
-          <h2 style={cardTitle}>{editingWarmupId ? "Edit Warmup Movement" : "Add Warmup Movement"}</h2>
-          <input
-            placeholder="Movement, e.g. Band pull-aparts"
-            value={warmupName}
-            onChange={(event) => setWarmupName(event.target.value)}
-          />
+          <h2 style={cardTitle}>{editingWarmupId ? "Edit warmup movement" : "Add warmup movement"}</h2>
+          <label style={field}>
+            <span style={fieldLabel}>Movement</span>
+            <input
+              placeholder="e.g. Band pull-aparts"
+              value={warmupName}
+              onChange={(event) => setWarmupName(event.target.value)}
+            />
+          </label>
 
-          <label style={label}>Tracking Type</label>
-          <select value={warmupMode} onChange={(event) => setWarmupMode(event.target.value)}>
-            <option value="reps">Sets / reps</option>
-            <option value="time">Time</option>
-          </select>
+          <label style={field}>
+            <span style={fieldLabel}>Tracking</span>
+            <select value={warmupMode} onChange={(event) => setWarmupMode(event.target.value)}>
+              <option value="reps">Sets / reps</option>
+              <option value="time">Time</option>
+            </select>
+          </label>
 
           {warmupMode === "reps" ? (
             <div className="field-row" style={fieldRow}>
-              <input
-                placeholder="Sets"
-                inputMode="numeric"
-                value={warmupSets}
-                onChange={(event) => setWarmupSets(event.target.value)}
-              />
-              <input
-                placeholder="Reps"
-                inputMode="numeric"
-                value={warmupReps}
-                onChange={(event) => setWarmupReps(event.target.value)}
-              />
+              <label style={field}>
+                <span style={fieldLabel}>Sets</span>
+                <input
+                  placeholder="Sets"
+                  inputMode="numeric"
+                  value={warmupSets}
+                  onChange={(event) => setWarmupSets(event.target.value)}
+                />
+              </label>
+              <label style={field}>
+                <span style={fieldLabel}>Reps</span>
+                <input
+                  placeholder="Reps"
+                  inputMode="numeric"
+                  value={warmupReps}
+                  onChange={(event) => setWarmupReps(event.target.value)}
+                />
+              </label>
             </div>
           ) : (
-            <input
-              placeholder="Time, e.g. 5 min or 30 sec"
-              value={warmupTime}
-              onChange={(event) => setWarmupTime(event.target.value)}
+            <label style={field}>
+              <span style={fieldLabel}>Time</span>
+              <input
+                placeholder="e.g. 5 min or 30 sec"
+                value={warmupTime}
+                onChange={(event) => setWarmupTime(event.target.value)}
+              />
+            </label>
+          )}
+
+          <label style={field}>
+            <span style={fieldLabel}>Note</span>
+            <textarea
+              placeholder="Optional note..."
+              value={warmupNote}
+              onChange={(event) => setWarmupNote(event.target.value)}
+              style={textarea}
             />
-          )}
+          </label>
 
-          <textarea
-            placeholder="Optional note..."
-            value={warmupNote}
-            onChange={(event) => setWarmupNote(event.target.value)}
-            style={textarea}
-          />
-
-          <button type="button" className="primary" onClick={saveWarmupMovement} style={fullButton}>
-            {editingWarmupId ? "Save Warmup" : "Add Warmup"}
-          </button>
-          {editingWarmupId && (
-            <button type="button" onClick={clearWarmupForm} style={cancelBtn}>
-              Cancel Edit
+          <div style={formActions}>
+            {editingWarmupId && (
+              <button type="button" className="ghost" onClick={clearWarmupForm}>
+                Cancel edit
+              </button>
+            )}
+            <button type="button" className="primary" onClick={saveWarmupMovement} style={{ flex: 1 }}>
+              {editingWarmupId ? "Save warmup" : "Add warmup"}
             </button>
-          )}
+          </div>
         </section>
       )}
 
       {builderPanel === "library" && (
-        <>
-          <section style={templateSection}>
-            <div style={libraryControls}>
-              <input
-                placeholder="Search exercises"
-                value={librarySearch}
-                onChange={(event) => setLibrarySearch(event.target.value)}
-              />
-              <select value={libraryGroup} onChange={(event) => setLibraryGroup(event.target.value)}>
-                <option value="all">All groups</option>
-                {MUSCLE_GROUPS.map((group) => (
-                  <option key={group.id} value={group.id}>
-                    {group.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <p style={label}>Default Exercises</p>
-            <div style={libraryList}>
-              {defaultLibrary.length === 0 ? (
-                <div style={empty}>No default exercises match.</div>
-              ) : (
-                defaultLibrary.map((lift) => {
-                  const group = getMuscleGroup(lift.muscleGroup);
-                  const profile = getLoadProfile(lift);
-                  return (
-                    <div key={`${lift.exercise}-${lift.muscleGroup}`} style={libraryItem}>
-                      <div>
-                        <strong style={libraryLiftName}>{lift.exercise}</strong>
-                        <p style={liftMeta}>
-                          {group.label} · {formatLoadType(profile.type)} · {formatExerciseTarget(lift)}
-                        </p>
-                      </div>
-                      <button type="button" onClick={() => addExerciseToDay(lift)} style={editBtn}>
-                        Add
-                      </button>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </section>
+        <section style={card}>
+          <h2 style={cardTitle}>Exercise library</h2>
+          <div style={libraryControls}>
+            <input
+              placeholder="Search exercises"
+              aria-label="Search exercises"
+              value={librarySearch}
+              onChange={(event) => setLibrarySearch(event.target.value)}
+            />
+            <select
+              aria-label="Muscle group"
+              value={libraryGroup}
+              onChange={(event) => setLibraryGroup(event.target.value)}
+            >
+              <option value="all">All groups</option>
+              {MUSCLE_GROUPS.map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.label}
+                </option>
+              ))}
+            </select>
+          </div>
 
-          <section style={templateSection}>
-            <p style={label}>Custom Exercises</p>
+          <div style={librarySection}>
+            <p style={type.eyebrow}>Custom exercises</p>
             {customExercises.length === 0 ? (
               <div style={empty}>No custom exercises saved yet.</div>
             ) : customLibrary.length === 0 ? (
               <div style={empty}>No custom exercises match.</div>
             ) : (
-              <div style={libraryList}>
-                {customLibrary.map((lift) => {
+              <div style={wellList}>
+                {customLibrary.map((lift, index) => {
                   const group = getMuscleGroup(lift.muscleGroup);
                   const profile = getLoadProfile(lift);
                   return (
-                    <div key={lift.id} style={libraryItem}>
-                      <div>
-                        <strong style={libraryLiftName}>{lift.exercise}</strong>
-                        <p style={liftMeta}>
+                    <div key={lift.id} style={{ ...wellRow, ...(index === 0 ? { borderTop: 0 } : {}) }}>
+                      <div style={{ minWidth: 0 }}>
+                        <strong style={rowName}>{lift.exercise}</strong>
+                        <p style={rowMeta}>
                           {group.label} · {formatLoadType(profile.type)} · {formatExerciseTarget(lift)}
                         </p>
                       </div>
                       <div style={actions}>
-                        <button type="button" onClick={() => addExerciseToDay(lift)} style={editBtn}>
+                        <button type="button" onClick={() => addExerciseToDay(lift)} style={smallBtn}>
                           Add
                         </button>
-                        <button type="button" onClick={() => startCustomEdit(lift)} style={editBtn}>
+                        <button type="button" onClick={() => startCustomEdit(lift)} style={smallBtn}>
                           Edit
                         </button>
-                        <button type="button" onClick={() => confirmDeleteCustom(lift.id)} style={removeBtn}>
+                        <button
+                          type="button"
+                          className="danger"
+                          onClick={() => confirmDeleteCustom(lift.id)}
+                          style={smallBtn}
+                        >
                           Delete
                         </button>
                       </div>
@@ -836,8 +852,38 @@ export default function Plan() {
                 })}
               </div>
             )}
-          </section>
-        </>
+          </div>
+
+          <div style={librarySection}>
+            <p style={type.eyebrow}>Default exercises</p>
+            {defaultLibrary.length === 0 ? (
+              <div style={empty}>No default exercises match.</div>
+            ) : (
+              <div style={wellList}>
+                {defaultLibrary.map((lift, index) => {
+                  const group = getMuscleGroup(lift.muscleGroup);
+                  const profile = getLoadProfile(lift);
+                  return (
+                    <div
+                      key={`${lift.exercise}-${lift.muscleGroup}`}
+                      style={{ ...wellRow, ...(index === 0 ? { borderTop: 0 } : {}) }}
+                    >
+                      <div style={{ minWidth: 0 }}>
+                        <strong style={rowName}>{lift.exercise}</strong>
+                        <p style={rowMeta}>
+                          {group.label} · {formatLoadType(profile.type)} · {formatExerciseTarget(lift)}
+                        </p>
+                      </div>
+                      <button type="button" onClick={() => addExerciseToDay(lift)} style={smallBtn}>
+                        Add
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </section>
       )}
 
       <ConfirmDialog
@@ -855,13 +901,19 @@ export default function Plan() {
 
       {editorOpen && (
         <div style={modalOverlay} onClick={clearForm}>
-          <section style={modalPanel} onClick={(event) => event.stopPropagation()}>
+          <section
+            style={modalPanel}
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="exercise-editor-title"
+          >
             <div style={modalHeader}>
-              <h2 style={modalTitle}>
-                {editingId ? "Edit Day Exercise" : editingCustomId ? "Edit Custom Exercise" : "Create Custom Exercise"}
+              <h2 id="exercise-editor-title" style={modalTitle}>
+                {editingId ? "Edit day exercise" : editingCustomId ? "Edit custom exercise" : "Create exercise"}
               </h2>
-              <button type="button" onClick={clearForm} style={closeBtn}>
-                X
+              <button type="button" className="ghost" onClick={clearForm} style={closeBtn} aria-label="Close">
+                ✕
               </button>
             </div>
             <div style={modalBody}>
@@ -895,17 +947,33 @@ export default function Plan() {
 
       {templatePreview && (
         <div style={modalOverlay} onClick={() => setTemplatePreview(null)}>
-          <section style={previewPanel} onClick={(event) => event.stopPropagation()}>
+          <section
+            style={previewPanel}
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="template-preview-title"
+          >
             <div style={modalHeader}>
-              <h2 style={modalTitle}>{templatePreview.template.name}</h2>
-              <button type="button" onClick={() => setTemplatePreview(null)} style={closeBtn}>
-                X
+              <div style={{ minWidth: 0 }}>
+                <h2 id="template-preview-title" style={modalTitle}>
+                  {templatePreview.template.name}
+                </h2>
+                {templatePreview.kind === "split" && <p style={cardMeta}>{templatePreview.template.summary}</p>}
+              </div>
+              <button
+                type="button"
+                className="ghost"
+                onClick={() => setTemplatePreview(null)}
+                style={closeBtn}
+                aria-label="Close"
+              >
+                ✕
               </button>
             </div>
             <div style={modalBody}>
               {templatePreview.kind === "split" ? (
                 <>
-                  <p style={templateSummary}>{templatePreview.template.summary}</p>
                   <div style={previewList}>
                     {Object.entries(templatePreview.template.days).map(([dayName, config]) => (
                       <PreviewDay
@@ -913,23 +981,20 @@ export default function Plan() {
                         dayName={dayName}
                         config={config}
                         onUseDay={() => applyTemplateDayToSelected(dayName, config)}
+                        useLabel={`Use for ${selectedDay.slice(0, 3)}`}
                       />
                     ))}
                   </div>
                   <div style={modalActions}>
-                    <button
-                      type="button"
-                      onClick={() => saveCurrentThenApply(templatePreview.template.id)}
-                      style={templateButton}
-                    >
-                      Save Current + Apply
+                    <button type="button" onClick={() => saveCurrentThenApply(templatePreview.template.id)}>
+                      Save current + apply
                     </button>
                     <button
                       type="button"
                       className="primary"
                       onClick={() => applyTemplateNow(templatePreview.template.id)}
                     >
-                      Apply Full Split
+                      Apply full split
                     </button>
                   </div>
                 </>
@@ -942,7 +1007,7 @@ export default function Plan() {
                     onClick={() => applyDayTemplateNow(templatePreview.template.id, templatePreview.recoveryTemplate)}
                     style={fullButton}
                   >
-                    Use For {selectedDay}
+                    Use for {selectedDay}
                   </button>
                 </>
               )}
@@ -953,22 +1018,39 @@ export default function Plan() {
 
       {saveSplitOpen && (
         <div style={modalOverlay} onClick={() => setSaveSplitOpen(false)}>
-          <section style={modalPanel} onClick={(event) => event.stopPropagation()}>
+          <section
+            style={modalPanel}
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="save-split-title"
+          >
             <div style={modalHeader}>
-              <h2 style={modalTitle}>Save Split</h2>
-              <button type="button" onClick={() => setSaveSplitOpen(false)} style={closeBtn}>
-                X
+              <h2 id="save-split-title" style={modalTitle}>
+                Save split
+              </h2>
+              <button
+                type="button"
+                className="ghost"
+                onClick={() => setSaveSplitOpen(false)}
+                style={closeBtn}
+                aria-label="Close"
+              >
+                ✕
               </button>
             </div>
             <div style={modalBody}>
-              <input
-                autoFocus
-                placeholder="Split name"
-                value={saveSplitName}
-                onChange={(event) => setSaveSplitName(event.target.value)}
-              />
+              <label style={field}>
+                <span style={fieldLabel}>Name</span>
+                <input
+                  autoFocus
+                  placeholder="Split name"
+                  value={saveSplitName}
+                  onChange={(event) => setSaveSplitName(event.target.value)}
+                />
+              </label>
               <button type="button" className="primary" onClick={confirmSaveCurrentSplitSnapshot} style={fullButton}>
-                Save Split
+                Save split
               </button>
             </div>
           </section>
@@ -978,15 +1060,36 @@ export default function Plan() {
   );
 }
 
-function getDayAccent(day, plan) {
-  return plan.__meta?.[day]?.recovery ? dayColors.recovery : dayColors[day] || colors.brand;
+const CHEVRON_PATHS = {
+  up: "m18 15-6-6-6 6",
+  down: "m6 9 6 6 6-6",
+  right: "m9 18 6-6-6-6",
+};
+
+function Chevron({ direction }) {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      style={{ flex: "0 0 auto", color: colors.muted }}
+    >
+      <path d={CHEVRON_PATHS[direction]} />
+    </svg>
+  );
 }
 
 function formatWarmupMovement(movement) {
   if (movement.mode === "time") return movement.time || "Timed";
   const sets = movement.sets || "--";
   const reps = movement.reps || "--";
-  return `${sets}x${reps}`;
+  return `${sets} × ${reps}`;
 }
 
 function formatLoadType(type) {
@@ -995,8 +1098,8 @@ function formatLoadType(type) {
 
 function formatExerciseTarget(lift) {
   const sets = lift?.sets || "--";
-  if (lift?.targetType === "time") return `${sets} sets x ${lift.duration || lift.reps || "--"}`;
-  return `${sets} sets x ${lift?.reps || "--"} reps`;
+  if (lift?.targetType === "time") return `${sets} × ${lift.duration || lift.reps || "--"}`;
+  return `${sets} × ${lift?.reps || "--"}`;
 }
 
 function formatSavedSplitMeta(plan) {
@@ -1040,96 +1143,119 @@ function renderExerciseEditor({
 }) {
   return (
     <>
-      <input placeholder="Exercise" value={exercise} onChange={(event) => setExercise(event.target.value)} />
+      <label style={field}>
+        <span style={fieldLabel}>Exercise</span>
+        <input placeholder="e.g. Bench Press" value={exercise} onChange={(event) => setExercise(event.target.value)} />
+      </label>
 
-      <label style={label}>Target Type</label>
-      <select value={targetType} onChange={(event) => setTargetType(event.target.value)}>
-        <option value="reps">Reps</option>
-        <option value="time">Time</option>
-      </select>
+      <label style={field}>
+        <span style={fieldLabel}>Target</span>
+        <select value={targetType} onChange={(event) => setTargetType(event.target.value)}>
+          <option value="reps">Reps</option>
+          <option value="time">Time</option>
+        </select>
+      </label>
 
       <div className="field-row" style={fieldRow}>
-        <input
-          placeholder="Sets, e.g. 3"
-          inputMode="numeric"
-          value={sets}
-          onChange={(event) => setSets(event.target.value)}
-        />
-        {targetType === "time" ? (
+        <label style={field}>
+          <span style={fieldLabel}>Sets</span>
           <input
-            placeholder="Time, e.g. 45-90 sec"
-            value={duration}
-            onChange={(event) => setDuration(event.target.value)}
-          />
-        ) : (
-          <input
-            placeholder="Reps or range, e.g. 8-12"
+            placeholder="e.g. 3"
             inputMode="numeric"
-            value={reps}
-            onChange={(event) => setReps(event.target.value)}
+            value={sets}
+            onChange={(event) => setSets(event.target.value)}
           />
+        </label>
+        {targetType === "time" ? (
+          <label style={field}>
+            <span style={fieldLabel}>Time</span>
+            <input
+              placeholder="e.g. 45-90 sec"
+              value={duration}
+              onChange={(event) => setDuration(event.target.value)}
+            />
+          </label>
+        ) : (
+          <label style={field}>
+            <span style={fieldLabel}>Reps</span>
+            <input
+              placeholder="e.g. 8-12"
+              inputMode="numeric"
+              value={reps}
+              onChange={(event) => setReps(event.target.value)}
+            />
+          </label>
         )}
       </div>
 
-      <label style={label}>Muscle Group</label>
-      <select value={muscleGroup} onChange={(event) => setMuscleGroup(event.target.value)}>
-        {MUSCLE_GROUPS.map((group) => (
-          <option key={group.id} value={group.id}>
-            {group.label}
-          </option>
-        ))}
-      </select>
+      <div className="field-row" style={fieldRow}>
+        <label style={field}>
+          <span style={fieldLabel}>Muscle group</span>
+          <select value={muscleGroup} onChange={(event) => setMuscleGroup(event.target.value)}>
+            {MUSCLE_GROUPS.map((group) => (
+              <option key={group.id} value={group.id}>
+                {group.label}
+              </option>
+            ))}
+          </select>
+        </label>
 
-      <label style={label}>Load Type</label>
-      <select value={loadType} onChange={(event) => setLoadType(event.target.value)}>
-        {LOAD_TYPES.map((type) => (
-          <option key={type} value={type}>
-            {formatLoadType(type)}
-          </option>
-        ))}
-      </select>
+        <label style={field}>
+          <span style={fieldLabel}>Load type</span>
+          <select value={loadType} onChange={(event) => setLoadType(event.target.value)}>
+            {LOAD_TYPES.map((type) => (
+              <option key={type} value={type}>
+                {formatLoadType(type)}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
 
-      <label style={label}>Lift Note</label>
-      <textarea
-        placeholder="Cue, setup note, tempo, injury reminder..."
-        value={stretches}
-        onChange={(event) => setStretches(event.target.value)}
-        style={textarea}
-      />
+      <label style={field}>
+        <span style={fieldLabel}>Note</span>
+        <textarea
+          placeholder="Cue, setup note, tempo, injury reminder..."
+          value={stretches}
+          onChange={(event) => setStretches(event.target.value)}
+          style={textarea}
+        />
+      </label>
 
-      <button type="button" className="primary" onClick={handleSaveExercise} style={fullButton}>
-        {editingId ? "Save Exercise" : "Add Exercise"}
-      </button>
-      {!editingId && (
-        <button type="button" onClick={saveCustomExercise} style={templateButton}>
-          {editingCustomId ? "Save Custom Exercise" : "Save to Custom Exercises"}
+      <div style={{ display: "grid", gap: 8, marginTop: 4 }}>
+        <button type="button" className="primary" onClick={handleSaveExercise} style={fullButton}>
+          {editingId ? "Save exercise" : "Add to day"}
         </button>
-      )}
-      {(editingId || editingCustomId) && (
-        <button type="button" onClick={clearForm} style={cancelBtn}>
-          Cancel Edit
-        </button>
-      )}
+        {!editingId && (
+          <button type="button" onClick={saveCustomExercise} style={fullButton}>
+            {editingCustomId ? "Save custom exercise" : "Save to custom exercises"}
+          </button>
+        )}
+        {(editingId || editingCustomId) && (
+          <button type="button" className="ghost" onClick={clearForm} style={fullButton}>
+            Cancel edit
+          </button>
+        )}
+      </div>
     </>
   );
 }
 
-function PreviewDay({ dayName, config, onUseDay }) {
+function PreviewDay({ dayName, config, onUseDay, useLabel = "Use this day" }) {
   const lifts = config?.lifts || [];
   return (
     <article style={previewDayCard}>
       <div style={previewDayHeader}>
-        <div>
-          <strong style={libraryLiftName}>
-            {dayName} · {config?.name || "Training"}
-          </strong>
-          <p style={liftMeta}>
+        <div style={{ minWidth: 0 }}>
+          <strong style={rowName}>{config?.name || "Training"}</strong>
+          <p style={rowMeta}>
+            {dayName} ·{" "}
             {config?.recovery ? `${config.recovery.activity} · ${config.recovery.duration}` : `${lifts.length} lifts`}
           </p>
         </div>
         {onUseDay && (
-          <button type="button" onClick={onUseDay} style={editBtn}>
-            Use This Day
+          <button type="button" onClick={onUseDay} style={smallBtn}>
+            {useLabel}
           </button>
         )}
       </div>
@@ -1137,8 +1263,8 @@ function PreviewDay({ dayName, config, onUseDay }) {
         <div style={previewLiftList}>
           {lifts.map((lift) => (
             <div key={`${dayName}-${lift.exercise}-${lift.sets}-${lift.reps}`} style={previewLiftRow}>
-              <span>{lift.exercise}</span>
-              <strong>{formatExerciseTarget(lift)}</strong>
+              <span style={{ minWidth: 0 }}>{lift.exercise}</span>
+              <span style={previewLiftTarget}>{formatExerciseTarget(lift)}</span>
             </div>
           ))}
         </div>
@@ -1148,97 +1274,249 @@ function PreviewDay({ dayName, config, onUseDay }) {
 }
 
 const wrap = {
-  maxWidth: 760,
-  margin: "0 auto",
+  display: "grid",
+  gap: 16,
 };
 
 const header = {
   display: "flex",
   justifyContent: "space-between",
-  alignItems: "flex-start",
+  alignItems: "flex-end",
   gap: 16,
-  marginBottom: 18,
-};
-
-const eyebrow = {
-  margin: 0,
-  color: ACCENT,
-  fontSize: 14,
-  fontWeight: 850,
-  textTransform: "uppercase",
-};
-
-const title = {
-  margin: "6px 0 0",
-  fontSize: 34,
-  lineHeight: 1,
+  padding: "8px 0 4px",
 };
 
 const count = {
-  border: `1px solid ${colors.border}`,
-  borderRadius: 999,
-  padding: "8px 12px",
-  color: ACCENT,
-  background: colors.surfaceSoft,
-  fontWeight: 850,
+  ...type.meta,
+  ...type.number,
+  whiteSpace: "nowrap",
+  paddingBottom: 2,
 };
 
 const dayRow = {
   display: "flex",
   overflowX: "auto",
-  gap: 8,
-  marginBottom: 14,
-  paddingBottom: 6,
+  gap: 4,
+  margin: "0 -16px",
+  padding: "0 16px",
 };
 
-const dayBtn = {
-  minWidth: 56,
-  padding: "9px 12px",
-  borderColor: "#242424",
-  background: "#070707",
-  color: "#666",
+const dayChip = {
+  position: "relative",
+  flex: "1 0 auto",
+  minWidth: 44,
+  minHeight: 36,
+  padding: "8px 9px",
+  borderRadius: radii.pill,
+  background: colors.surfaceRaised,
+  color: colors.muted,
+  borderColor: colors.border,
+  fontSize: 13,
+  fontWeight: 600,
+};
+
+const dayChipSelected = {
+  background: tint(colors.brand, 0.14),
+  color: colors.brand,
+  borderColor: tint(colors.brand, 0.4),
+};
+
+const recoveryDot = {
+  position: "absolute",
+  top: 5,
+  right: 7,
+  width: 5,
+  height: 5,
+  borderRadius: radii.pill,
+  background: colors.success,
 };
 
 const card = {
-  border: "1px solid #242424",
-  borderRadius: 16,
-  background: "#101010",
+  border: `1px solid ${colors.border}`,
+  borderRadius: radii.xl,
+  background: colors.surface,
   padding: 16,
-  marginBottom: 14,
   display: "grid",
-  gap: 12,
+  gap: 14,
 };
 
-const compactPanel = {
-  border: "1px solid #242424",
-  borderRadius: 12,
-  background: "#101010",
-  padding: 10,
-  marginBottom: 12,
-  display: "grid",
-  gap: 8,
-};
-
-const templateSection = {
-  border: "1px solid #242424",
-  borderRadius: 16,
-  background: "#101010",
-  padding: 16,
-  marginBottom: 14,
-};
-
-const templateHeader = {
+const cardHeader = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
   gap: 12,
-  marginBottom: 12,
+};
+
+const cardTitle = {
+  ...type.sectionTitle,
+  overflowWrap: "anywhere",
+};
+
+const cardMeta = {
+  ...type.meta,
+  ...type.number,
+  margin: "2px 0 0",
+};
+
+const field = {
+  display: "grid",
+  gap: 6,
+};
+
+const fieldLabel = {
+  color: colors.textSoft,
+  fontSize: 13,
+  fontWeight: 500,
+};
+
+const fieldRow = {
+  gap: 10,
+};
+
+const smallBtn = {
+  minHeight: 34,
+  padding: "6px 12px",
+  fontSize: 13,
+  whiteSpace: "nowrap",
+};
+
+const rowList = {
+  display: "grid",
+  borderTop: `1px solid ${colors.borderSoft}`,
+  borderBottom: `1px solid ${colors.borderSoft}`,
+};
+
+const row = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 12,
+  padding: "11px 0",
+  borderTop: `1px solid ${colors.borderSoft}`,
+};
+
+const nameLine = {
+  display: "flex",
+  alignItems: "center",
+  flexWrap: "wrap",
+  gap: 8,
+};
+
+const rowName = {
+  display: "block",
+  margin: 0,
+  color: colors.text,
+  fontSize: 15,
+  fontWeight: 550,
+  lineHeight: 1.3,
+  overflowWrap: "anywhere",
+};
+
+const rowMeta = {
+  ...type.meta,
+  ...type.number,
+  margin: "2px 0 0",
+};
+
+const noteText = {
+  ...type.meta,
+  margin: "4px 0 0",
+  color: colors.textSoft,
+};
+
+const recoveryBadge = {
+  fontSize: 12,
+  fontWeight: 500,
+  padding: "3px 8px",
+  borderRadius: radii.pill,
+  background: tint(colors.success, 0.12),
+  color: colors.success,
+};
+
+const actions = {
+  display: "flex",
+  gap: 6,
+  flexWrap: "wrap",
+  justifyContent: "flex-end",
+  flex: "0 0 auto",
+};
+
+const empty = {
+  ...type.body,
+  display: "grid",
+  justifyItems: "center",
+  gap: 12,
+  padding: "20px 16px",
+  borderRadius: radii.lg,
+  background: colors.surfaceSoft,
+  border: `1px solid ${colors.borderSoft}`,
+  color: colors.muted,
+  textAlign: "center",
+};
+
+const toolsCard = {
+  border: `1px solid ${colors.border}`,
+  borderRadius: radii.xl,
+  background: colors.surface,
+  overflow: "hidden",
+};
+
+const toolsTitle = {
+  ...type.sectionTitle,
+  padding: "16px 16px 12px",
+};
+
+const toolsGrid = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+};
+
+const toolRow = {
+  width: "100%",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 12,
+  padding: "12px 16px",
+  border: 0,
+  borderTop: `1px solid ${colors.borderSoft}`,
+  borderRadius: 0,
+  background: "transparent",
+  textAlign: "left",
+  fontWeight: 400,
+};
+
+const toolRowActive = {
+  background: tint(colors.brand, 0.06),
+};
+
+const toolLabel = {
+  display: "block",
+  fontSize: 15,
+  fontWeight: 550,
+  lineHeight: 1.3,
+};
+
+const toolHint = {
+  ...type.meta,
+  display: "block",
+  marginTop: 2,
 };
 
 const templateGrid = {
   display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-  gap: 10,
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  gap: 8,
+};
+
+const templateCard = {
+  display: "grid",
+  alignContent: "space-between",
+  gap: 12,
+  padding: 12,
+  borderRadius: radii.lg,
+  background: colors.surfaceSoft,
+  border: `1px solid ${colors.borderSoft}`,
 };
 
 const chipGrid = {
@@ -1247,258 +1525,71 @@ const chipGrid = {
   flexWrap: "wrap",
 };
 
-const smallTemplateBtn = {
+const chip = {
+  minHeight: 34,
+  padding: "7px 12px",
+  borderRadius: radii.pill,
+  background: colors.surfaceRaised,
   color: colors.textSoft,
   borderColor: colors.border,
-  background: colors.surfaceSoft,
-};
-
-const recoveryTemplateBtn = {
-  color: dayColors.recovery,
-  borderColor: tint(dayColors.recovery, 0.35),
-  background: colors.surfaceSoft,
-};
-
-const templateCard = {
-  border: "1px solid #242424",
-  borderRadius: 14,
-  background: "#0b0b0b",
-  padding: 12,
-};
-
-const templateName = {
-  margin: 0,
-  color: colors.text,
-  fontSize: 18,
-};
-
-const templateSummary = {
-  margin: "8px 0 12px",
-  color: "#777",
-  lineHeight: 1.35,
   fontSize: 13,
+  fontWeight: 500,
 };
 
-const templateButton = {
-  width: "100%",
-  color: ACCENT,
-  borderColor: tint(ACCENT, 0.35),
-  background: colors.surfaceSoft,
-};
-
-const label = {
-  color: "#777",
-  fontWeight: 850,
-  textTransform: "uppercase",
-  fontSize: 13,
-};
-
-const cardTitle = {
-  margin: 0,
-  fontSize: 22,
-};
-
-const compactTitle = {
-  margin: 0,
-  fontSize: 18,
-};
-
-const fieldRow = {
-  gap: 10,
-};
-
-const mutedLine = {
-  margin: 0,
-  color: "#666",
-  fontWeight: 750,
-};
-
-const textarea = {
-  width: "100%",
-  minHeight: 82,
-  resize: "vertical",
-  borderRadius: 10,
-  border: "1px solid #2b2b2b",
-  background: "#0b0b0b",
-  color: "#f7f7f2",
-  padding: 10,
-  font: "inherit",
-  fontWeight: 700,
-};
-
-const fullButton = {
-  width: "100%",
-};
-
-const cancelBtn = {
-  color: "#aaa",
-  borderColor: "#333",
-  background: "#0b0b0b",
-};
-
-const list = {
-  display: "grid",
-  gap: 8,
-};
-
-const currentHeader = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: 12,
-  marginTop: 2,
-};
-
-const toolsSection = {
-  border: "1px solid #242424",
-  borderRadius: 16,
-  background: "#101010",
-  padding: 10,
-  margin: "14px 0",
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
-  gap: 8,
-};
-
-const toolTab = {
-  width: "100%",
-  minHeight: 42,
-  padding: "9px 10px",
-  borderRadius: 12,
-  color: "#777",
-  background: "#0b0b0b",
-  borderColor: "#242424",
-};
-
-const activeToolTab = {
-  color: "#050505",
-  background: "#f7f7f2",
-  borderColor: "#f7f7f2",
-};
-
-const libraryList = {
-  display: "grid",
-  gap: 8,
+const recoveryChip = {
+  ...chip,
+  color: colors.success,
+  borderColor: tint(colors.success, 0.3),
 };
 
 const libraryControls = {
   display: "grid",
   gridTemplateColumns: "minmax(0, 1fr) minmax(120px, 0.6fr)",
   gap: 8,
-  marginBottom: 12,
 };
 
-const warmupList = {
+const librarySection = {
   display: "grid",
-  gap: 6,
+  gap: 8,
 };
 
-const warmupItem = {
-  borderTop: "1px solid #202020",
-  paddingTop: 7,
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: 10,
-};
-
-const warmupActions = {
-  display: "flex",
-  gap: 5,
-  flex: "0 0 auto",
-};
-
-const libraryItem = {
-  border: "1px solid #202020",
-  borderRadius: 12,
-  background: "#0b0b0b",
-  padding: 12,
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: 12,
-};
-
-const empty = {
-  border: "1px solid #222",
-  borderRadius: 16,
-  background: "#0f0f0f",
-  padding: 22,
-  color: "#555",
-  textAlign: "center",
-  fontWeight: 850,
+const wellList = {
   display: "grid",
-  gap: 10,
-  justifyItems: "center",
-};
-
-const liftCard = {
-  border: "1px solid #242424",
-  borderRadius: 10,
-  background: "#0f0f0f",
-  padding: "10px 12px",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: 10,
-};
-
-const actions = {
-  display: "flex",
-  gap: 6,
-  flexWrap: "wrap",
-  justifyContent: "flex-end",
-};
-
-const editBtn = {
-  color: ACCENT,
-  borderColor: tint(ACCENT, 0.38),
+  padding: "0 12px",
+  borderRadius: radii.lg,
   background: colors.surfaceSoft,
-  padding: "7px 10px",
-  fontSize: 12,
+  border: `1px solid ${colors.borderSoft}`,
 };
 
-const liftName = {
-  margin: 0,
-  color: colors.text,
-  fontSize: 16,
+const wellRow = {
+  ...row,
+  padding: "10px 0",
 };
 
-const libraryLiftName = {
-  color: colors.textSoft,
+const textarea = {
+  minHeight: 82,
+  resize: "vertical",
 };
 
-const liftMeta = {
-  margin: "4px 0 0",
-  color: "#777",
-  fontSize: 12,
-  fontWeight: 750,
+const formActions = {
+  display: "flex",
+  gap: 8,
 };
 
-const stretchPreview = {
-  margin: "5px 0 0",
-  color: "#999",
-  fontSize: 12,
-  lineHeight: 1.35,
-};
-
-const removeBtn = {
-  color: "#ff6b2c",
-  borderColor: "rgba(255, 107, 44, 0.45)",
-  background: "rgba(255, 107, 44, 0.12)",
-  padding: "7px 10px",
-  fontSize: 12,
+const fullButton = {
+  width: "100%",
+  padding: "12px 16px",
 };
 
 const modalOverlay = {
   position: "fixed",
   inset: 0,
   zIndex: 210,
-  background: "rgba(0, 0, 0, 0.78)",
+  background: "rgba(0, 0, 0, 0.7)",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  padding: 18,
+  padding: 16,
 };
 
 const modalPanel = {
@@ -1506,8 +1597,9 @@ const modalPanel = {
   maxHeight: "88vh",
   overflow: "auto",
   border: `1px solid ${colors.border}`,
-  borderRadius: 14,
+  borderRadius: radii.xl,
   background: colors.surface,
+  boxShadow: "0 24px 60px rgba(0, 0, 0, 0.5)",
 };
 
 const previewPanel = {
@@ -1518,68 +1610,72 @@ const previewPanel = {
 const modalHeader = {
   display: "flex",
   justifyContent: "space-between",
-  alignItems: "center",
+  alignItems: "flex-start",
   gap: 12,
-  padding: 16,
-  borderBottom: "1px solid #222",
+  padding: "18px 18px 0",
 };
 
 const modalTitle = {
-  margin: 0,
-  color: ACCENT,
+  ...type.pageTitle,
   fontSize: 22,
+  overflowWrap: "anywhere",
 };
 
 const closeBtn = {
-  width: 36,
-  height: 36,
+  flex: "0 0 auto",
+  width: 34,
+  height: 34,
   padding: 0,
 };
 
 const modalBody = {
   display: "grid",
-  gap: 12,
-  padding: 16,
+  gap: 14,
+  padding: 18,
 };
 
 const modalActions = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-  gap: 10,
+  gap: 8,
 };
 
 const previewList = {
   display: "grid",
-  gap: 10,
+  gap: 8,
 };
 
 const previewDayCard = {
-  border: "1px solid #242424",
-  borderRadius: 12,
-  background: "#0b0b0b",
   padding: 12,
+  borderRadius: radii.lg,
+  background: colors.surfaceSoft,
+  border: `1px solid ${colors.borderSoft}`,
 };
 
 const previewDayHeader = {
   display: "flex",
   justifyContent: "space-between",
   gap: 10,
-  alignItems: "flex-start",
+  alignItems: "center",
 };
 
 const previewLiftList = {
   display: "grid",
-  gap: 6,
-  marginTop: 10,
+  marginTop: 8,
 };
 
 const previewLiftRow = {
   display: "flex",
   justifyContent: "space-between",
-  gap: 10,
-  color: "#bdbdb8",
-  fontSize: 12,
-  fontWeight: 750,
-  borderTop: "1px solid #202020",
-  paddingTop: 6,
+  gap: 12,
+  padding: "7px 0",
+  borderTop: `1px solid ${colors.borderSoft}`,
+  color: colors.textSoft,
+  fontSize: 13,
+};
+
+const previewLiftTarget = {
+  ...type.number,
+  color: colors.muted,
+  whiteSpace: "nowrap",
 };

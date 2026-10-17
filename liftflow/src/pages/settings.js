@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { downloadBackup, importBackup, STORAGE_PREFIX } from "../lib/backup";
-import { colors, tint } from "../lib/theme";
+import { colors, radii, tint, type } from "../lib/theme";
 
 export default function Settings() {
   const fileRef = useRef(null);
@@ -49,42 +49,45 @@ export default function Settings() {
   return (
     <section style={wrap}>
       <header style={header}>
-        <div>
-          <p style={eyebrow}>App</p>
-          <h1 style={title}>Settings</h1>
-        </div>
+        <h1 style={type.pageTitle}>Settings</h1>
       </header>
 
-      {status && <div style={notice}>{status}</div>}
+      {status && (
+        <div style={notice} role="status">
+          {status}
+        </div>
+      )}
 
       <section style={card}>
         <div>
-          <h2 style={cardTitle}>Data Backup</h2>
+          <h2 style={type.sectionTitle}>Data backup</h2>
           <p style={copy}>
             Export your local LiftFlow data before changing phones, clearing browser storage, or testing big edits.
           </p>
         </div>
         <div style={actions}>
           <button type="button" className="primary" onClick={exportData} style={actionBtn}>
-            Export Data
+            Export data
           </button>
-          <button type="button" onClick={() => fileRef.current?.click()} style={secondaryBtn}>
-            Import Data
+          <button type="button" onClick={() => fileRef.current?.click()} style={actionBtn}>
+            Import data
           </button>
           <input ref={fileRef} type="file" accept="application/json,.json" onChange={importData} style={hiddenInput} />
         </div>
       </section>
 
-      <section style={dangerCard}>
+      <section style={card}>
         <div>
-          <h2 style={cardTitle}>Reset</h2>
+          <h2 style={type.sectionTitle}>Reset</h2>
           <p style={copy}>
             Clear only LiftFlow data stored on this device. This does not touch anything outside the app.
           </p>
         </div>
-        <button type="button" onClick={() => setConfirmReset(true)} style={dangerBtn}>
-          Reset App Data
-        </button>
+        <div>
+          <button type="button" className="danger" onClick={() => setConfirmReset(true)}>
+            Reset app data
+          </button>
+        </div>
       </section>
 
       <ConfirmDialog
@@ -101,87 +104,48 @@ export default function Settings() {
 }
 
 const wrap = {
-  maxWidth: 760,
-  margin: "0 auto",
+  display: "grid",
+  gap: 16,
 };
 
 const header = {
-  marginBottom: 18,
-};
-
-const eyebrow = {
-  margin: 0,
-  color: colors.brand,
-  fontSize: 14,
-  fontWeight: 850,
-  textTransform: "uppercase",
-};
-
-const title = {
-  margin: "6px 0 0",
-  fontSize: 34,
-  lineHeight: 1,
+  padding: "8px 0 4px",
 };
 
 const notice = {
-  border: `1px solid ${tint(colors.brand, 0.35)}`,
-  borderRadius: 12,
-  background: tint(colors.brand, 0.1),
+  border: `1px solid ${tint(colors.brand, 0.3)}`,
+  borderRadius: radii.lg,
+  background: tint(colors.brand, 0.08),
   color: colors.brand,
-  padding: "10px 12px",
-  marginBottom: 14,
-  fontWeight: 850,
+  padding: "10px 14px",
+  fontSize: 14,
+  fontWeight: 500,
 };
 
 const card = {
   border: `1px solid ${colors.border}`,
-  borderRadius: 14,
+  borderRadius: radii.xl,
   background: colors.surface,
   padding: 16,
   display: "grid",
   gap: 14,
-  marginBottom: 14,
-};
-
-const dangerCard = {
-  ...card,
-  borderColor: "rgba(255, 107, 44, 0.36)",
-};
-
-const cardTitle = {
-  margin: 0,
-  color: colors.text,
-  fontSize: 22,
 };
 
 const copy = {
-  margin: "8px 0 0",
+  ...type.body,
   color: colors.muted,
-  lineHeight: 1.45,
-  fontWeight: 700,
+  margin: "6px 0 0",
 };
 
 const actions = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
-  gap: 10,
+  maxWidth: 440,
+  gap: 8,
 };
 
 const actionBtn = {
   width: "100%",
-};
-
-const secondaryBtn = {
-  width: "100%",
-  color: colors.brand,
-  borderColor: tint(colors.brand, 0.35),
-  background: colors.surfaceSoft,
-};
-
-const dangerBtn = {
-  color: "#ff6b2c",
-  borderColor: "rgba(255, 107, 44, 0.45)",
-  background: "rgba(255, 107, 44, 0.12)",
 };
 
 const hiddenInput = {

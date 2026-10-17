@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { upsertCustomExercise } from "../lib/customExercises";
-import { getMuscleGroup, tint } from "../lib/muscleGroups";
+import { getMuscleGroup } from "../lib/muscleGroups";
 import { getManualPRs } from "../lib/manualPRs";
 import { getPlan } from "../lib/plan";
 import { buildPRMap, formatPR } from "../lib/prRecords";
@@ -11,7 +11,7 @@ import { getWorkouts, saveWorkout } from "../lib/workoutStorage";
 import { calculateSessionSummary, detectPRs, normalizeExerciseName } from "../lib/workoutAnalytics";
 import { buildCoachRecommendation, buildLiveSetRecommendation } from "../lib/coach";
 import { getLoadProfile } from "../lib/loadProfiles";
-import { colors, dayColors } from "../lib/theme";
+import { colors, dayColors, radii, tint, type } from "../lib/theme";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const DRAFT_KEY = "liftflow_workout_drafts";
@@ -338,33 +338,34 @@ export default function Workout() {
   return (
     <div style={wrap}>
       <header style={header}>
-        <div>
-          <p style={eyebrow}>Workout</p>
+        <div style={{ minWidth: 0 }}>
+          <p style={type.eyebrow}>
+            {selectedDay} · {program.length} lift{program.length === 1 ? "" : "s"}
+          </p>
           <h1 style={title}>{focusName}</h1>
         </div>
-        <div style={headerActions}>
-          <span style={count}>{program.length} lifts</span>
-          {!recovery && (
-            <button type="button" onClick={openAddExercise} style={addWorkoutBtn}>
-              Add
-            </button>
-          )}
-        </div>
+        {!recovery && (
+          <button type="button" onClick={openAddExercise} style={addWorkoutBtn}>
+            + Add exercise
+          </button>
+        )}
       </header>
 
       <div style={dayRow}>
         {DAYS.map((day) => {
+          const selected = selectedDay === day;
           const dayAccent = getDayAccent(day, plan);
           return (
             <button
               key={day}
               type="button"
               onClick={() => chooseDay(day)}
+              aria-pressed={selected}
               style={{
                 ...dayBtn,
-                borderColor: tint(dayAccent, selectedDay === day ? 0.78 : 0.28),
-                color: selectedDay === day ? colors.inverse : dayAccent,
-                background: selectedDay === day ? dayAccent : tint(dayAccent, 0.08),
+                ...(selected
+                  ? { background: tint(dayAccent, 0.14), color: dayAccent, borderColor: tint(dayAccent, 0.4) }
+                  : {}),
               }}
             >
               {day.slice(0, 3)}
@@ -374,8 +375,8 @@ export default function Workout() {
       </div>
 
       {recovery ? (
-        <section style={recoveryCard}>
-          <p style={eyebrow}>Recovery Day</p>
+        <section style={card}>
+          <p style={{ ...type.eyebrow, color: colors.success }}>Recovery day</p>
           <h2 style={recoveryTitle}>{focusName}</h2>
           <p style={recoveryMeta}>
             {recovery.activity} · {recovery.duration} · {recovery.intensity}
@@ -383,32 +384,31 @@ export default function Workout() {
           {recovery.notes && <p style={recoveryNotes}>{recovery.notes}</p>}
         </section>
       ) : program.length === 0 ? (
-        <section style={empty}>
+        <section style={{ ...card, ...empty }}>
           <span>No workout planned for {selectedDay}.</span>
-          <button type="button" onClick={() => router.push("/plan")} style={emptyAction}>
-            Build Program
-          </button>
-          <button type="button" onClick={openAddExercise} style={emptyAction}>
-            Add One Lift
-          </button>
+          <div style={emptyActions}>
+            <button type="button" className="primary" onClick={() => router.push("/plan")}>
+              Build program
+            </button>
+            <button type="button" onClick={openAddExercise}>
+              Add one lift
+            </button>
+          </div>
         </section>
       ) : (
         <section style={list}>
           {emphasis && (
-            <section style={emphasisCard}>
-              <p style={eyebrow}>Recovery Emphasis</p>
+            <section style={card}>
+              <p style={{ ...type.eyebrow, color: colors.success }}>Recovery emphasis</p>
               <h2 style={emphasisTitle}>{focusName}</h2>
               <p style={emphasisText}>{emphasis}</p>
             </section>
           )}
 
           {warmup.length > 0 && (
-            <section style={warmupCard}>
+            <section style={card}>
               <div style={warmupHeader}>
-                <div>
-                  <p style={eyebrow}>Warmup</p>
-                  <h2 style={warmupTitle}>Prep Work</h2>
-                </div>
+                <h2 style={type.sectionTitle}>Warmup</h2>
                 <span style={warmupCount}>{warmup.length} moves</span>
               </div>
               <div style={warmupList}>
@@ -421,8 +421,10 @@ export default function Workout() {
                       key={movementId}
                       type="button"
                       onClick={() => toggleWarmup(movementId)}
+                      aria-pressed={done}
                       style={{
                         ...warmupRow,
+                        ...(index === 0 ? { borderTop: 0 } : {}),
                         ...(done ? warmupRowDone : {}),
                       }}
                     >
@@ -440,28 +442,33 @@ export default function Workout() {
           )}
 
           <div style={timerCard}>
-            <div>
-              <span style={timerLabel}>Rest Timer</span>
-              <strong style={timerValue}>{formatRestTime(restSeconds)}</strong>
+            <div style={timerReadout}>
+              <span style={timerLabel}>Rest</span>
+              <strong style={{ ...timerValue, color: restSeconds > 0 ? colors.brand : colors.text }}>
+                {formatRestTime(restSeconds)}
+              </strong>
             </div>
             <div style={timerActions}>
-              {[60, 90, 120].map((seconds) => (
-                <button
-                  key={seconds}
-                  type="button"
-                  onClick={() => setRestPreset(seconds)}
-                  style={{
-                    ...timerChip,
-                    ...(restPreset === seconds ? activeTimerChip : {}),
-                  }}
-                >
-                  {seconds}s
-                </button>
-              ))}
-              <button type="button" className="primary" onClick={() => setRestSeconds(restPreset)} style={timerStart}>
+              <div style={timerPresets} role="group" aria-label="Rest length">
+                {[60, 90, 120].map((seconds) => (
+                  <button
+                    key={seconds}
+                    type="button"
+                    onClick={() => setRestPreset(seconds)}
+                    aria-pressed={restPreset === seconds}
+                    style={{
+                      ...timerChip,
+                      ...(restPreset === seconds ? activeTimerChip : {}),
+                    }}
+                  >
+                    {seconds}s
+                  </button>
+                ))}
+              </div>
+              <button type="button" onClick={() => setRestSeconds(restPreset)} style={timerStart}>
                 Start
               </button>
-              <button type="button" onClick={() => setRestSeconds(0)} style={timerChip}>
+              <button type="button" className="ghost" onClick={() => setRestSeconds(0)} style={timerReset}>
                 Reset
               </button>
             </div>
@@ -469,7 +476,6 @@ export default function Workout() {
 
           {program.map((lift) => {
             const group = getMuscleGroup(lift.muscleGroup);
-            const dayAccent = getDayAccent(selectedDay, plan);
             const workingSets = Array.isArray(safeSession[lift.id]) ? safeSession[lift.id] : [];
             const variationOptions = getVariationOptions(lift);
             const variationDraft = normalizeVariationDraft(safeSession.__variations?.[lift.id]);
@@ -489,44 +495,40 @@ export default function Workout() {
             const coach = swapped ? buildCoachRecommendation(activeLift, workouts) : lift.coachRecommendation;
             const liveCoach = buildLiveSetRecommendation(activeLift, workingSets, coach);
             const coachDetailsOpen = Boolean(safeSession.__coach?.[lift.id]);
+            const isTime = lift.targetType === "time";
 
             return (
-              <article
-                key={lift.id}
-                style={{
-                  ...liftCard,
-                  borderColor: colors.border,
-                  background: colors.surface,
-                }}
-              >
+              <article key={lift.id} style={liftCard}>
                 <div style={liftHeader}>
-                  <div>
+                  <div style={{ minWidth: 0 }}>
                     <h2 style={liftTitle}>{performedExercise}</h2>
                     <p style={liftMeta}>
                       {group.label} · {formatWorkoutTarget(lift)}
                       {swapped ? ` · planned ${lift.exercise}` : ""}
                     </p>
+                    {!isTime && activePr && <span style={prBadge}>{formatPR(activePr)}</span>}
                   </div>
                   <div style={liftHeaderActions}>
                     {lift.addedDuringWorkout && (
                       <button
                         type="button"
+                        className="danger"
                         onClick={() => removeWorkoutExercise(lift)}
-                        style={removeLiftBtn}
+                        style={smallBtn}
                         aria-label={`Remove ${lift.exercise}`}
                         title="Remove added exercise"
                       >
                         Remove
                       </button>
                     )}
-                    {lift.targetType !== "time" && activePr && <span style={prBadge}>{formatPR(activePr)}</span>}
                     <button
                       type="button"
                       onClick={() => updateVariation(lift.id, { open: !variationDraft.open })}
                       style={{
-                        ...variationIcon,
-                        ...(selectedVariation ? { color: dayAccent, borderColor: tint(dayAccent, 0.48) } : {}),
+                        ...smallBtn,
+                        ...(selectedVariation || variationDraft.open ? selectedChip : {}),
                       }}
+                      aria-expanded={variationDraft.open}
                       aria-label={`Swap exercise for ${lift.exercise}`}
                       title="Swap exercise"
                     >
@@ -534,6 +536,42 @@ export default function Workout() {
                     </button>
                   </div>
                 </div>
+
+                {variationDraft.open && (
+                  <div style={variationPanel}>
+                    <span style={wellLabel}>Swap for</span>
+                    <div style={variationChips}>
+                      <button
+                        type="button"
+                        onClick={() => updateVariation(lift.id, { value: "", custom: "", open: false })}
+                        style={{
+                          ...variationChip,
+                          ...(!selectedVariation ? selectedChip : {}),
+                        }}
+                      >
+                        Keep {lift.exercise}
+                      </button>
+                      {variationOptions.map((variation) => (
+                        <button
+                          key={variation}
+                          type="button"
+                          onClick={() => updateVariation(lift.id, { value: variation, custom: "", open: false })}
+                          style={{
+                            ...variationChip,
+                            ...(selectedVariation === variation ? selectedChip : {}),
+                          }}
+                        >
+                          {variation}
+                        </button>
+                      ))}
+                    </div>
+                    <input
+                      placeholder="Or type the exercise you did"
+                      value={variationDraft.custom}
+                      onChange={(event) => updateVariation(lift.id, { custom: event.target.value, value: "" })}
+                    />
+                  </div>
+                )}
 
                 {coach && (
                   <section style={coachCard}>
@@ -543,7 +581,7 @@ export default function Workout() {
                       style={coachToggle}
                       aria-expanded={coachDetailsOpen}
                     >
-                      <div>
+                      <div style={{ minWidth: 0 }}>
                         <span style={coachLabel}>Coach</span>
                         <strong style={coachTitle}>{coach.headline}</strong>
                       </div>
@@ -552,7 +590,7 @@ export default function Workout() {
                     <p style={coachDetail}>{coach.detail}</p>
                     {coachDetailsOpen && coach.warmups?.length > 0 && (
                       <div style={coachWarmupBlock}>
-                        <span style={coachWarmupLabel}>{coach.warmupLabel || "Optional ramp"}</span>
+                        <span style={wellLabel}>{coach.warmupLabel || "Optional ramp"}</span>
                         <div style={coachWarmups}>
                           {coach.warmups.map((set, index) => {
                             const done = Boolean(safeSession.__ramp?.[lift.id]?.[index]);
@@ -562,15 +600,16 @@ export default function Workout() {
                                 key={`${set.weight}-${set.reps}-${index}`}
                                 type="button"
                                 onClick={() => toggleRampSet(lift.id, index)}
+                                aria-pressed={done}
                                 style={{
                                   ...coachWarmupChip,
-                                  ...(done ? coachWarmupChipDone : {}),
+                                  ...(done ? selectedChip : {}),
                                 }}
                               >
                                 <span style={{ ...miniCheckBox, ...(done ? miniCheckBoxDone : {}) }}>
                                   {done ? "✓" : ""}
                                 </span>
-                                {set.weight} x {set.reps}
+                                {set.weight} × {set.reps}
                               </button>
                             );
                           })}
@@ -590,122 +629,88 @@ export default function Workout() {
                       <strong style={coachAction}>{coach.nextAction}</strong>
                     </div>
                     {liveCoach && (
-                      <div
-                        style={{
-                          ...liveCoachBox,
-                          ...(liveCoach.tone === "up" ? liveCoachUp : liveCoach.tone === "down" ? liveCoachDown : {}),
-                        }}
-                      >
-                        <strong>{liveCoach.label}</strong>
-                        <span>{liveCoach.detail}</span>
+                      <div style={{ ...liveCoachBox, ...getLiveCoachTone(liveCoach.tone) }}>
+                        <strong style={liveCoachLabel}>{liveCoach.label}</strong>
+                        <span style={liveCoachDetail}>{liveCoach.detail}</span>
                       </div>
                     )}
                   </section>
                 )}
 
-                {variationDraft.open && (
-                  <div style={variationPanel}>
-                    <div style={variationChips}>
-                      <button
-                        type="button"
-                        onClick={() => updateVariation(lift.id, { value: "", custom: "", open: false })}
-                        style={{
-                          ...variationChip,
-                          ...(!selectedVariation ? activeVariationChip : {}),
-                        }}
-                      >
-                        Keep {lift.exercise}
-                      </button>
-                      {variationOptions.map((variation) => (
-                        <button
-                          key={variation}
-                          type="button"
-                          onClick={() => updateVariation(lift.id, { value: variation, custom: "", open: false })}
-                          style={{
-                            ...variationChip,
-                            ...(selectedVariation === variation ? activeVariationChip : {}),
-                          }}
-                        >
-                          {variation}
-                        </button>
-                      ))}
-                    </div>
-                    <input
-                      placeholder="Custom exercise performed"
-                      value={variationDraft.custom}
-                      onChange={(event) => updateVariation(lift.id, { custom: event.target.value, value: "" })}
-                    />
-                  </div>
-                )}
-
                 {(lift.note || lift.stretches) && (
-                  <div style={stretchBox}>
-                    <span style={stretchLabel}>Lift Note</span>
-                    <p style={stretchText}>{lift.note || lift.stretches}</p>
+                  <div style={noteBox}>
+                    <span style={wellLabel}>Lift note</span>
+                    <p style={noteText}>{lift.note || lift.stretches}</p>
                   </div>
                 )}
 
                 <div style={workingSetHeader}>
                   <span style={workingSetLabel}>Working sets</span>
                   <span style={workingSetMeta}>
-                    {lift.targetType === "time" ? "Track time for history." : "Counts for history and PRs."}
+                    {isTime ? "Track time for history." : "Counts for history and PRs."}
                   </span>
                 </div>
 
                 {workingSets.length === 0 ? (
-                  <button type="button" onClick={() => addSet(lift.id)} style={emptySetButton}>
-                    Add first working set
+                  <button type="button" onClick={() => addSet(lift.id)} style={addSetBtn}>
+                    + Add first set
                   </button>
                 ) : (
-                  <div style={setList}>
-                    {workingSets.map((_, i) => (
-                      <div key={i} className="field-row" style={setRow}>
-                        <input
-                          type="number"
-                          placeholder={`Set ${i + 1} weight`}
-                          value={workingSets[i]?.weight || ""}
-                          onChange={(event) => updateSet(lift.id, i, "weight", event.target.value)}
-                        />
-                        {lift.targetType === "time" ? (
-                          <input
-                            placeholder={`Set ${i + 1} time`}
-                            value={workingSets[i]?.duration || ""}
-                            onChange={(event) => updateSet(lift.id, i, "duration", event.target.value)}
-                          />
-                        ) : (
+                  <>
+                    <div style={setColumns} aria-hidden="true">
+                      <span>Set</span>
+                      <span>Weight</span>
+                      <span>{isTime ? "Time" : "Reps"}</span>
+                      <span />
+                    </div>
+                    <div style={setList}>
+                      {workingSets.map((_, i) => (
+                        <div key={i} style={setRow}>
+                          <span style={setNumber}>{i + 1}</span>
                           <input
                             type="number"
-                            placeholder={`Set ${i + 1} reps`}
-                            value={workingSets[i]?.reps || ""}
-                            onChange={(event) => updateSet(lift.id, i, "reps", event.target.value)}
+                            inputMode="decimal"
+                            placeholder="lb"
+                            aria-label={`Set ${i + 1} weight`}
+                            value={workingSets[i]?.weight || ""}
+                            onChange={(event) => updateSet(lift.id, i, "weight", event.target.value)}
+                            style={setInput}
                           />
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => removeSet(lift.id, i)}
-                          style={removeSetBtn}
-                          aria-label={`Remove set ${i + 1}`}
-                        >
-                          -
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {workingSets.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => addSet(lift.id)}
-                    style={{
-                      ...addSetBtn,
-                      color: dayAccent,
-                      borderColor: tint(dayAccent, 0.38),
-                      background: colors.surfaceSoft,
-                    }}
-                  >
-                    Add Set
-                  </button>
+                          {isTime ? (
+                            <input
+                              placeholder="time"
+                              aria-label={`Set ${i + 1} time`}
+                              value={workingSets[i]?.duration || ""}
+                              onChange={(event) => updateSet(lift.id, i, "duration", event.target.value)}
+                              style={setInput}
+                            />
+                          ) : (
+                            <input
+                              type="number"
+                              inputMode="numeric"
+                              placeholder="reps"
+                              aria-label={`Set ${i + 1} reps`}
+                              value={workingSets[i]?.reps || ""}
+                              onChange={(event) => updateSet(lift.id, i, "reps", event.target.value)}
+                              style={setInput}
+                            />
+                          )}
+                          <button
+                            type="button"
+                            className="ghost"
+                            onClick={() => removeSet(lift.id, i)}
+                            style={removeSetBtn}
+                            aria-label={`Remove set ${i + 1}`}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <button type="button" onClick={() => addSet(lift.id)} style={addSetBtn}>
+                      + Add set
+                    </button>
+                  </>
                 )}
               </article>
             );
@@ -715,19 +720,25 @@ export default function Workout() {
 
       {!recovery && program.length > 0 && (
         <button type="button" className="primary" onClick={finishWorkout} style={finishBtn}>
-          Finish Workout
+          Finish workout
         </button>
       )}
 
       {summary && (
-        <section style={summaryPanel}>
+        <section style={card}>
           <div style={summaryTop}>
-            <div>
-              <p style={eyebrow}>Workout Complete</p>
+            <div style={{ minWidth: 0 }}>
+              <p style={type.eyebrow}>Workout complete</p>
               <h2 style={summaryTitle}>{summary.focus}</h2>
             </div>
-            <button type="button" onClick={() => setSummary(null)} style={closeSummary}>
-              Close
+            <button
+              type="button"
+              className="ghost"
+              onClick={() => setSummary(null)}
+              style={closeBtn}
+              aria-label="Close"
+            >
+              ✕
             </button>
           </div>
 
@@ -735,8 +746,8 @@ export default function Workout() {
             <SummaryStat label="Sets" value={summary.sets} />
             <SummaryStat label="Volume" value={`${summary.volume.toLocaleString()} lb`} />
             <SummaryStat
-              label="Top Set"
-              value={summary.topSet ? `${summary.topSet.weight}x${summary.topSet.reps}` : "--"}
+              label="Top set"
+              value={summary.topSet ? `${summary.topSet.weight} × ${summary.topSet.reps}` : "--"}
             />
           </div>
 
@@ -745,7 +756,7 @@ export default function Workout() {
               <strong style={prTitle}>New PRs</strong>
               {summary.prs.map((pr) => (
                 <p key={`${pr.exercise}-${pr.weight}-${pr.reps}`} style={prLine}>
-                  {pr.exercise}: {pr.weight} lb x {pr.reps}
+                  {pr.exercise}: {pr.weight} lb × {pr.reps}
                 </p>
               ))}
             </div>
@@ -755,19 +766,33 @@ export default function Workout() {
 
       {addOpen && (
         <div style={modalOverlay} onClick={() => setAddOpen(false)}>
-          <section style={modalPanel} onClick={(event) => event.stopPropagation()}>
+          <section
+            style={modalPanel}
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="add-exercise-title"
+          >
             <div style={modalHeader}>
-              <div>
-                <p style={eyebrow}>Add Exercise</p>
-                <h2 style={modalTitle}>{selectedDay}</h2>
+              <div style={{ minWidth: 0 }}>
+                <p style={type.eyebrow}>{selectedDay}</p>
+                <h2 id="add-exercise-title" style={modalTitle}>
+                  Add exercise
+                </h2>
               </div>
-              <button type="button" onClick={() => setAddOpen(false)} style={closeBtn}>
-                X
+              <button
+                type="button"
+                className="ghost"
+                onClick={() => setAddOpen(false)}
+                style={closeBtn}
+                aria-label="Close"
+              >
+                ✕
               </button>
             </div>
             <div style={modalBody}>
               <section style={addSection}>
-                <strong style={addSectionTitle}>From Your Split</strong>
+                <h3 style={addSectionTitle}>From your split</h3>
                 <input
                   placeholder="Search your split"
                   value={addSearch}
@@ -777,12 +802,12 @@ export default function Workout() {
                   <p style={emptyMini}>No other split exercises found.</p>
                 ) : (
                   <div style={libraryList}>
-                    {splitExerciseOptions.map((lift) => (
+                    {splitExerciseOptions.map((lift, index) => (
                       <button
                         key={`${lift.exercise}-${lift.muscleGroup}-${lift.sets}-${lift.reps}`}
                         type="button"
                         onClick={() => addExerciseToWorkout(lift)}
-                        style={libraryItem}
+                        style={{ ...libraryItem, ...(index === 0 ? { borderTop: 0 } : {}) }}
                       >
                         <span style={libraryText}>
                           <strong style={libraryName}>{lift.exercise}</strong>
@@ -797,70 +822,96 @@ export default function Workout() {
                 )}
               </section>
 
-              <section style={addSection}>
-                <strong style={addSectionTitle}>Custom</strong>
-                <input
-                  placeholder="Exercise name"
-                  value={addDraft.exercise}
-                  onChange={(event) => setAddDraft({ ...addDraft, exercise: event.target.value })}
-                />
-                <select
-                  value={addDraft.muscleGroup}
-                  onChange={(event) => setAddDraft({ ...addDraft, muscleGroup: event.target.value })}
-                >
-                  {["chest", "back", "legs", "shoulders", "arms", "core", "other"].map((group) => (
-                    <option key={group} value={group}>
-                      {getMuscleGroup(group).label}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={addDraft.loadType}
-                  onChange={(event) => setAddDraft({ ...addDraft, loadType: event.target.value })}
-                >
-                  {["barbell", "machine", "dumbbell", "bodyweight", "free"].map((type) => (
-                    <option key={type} value={type}>
-                      {formatLoadType(type)}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={addDraft.targetType}
-                  onChange={(event) => setAddDraft({ ...addDraft, targetType: event.target.value })}
-                >
-                  <option value="reps">Reps</option>
-                  <option value="time">Time</option>
-                </select>
-                <div className="field-row" style={addFieldRow}>
+              <section style={{ ...addSection, ...addSectionDivider }}>
+                <h3 style={addSectionTitle}>Custom exercise</h3>
+                <label style={field}>
+                  <span style={fieldLabel}>Name</span>
                   <input
-                    placeholder="Sets"
-                    inputMode="numeric"
-                    value={addDraft.sets}
-                    onChange={(event) => setAddDraft({ ...addDraft, sets: event.target.value })}
+                    placeholder="e.g. Cable Fly"
+                    value={addDraft.exercise}
+                    onChange={(event) => setAddDraft({ ...addDraft, exercise: event.target.value })}
                   />
-                  {addDraft.targetType === "time" ? (
+                </label>
+                <div style={addFieldRow}>
+                  <label style={field}>
+                    <span style={fieldLabel}>Muscle group</span>
+                    <select
+                      value={addDraft.muscleGroup}
+                      onChange={(event) => setAddDraft({ ...addDraft, muscleGroup: event.target.value })}
+                    >
+                      {["chest", "back", "legs", "shoulders", "arms", "core", "other"].map((group) => (
+                        <option key={group} value={group}>
+                          {getMuscleGroup(group).label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label style={field}>
+                    <span style={fieldLabel}>Equipment</span>
+                    <select
+                      value={addDraft.loadType}
+                      onChange={(event) => setAddDraft({ ...addDraft, loadType: event.target.value })}
+                    >
+                      {["barbell", "machine", "dumbbell", "bodyweight", "free"].map((loadType) => (
+                        <option key={loadType} value={loadType}>
+                          {formatLoadType(loadType)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <div style={addFieldRowThree}>
+                  <label style={field}>
+                    <span style={fieldLabel}>Target</span>
+                    <select
+                      value={addDraft.targetType}
+                      onChange={(event) => setAddDraft({ ...addDraft, targetType: event.target.value })}
+                    >
+                      <option value="reps">Reps</option>
+                      <option value="time">Time</option>
+                    </select>
+                  </label>
+                  <label style={field}>
+                    <span style={fieldLabel}>Sets</span>
                     <input
-                      placeholder="Time, e.g. 45-90 sec"
-                      value={addDraft.duration}
-                      onChange={(event) => setAddDraft({ ...addDraft, duration: event.target.value })}
-                    />
-                  ) : (
-                    <input
-                      placeholder="Reps, e.g. 8-12"
+                      placeholder="3"
                       inputMode="numeric"
-                      value={addDraft.reps}
-                      onChange={(event) => setAddDraft({ ...addDraft, reps: event.target.value })}
+                      value={addDraft.sets}
+                      onChange={(event) => setAddDraft({ ...addDraft, sets: event.target.value })}
                     />
+                  </label>
+                  {addDraft.targetType === "time" ? (
+                    <label style={field}>
+                      <span style={fieldLabel}>Time</span>
+                      <input
+                        placeholder="45-90 sec"
+                        value={addDraft.duration}
+                        onChange={(event) => setAddDraft({ ...addDraft, duration: event.target.value })}
+                      />
+                    </label>
+                  ) : (
+                    <label style={field}>
+                      <span style={fieldLabel}>Reps</span>
+                      <input
+                        placeholder="8-12"
+                        inputMode="numeric"
+                        value={addDraft.reps}
+                        onChange={(event) => setAddDraft({ ...addDraft, reps: event.target.value })}
+                      />
+                    </label>
                   )}
                 </div>
-                <textarea
-                  placeholder="Lift note"
-                  value={addDraft.note}
-                  onChange={(event) => setAddDraft({ ...addDraft, note: event.target.value })}
-                  style={textarea}
-                />
+                <label style={field}>
+                  <span style={fieldLabel}>Note</span>
+                  <textarea
+                    placeholder="Optional cue or setup note"
+                    value={addDraft.note}
+                    onChange={(event) => setAddDraft({ ...addDraft, note: event.target.value })}
+                    style={textarea}
+                  />
+                </label>
                 <button type="button" className="primary" onClick={addCustomDraftToWorkout} style={fullButton}>
-                  Add + Save Custom
+                  Add and save exercise
                 </button>
               </section>
             </div>
@@ -874,10 +925,15 @@ export default function Workout() {
 function SummaryStat({ label, value }) {
   return (
     <div style={summaryStat}>
-      <span style={summaryLabel}>{label}</span>
+      <span style={type.meta}>{label}</span>
       <strong style={summaryValue}>{value}</strong>
     </div>
   );
+}
+
+function getLiveCoachTone(tone) {
+  const color = tone === "up" ? colors.success : tone === "down" ? colors.warning : colors.brand;
+  return { borderColor: tint(color, 0.3), background: tint(color, 0.08), color };
 }
 
 function createEmptyAddDraft() {
@@ -1123,114 +1179,96 @@ function getPerformedExercise(lift, draft) {
 const wrap = {
   maxWidth: 760,
   margin: "0 auto",
+  display: "grid",
+  gap: 16,
 };
 
 const header = {
   display: "flex",
   justifyContent: "space-between",
-  alignItems: "flex-start",
-  gap: 16,
-  marginBottom: 18,
-};
-
-const headerActions = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "flex-end",
-  gap: 8,
-  flex: "0 0 auto",
-};
-
-const eyebrow = {
-  margin: 0,
-  color: "#32cfff",
-  fontSize: 13,
-  fontWeight: 850,
-  textTransform: "uppercase",
+  alignItems: "flex-end",
+  gap: 12,
+  padding: "8px 0 0",
 };
 
 const title = {
-  margin: "6px 0 0",
-  fontSize: 32,
-  lineHeight: 1.1,
-};
-
-const count = {
-  border: "1px solid rgba(50, 207, 255, 0.35)",
-  borderRadius: 999,
-  padding: "8px 12px",
-  color: "#32cfff",
-  background: "rgba(50, 207, 255, 0.08)",
-  fontWeight: 850,
+  ...type.pageTitle,
+  marginTop: 6,
+  overflowWrap: "anywhere",
 };
 
 const addWorkoutBtn = {
-  minHeight: 38,
+  flex: "0 0 auto",
+  minHeight: 36,
   padding: "8px 12px",
-  color: "#050505",
-  borderColor: "#32cfff",
-  background: "#32cfff",
-  fontWeight: 900,
+  fontSize: 13,
 };
 
 const dayRow = {
   display: "flex",
   overflowX: "auto",
-  gap: 8,
-  marginBottom: 14,
-  paddingBottom: 6,
+  gap: 6,
+  margin: "-4px 0 0",
+  paddingBottom: 2,
 };
 
 const dayBtn = {
-  minWidth: 56,
-  padding: "9px 12px",
-  borderColor: "#242424",
-  background: "#070707",
-  color: "#666",
+  flex: "0 0 auto",
+  minWidth: 52,
+  minHeight: 34,
+  padding: "6px 12px",
+  borderRadius: radii.pill,
+  background: colors.surfaceRaised,
+  color: colors.muted,
+  borderColor: colors.border,
+  fontSize: 13,
+  fontWeight: 500,
+};
+
+const card = {
+  border: `1px solid ${colors.border}`,
+  borderRadius: radii.xl,
+  background: colors.surface,
+  padding: 16,
+};
+
+const selectedChip = {
+  background: tint(colors.brand, 0.14),
+  color: colors.brand,
+  borderColor: tint(colors.brand, 0.4),
 };
 
 const empty = {
-  border: "1px solid #222",
-  borderRadius: 16,
-  background: "#101010",
-  padding: 22,
-  color: "#555",
-  textAlign: "center",
-  fontWeight: 850,
   display: "grid",
-  gap: 10,
   justifyItems: "center",
+  gap: 14,
+  padding: "28px 16px",
+  color: colors.muted,
+  textAlign: "center",
 };
 
-const emptyAction = {
-  color: "#32cfff",
-  borderColor: "rgba(50, 207, 255, 0.35)",
-  background: "rgba(50, 207, 255, 0.08)",
-};
-
-const recoveryCard = {
-  border: `1px solid ${tint(dayColors.recovery, 0.36)}`,
-  borderRadius: 16,
-  background: colors.surface,
-  padding: 18,
+const emptyActions = {
+  display: "flex",
+  flexWrap: "wrap",
+  justifyContent: "center",
+  gap: 8,
 };
 
 const recoveryTitle = {
-  margin: "6px 0 8px",
-  color: dayColors.recovery,
-  fontSize: 26,
+  ...type.pageTitle,
+  fontSize: 22,
+  margin: "6px 0 4px",
 };
 
 const recoveryMeta = {
+  ...type.body,
   margin: 0,
-  color: "#d7d7d2",
-  fontWeight: 800,
+  color: colors.textSoft,
 };
 
 const recoveryNotes = {
+  ...type.meta,
   margin: "10px 0 0",
-  color: "#8a8a8a",
-  lineHeight: 1.45,
 };
 
 const list = {
@@ -1238,69 +1276,31 @@ const list = {
   gap: 12,
 };
 
-const timerCard = {
-  border: `1px solid ${colors.border}`,
-  borderRadius: 12,
-  background: "#101010",
-  padding: 10,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: 14,
-  flexWrap: "wrap",
-};
-
-const emphasisCard = {
-  border: `1px solid ${tint(dayColors.recovery, 0.28)}`,
-  borderRadius: 14,
-  background: colors.surface,
-  padding: 14,
-};
-
 const emphasisTitle = {
-  margin: "4px 0 0",
-  color: dayColors.recovery,
-  fontSize: 22,
+  ...type.sectionTitle,
+  marginTop: 6,
 };
 
 const emphasisText = {
-  margin: "8px 0 0",
-  color: "#bdbdb8",
-  lineHeight: 1.4,
-};
-
-const warmupCard = {
-  border: `1px solid ${colors.border}`,
-  borderRadius: 14,
-  background: colors.surface,
-  padding: 14,
+  ...type.body,
+  margin: "6px 0 0",
 };
 
 const warmupHeader = {
   display: "flex",
   justifyContent: "space-between",
-  alignItems: "flex-start",
+  alignItems: "baseline",
   gap: 12,
-  marginBottom: 10,
-};
-
-const warmupTitle = {
-  margin: "4px 0 0",
-  color: colors.text,
-  fontSize: 22,
+  marginBottom: 6,
 };
 
 const warmupCount = {
-  color: colors.muted,
-  border: `1px solid ${colors.border}`,
-  borderRadius: 999,
-  padding: "6px 10px",
-  fontWeight: 850,
+  ...type.meta,
+  ...type.number,
 };
 
 const warmupList = {
   display: "grid",
-  gap: 8,
 };
 
 const warmupRow = {
@@ -1308,18 +1308,17 @@ const warmupRow = {
   alignItems: "center",
   justifyContent: "space-between",
   gap: 12,
+  border: 0,
   borderTop: `1px solid ${colors.borderSoft}`,
-  borderLeft: 0,
-  borderRight: 0,
-  borderBottom: 0,
   borderRadius: 0,
   background: "transparent",
-  paddingTop: 8,
+  padding: "10px 0",
   textAlign: "left",
+  fontWeight: 400,
 };
 
 const warmupRowDone = {
-  opacity: 0.62,
+  opacity: 0.55,
 };
 
 const checkBox = {
@@ -1327,83 +1326,117 @@ const checkBox = {
   height: 22,
   border: `1px solid ${colors.border}`,
   borderRadius: 6,
-  color: "#050505",
-  background: "#050505",
+  color: colors.inverse,
+  background: colors.surfaceSoft,
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
   flex: "0 0 auto",
-  fontWeight: 900,
+  fontSize: 13,
+  fontWeight: 700,
 };
 
 const checkBoxDone = {
   background: colors.brand,
+  borderColor: colors.brand,
 };
 
 const warmupMain = {
   display: "grid",
-  gap: 3,
+  gap: 2,
   flex: "1 1 auto",
+  minWidth: 0,
 };
 
 const warmupName = {
-  color: "#f7f7f2",
+  color: colors.text,
+  fontSize: 14,
+  fontWeight: 550,
 };
 
 const warmupNote = {
-  color: "#8a8a8a",
-  fontSize: 13,
+  ...type.meta,
 };
 
 const warmupDose = {
-  color: colors.muted,
-  fontWeight: 850,
+  ...type.meta,
+  ...type.number,
+  color: colors.textSoft,
   whiteSpace: "nowrap",
 };
 
+const timerCard = {
+  ...card,
+  padding: "10px 12px 10px 16px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 12,
+  flexWrap: "wrap",
+};
+
+const timerReadout = {
+  display: "flex",
+  alignItems: "baseline",
+  gap: 10,
+};
+
 const timerLabel = {
-  display: "block",
-  color: "#666",
-  fontSize: 12,
-  fontWeight: 850,
-  textTransform: "uppercase",
+  ...type.meta,
+  fontWeight: 500,
 };
 
 const timerValue = {
-  display: "block",
-  marginTop: 2,
-  color: "#32cfff",
+  ...type.number,
+  ...type.tabular,
+  minWidth: "3.2em",
   fontSize: 24,
+  fontWeight: 650,
   lineHeight: 1,
 };
 
 const timerActions = {
   display: "flex",
   alignItems: "center",
-  gap: 8,
+  gap: 6,
   flexWrap: "wrap",
 };
 
-const timerChip = {
-  padding: "7px 10px",
-  color: "#8a8a8a",
+const timerPresets = {
+  display: "flex",
+  gap: 4,
 };
 
-const activeTimerChip = {
-  color: "#050505",
-  background: "#f7f7f2",
-  borderColor: "#f7f7f2",
+const timerChip = {
+  ...type.number,
+  minHeight: 34,
+  padding: "6px 10px",
+  borderRadius: radii.pill,
+  background: colors.surfaceRaised,
+  color: colors.muted,
+  borderColor: colors.border,
+  fontSize: 13,
+  fontWeight: 500,
 };
+
+const activeTimerChip = selectedChip;
 
 const timerStart = {
-  padding: "7px 13px",
+  minHeight: 34,
+  padding: "6px 14px",
+  fontSize: 13,
+};
+
+const timerReset = {
+  minHeight: 34,
+  padding: "6px 10px",
+  fontSize: 13,
 };
 
 const liftCard = {
-  border: "1px solid",
-  borderRadius: 14,
-  padding: 13,
-  background: "#101010",
+  ...card,
+  display: "grid",
+  gap: 12,
 };
 
 const liftHeader = {
@@ -1417,41 +1450,55 @@ const liftHeaderActions = {
   display: "flex",
   alignItems: "center",
   justifyContent: "flex-end",
-  gap: 7,
+  gap: 6,
   flex: "0 0 auto",
 };
 
 const liftTitle = {
-  margin: 0,
-  fontSize: 20,
+  ...type.sectionTitle,
+  fontSize: 18,
+  overflowWrap: "anywhere",
 };
 
 const liftMeta = {
-  margin: "4px 0 0",
-  color: "#777",
-  fontWeight: 750,
-  fontSize: 13,
+  ...type.meta,
+  ...type.number,
+  margin: "3px 0 0",
 };
 
 const prBadge = {
-  border: `1px solid ${tint(colors.accent, 0.32)}`,
-  borderRadius: 999,
-  padding: "6px 8px",
+  ...type.number,
+  display: "inline-block",
+  marginTop: 8,
+  padding: "3px 8px",
+  borderRadius: radii.pill,
+  background: tint(colors.accent, 0.12),
   color: colors.accent,
-  background: tint(colors.accent, 0.06),
-  fontWeight: 900,
+  fontSize: 12,
+  fontWeight: 500,
   whiteSpace: "nowrap",
-  fontSize: 11,
+};
+
+const smallBtn = {
+  minHeight: 34,
+  padding: "6px 12px",
+  fontSize: 13,
+};
+
+const wellLabel = {
+  display: "block",
+  color: colors.muted,
+  fontSize: 12,
+  fontWeight: 500,
 };
 
 const coachCard = {
-  border: "1px solid rgba(50, 207, 255, 0.2)",
-  borderRadius: 10,
-  background: "rgba(50, 207, 255, 0.06)",
-  padding: 10,
-  marginTop: 10,
+  border: `1px solid ${tint(colors.brand, 0.2)}`,
+  borderRadius: radii.lg,
+  background: tint(colors.brand, 0.06),
+  padding: 12,
   display: "grid",
-  gap: 6,
+  gap: 8,
 };
 
 const coachToggle = {
@@ -1462,44 +1509,50 @@ const coachToggle = {
   alignItems: "flex-start",
   textAlign: "left",
   border: 0,
-  borderRadius: 8,
+  borderRadius: 0,
   background: "transparent",
   padding: 0,
   color: "inherit",
+  fontWeight: 400,
 };
 
 const coachLabel = {
   display: "block",
-  color: "#777",
-  fontSize: 10,
-  fontWeight: 850,
-  textTransform: "uppercase",
+  color: colors.brand,
+  fontSize: 12,
+  fontWeight: 600,
 };
 
 const coachTitle = {
+  ...type.number,
   display: "block",
-  marginTop: 1,
-  color: "#32cfff",
-  fontSize: 18,
+  marginTop: 2,
+  color: colors.text,
+  fontSize: 20,
+  fontWeight: 650,
+  lineHeight: 1.25,
 };
 
 const coachBadge = {
-  color: "#32cfff",
-  background: "rgba(50, 207, 255, 0.1)",
-  border: "1px solid rgba(50, 207, 255, 0.26)",
-  borderRadius: 999,
-  padding: "4px 8px",
-  fontWeight: 900,
+  flex: "0 0 auto",
+  color: colors.brand,
+  fontSize: 13,
+  fontWeight: 500,
   whiteSpace: "nowrap",
-  fontSize: 11,
-  textTransform: "uppercase",
+  paddingTop: 2,
 };
 
 const coachDetail = {
+  ...type.body,
   margin: 0,
-  color: "#bdbdb8",
-  lineHeight: 1.3,
-  fontSize: 12,
+  fontSize: 13,
+  lineHeight: 1.45,
+};
+
+const coachWarmupBlock = {
+  display: "grid",
+  gap: 6,
+  minWidth: 0,
 };
 
 const coachWarmups = {
@@ -1507,47 +1560,28 @@ const coachWarmups = {
   flexWrap: "nowrap",
   gap: 6,
   overflowX: "auto",
-  paddingBottom: 1,
-};
-
-const coachWarmupBlock = {
-  display: "flex",
-  alignItems: "center",
-  gap: 8,
-  minWidth: 0,
-};
-
-const coachWarmupLabel = {
-  color: "#777",
-  fontSize: 10,
-  fontWeight: 900,
-  textTransform: "uppercase",
-  flex: "0 0 auto",
+  paddingBottom: 2,
 };
 
 const coachWarmupChip = {
-  border: "1px solid rgba(50, 207, 255, 0.28)",
-  borderRadius: 999,
-  color: "#32cfff",
-  background: "#050505",
-  padding: "5px 7px",
-  fontSize: 11,
-  fontWeight: 850,
+  ...type.number,
+  minHeight: 34,
+  padding: "6px 10px",
+  borderRadius: radii.pill,
+  background: colors.surfaceRaised,
+  color: colors.textSoft,
+  borderColor: colors.border,
+  fontSize: 13,
+  fontWeight: 500,
   display: "inline-flex",
   alignItems: "center",
-  gap: 5,
+  gap: 6,
   flex: "0 0 auto",
 };
 
-const coachWarmupChipDone = {
-  color: "#050505",
-  background: "#32cfff",
-  borderColor: "#32cfff",
-};
-
 const miniCheckBox = {
-  width: 13,
-  height: 13,
+  width: 14,
+  height: 14,
   border: "1px solid currentColor",
   borderRadius: 4,
   color: "inherit",
@@ -1556,102 +1590,83 @@ const miniCheckBox = {
   justifyContent: "center",
   fontSize: 10,
   lineHeight: 1,
+  opacity: 0.7,
 };
 
 const miniCheckBoxDone = {
-  borderColor: "#050505",
+  opacity: 1,
 };
 
 const coachContextNote = {
+  ...type.meta,
   margin: 0,
-  color: "#d9d178",
-  fontSize: 11,
-  lineHeight: 1.3,
+  fontSize: 12,
 };
 
 const coachPlanRow = {
   display: "flex",
   justifyContent: "space-between",
-  alignItems: "center",
-  gap: 10,
+  alignItems: "baseline",
+  gap: 4,
+  columnGap: 12,
   flexWrap: "wrap",
+  paddingTop: 8,
+  borderTop: `1px solid ${tint(colors.brand, 0.14)}`,
 };
 
 const coachPlan = {
-  margin: 0,
-  color: "#d7d7d2",
-  fontSize: 11,
-  lineHeight: 1.3,
+  ...type.meta,
+  ...type.number,
 };
 
 const coachAction = {
-  margin: 0,
-  color: "#f7f7f2",
-  fontWeight: 800,
-  fontSize: 12,
+  ...type.number,
+  color: colors.text,
+  fontSize: 14,
+  fontWeight: 600,
 };
 
 const liveCoachBox = {
-  border: "1px solid rgba(228, 255, 47, 0.3)",
-  borderRadius: 10,
-  background: "rgba(228, 255, 47, 0.08)",
-  color: "#e4ff2f",
-  padding: 8,
+  border: "1px solid",
+  borderRadius: radii.md,
+  padding: "8px 10px",
   display: "grid",
-  gap: 4,
-  fontSize: 12,
+  gap: 2,
 };
 
-const liveCoachUp = {
-  borderColor: "rgba(50, 223, 118, 0.35)",
-  background: "rgba(50, 223, 118, 0.08)",
-  color: "#32df76",
+const liveCoachLabel = {
+  ...type.number,
+  fontSize: 14,
+  fontWeight: 600,
 };
 
-const liveCoachDown = {
-  borderColor: "rgba(255, 107, 44, 0.35)",
-  background: "rgba(255, 107, 44, 0.08)",
-  color: "#ff9b34",
+const liveCoachDetail = {
+  ...type.number,
+  color: colors.textSoft,
+  fontSize: 13,
+  lineHeight: 1.4,
 };
 
-const stretchBox = {
-  border: "1px solid #242424",
-  borderRadius: 10,
-  background: "#0b0b0b",
-  padding: 10,
-  marginTop: 10,
+const noteBox = {
+  border: `1px solid ${colors.borderSoft}`,
+  borderRadius: radii.lg,
+  background: colors.surfaceSoft,
+  padding: "10px 12px",
 };
 
-const variationIcon = {
-  minWidth: 52,
-  height: 32,
-  padding: "0 10px",
-  color: "#32cfff",
-  borderColor: "rgba(50, 207, 255, 0.38)",
-  background: "rgba(50, 207, 255, 0.1)",
-  fontSize: 11,
-  fontWeight: 900,
-};
-
-const removeLiftBtn = {
-  minWidth: 64,
-  height: 32,
-  padding: "0 9px",
-  color: "#ff6b2c",
-  borderColor: "rgba(255, 107, 44, 0.42)",
-  background: "rgba(255, 107, 44, 0.1)",
-  fontSize: 11,
-  fontWeight: 900,
+const noteText = {
+  ...type.body,
+  margin: "4px 0 0",
+  fontSize: 13,
 };
 
 const variationPanel = {
   display: "grid",
-  gap: 7,
-  border: "1px solid #242424",
-  borderRadius: 10,
-  background: "#0b0b0b",
-  padding: 9,
-  marginTop: 10,
+  gap: 8,
+  border: `1px solid ${colors.borderSoft}`,
+  borderRadius: radii.lg,
+  background: colors.surfaceSoft,
+  padding: 12,
 };
 
 const variationChips = {
@@ -1661,105 +1676,93 @@ const variationChips = {
 };
 
 const variationChip = {
-  color: "#aaa",
-  borderColor: "#303030",
-  background: "#101010",
-  padding: "7px 10px",
-  fontSize: 12,
-};
-
-const activeVariationChip = {
-  color: "#050505",
-  borderColor: "#32cfff",
-  background: "#32cfff",
-};
-
-const stretchLabel = {
-  display: "block",
-  color: colors.muted,
-  fontSize: 11,
-  fontWeight: 850,
-  textTransform: "uppercase",
-};
-
-const stretchText = {
-  margin: "4px 0 0",
-  color: "#d7d7d2",
-  lineHeight: 1.35,
+  minHeight: 34,
+  padding: "6px 12px",
+  borderRadius: radii.pill,
+  background: colors.surfaceRaised,
+  color: colors.textSoft,
+  borderColor: colors.border,
   fontSize: 13,
+  fontWeight: 500,
 };
 
 const workingSetHeader = {
   display: "flex",
   justifyContent: "space-between",
-  alignItems: "center",
+  alignItems: "baseline",
   gap: 10,
-  marginTop: 12,
-  paddingTop: 10,
-  borderTop: "1px solid rgba(247, 247, 242, 0.12)",
+  paddingTop: 12,
+  borderTop: `1px solid ${colors.borderSoft}`,
 };
 
 const workingSetLabel = {
-  color: "#f7f7f2",
-  fontSize: 12,
-  fontWeight: 900,
-  textTransform: "uppercase",
+  color: colors.text,
+  fontSize: 14,
+  fontWeight: 600,
 };
 
 const workingSetMeta = {
-  color: "#777",
-  fontSize: 11,
-  fontWeight: 700,
+  color: colors.muted,
+  fontSize: 12,
+  textAlign: "right",
+};
+
+const setGrid = {
+  display: "grid",
+  gridTemplateColumns: "28px minmax(0, 1fr) minmax(0, 1fr) 34px",
+  alignItems: "center",
+  gap: 8,
+};
+
+const setColumns = {
+  ...setGrid,
+  marginBottom: -6,
+  textAlign: "center",
+  color: colors.muted,
+  fontSize: 12,
+  fontWeight: 500,
 };
 
 const setList = {
   display: "grid",
   gap: 8,
-  marginTop: 8,
 };
 
-const emptySetButton = {
-  width: "100%",
-  marginTop: 8,
-  padding: "9px 12px",
-  color: "#32cfff",
-  borderColor: "rgba(50, 207, 255, 0.34)",
-  background: "rgba(50, 207, 255, 0.08)",
-  fontSize: 13,
+const setRow = setGrid;
+
+const setNumber = {
+  ...type.number,
+  color: colors.muted,
+  fontSize: 15,
+  fontWeight: 600,
+  textAlign: "center",
 };
 
-const setRow = {
-  gap: 8,
-  gridTemplateColumns: "1fr 1fr auto",
+const setInput = {
+  ...type.number,
+  minHeight: 46,
+  fontSize: 18,
+  fontWeight: 600,
+  textAlign: "center",
+};
+
+const removeSetBtn = {
+  width: 34,
+  height: 34,
+  padding: 0,
 };
 
 const addSetBtn = {
   width: "100%",
-  marginTop: 10,
-  padding: "7px 12px",
-};
-
-const removeSetBtn = {
-  width: 38,
-  height: 38,
-  padding: 0,
-  borderColor: "rgba(255, 107, 44, 0.42)",
-  color: "#ff6b2c",
-  background: "rgba(255, 107, 44, 0.1)",
+  minHeight: 40,
+  padding: "8px 12px",
+  fontSize: 14,
 };
 
 const finishBtn = {
   width: "100%",
-  marginTop: 18,
-  padding: 13,
-};
-
-const summaryPanel = {
-  border: `1px solid ${colors.border}`,
-  borderRadius: 16,
-  background: "#101010",
-  padding: 16,
-  marginTop: 14,
+  padding: "14px 16px",
+  fontSize: 16,
 };
 
 const summaryTop = {
@@ -1770,66 +1773,61 @@ const summaryTop = {
 };
 
 const summaryTitle = {
-  margin: "6px 0 0",
-  fontSize: 24,
-};
-
-const closeSummary = {
-  color: "#aaa",
-  borderColor: "#333",
-  background: "#0b0b0b",
+  ...type.pageTitle,
+  fontSize: 22,
+  marginTop: 6,
 };
 
 const summaryStats = {
-  gap: 10,
+  gap: 8,
   marginTop: 14,
 };
 
 const summaryStat = {
-  border: "1px solid #242424",
-  borderRadius: 14,
-  background: "#0b0b0b",
-  padding: 12,
-};
-
-const summaryLabel = {
-  display: "block",
-  color: "#666",
-  fontSize: 12,
-  fontWeight: 850,
-  textTransform: "uppercase",
+  display: "grid",
+  gap: 2,
+  padding: "10px 12px",
+  borderRadius: radii.lg,
+  background: colors.surfaceSoft,
+  border: `1px solid ${colors.borderSoft}`,
+  minWidth: 0,
 };
 
 const summaryValue = {
-  display: "block",
-  marginTop: 6,
-  color: "#32cfff",
-  fontSize: 19,
+  ...type.number,
+  color: colors.text,
+  fontSize: 20,
+  fontWeight: 650,
+  lineHeight: 1.2,
 };
 
 const prBox = {
-  border: `1px solid ${tint(colors.accent, 0.32)}`,
-  borderRadius: 14,
-  background: colors.surfaceSoft,
+  display: "grid",
+  gap: 4,
+  border: `1px solid ${tint(colors.accent, 0.25)}`,
+  borderRadius: radii.lg,
+  background: tint(colors.accent, 0.06),
   padding: 12,
   marginTop: 12,
 };
 
 const prTitle = {
-  color: "#e4ff2f",
+  color: colors.accent,
+  fontSize: 14,
+  fontWeight: 600,
 };
 
 const prLine = {
-  margin: "6px 0 0",
-  color: "#f7f7f2",
-  fontWeight: 750,
+  ...type.body,
+  ...type.number,
+  margin: 0,
 };
 
 const modalOverlay = {
   position: "fixed",
   inset: 0,
-  zIndex: 220,
-  background: "rgba(0, 0, 0, 0.78)",
+  zIndex: 230,
+  background: "rgba(0, 0, 0, 0.7)",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
@@ -1837,124 +1835,145 @@ const modalOverlay = {
 };
 
 const modalPanel = {
-  width: "min(520px, 100%)",
+  width: "min(480px, 100%)",
   maxHeight: "88vh",
   overflow: "auto",
   border: `1px solid ${colors.border}`,
-  borderRadius: 14,
+  borderRadius: radii.xl,
   background: colors.surface,
+  boxShadow: "0 24px 60px rgba(0, 0, 0, 0.5)",
 };
 
 const modalHeader = {
   display: "flex",
   justifyContent: "space-between",
-  alignItems: "center",
+  alignItems: "flex-start",
   gap: 12,
-  padding: 14,
-  borderBottom: "1px solid #222",
+  padding: "18px 18px 0",
 };
 
 const modalTitle = {
-  margin: "4px 0 0",
-  color: colors.text,
+  ...type.pageTitle,
   fontSize: 22,
+  marginTop: 4,
 };
 
 const closeBtn = {
-  width: 36,
-  height: 36,
+  flex: "0 0 auto",
+  width: 34,
+  height: 34,
   padding: 0,
 };
 
 const modalBody = {
   display: "grid",
-  gap: 12,
-  padding: 14,
+  gap: 18,
+  padding: 18,
 };
 
 const addSection = {
   display: "grid",
-  gap: 9,
+  gap: 10,
+};
+
+const addSectionDivider = {
+  paddingTop: 18,
+  borderTop: `1px solid ${colors.borderSoft}`,
 };
 
 const addSectionTitle = {
-  color: colors.textSoft,
-  fontSize: 13,
-  textTransform: "uppercase",
+  ...type.sectionTitle,
+  fontSize: 15,
 };
 
 const emptyMini = {
+  ...type.meta,
   margin: 0,
-  border: "1px solid #242424",
-  borderRadius: 10,
-  background: "#0b0b0b",
-  padding: 10,
-  color: "#777",
-  fontWeight: 750,
+  padding: "10px 12px",
+  borderRadius: radii.lg,
+  background: colors.surfaceSoft,
+  border: `1px solid ${colors.borderSoft}`,
+};
+
+const field = {
+  display: "grid",
+  gap: 6,
+  minWidth: 0,
+};
+
+const fieldLabel = {
+  color: colors.textSoft,
   fontSize: 13,
+  fontWeight: 500,
 };
 
 const addFieldRow = {
-  gap: 8,
-  gridTemplateColumns: "1fr 1fr",
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gap: 10,
+};
+
+const addFieldRowThree = {
+  display: "grid",
+  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+  gap: 10,
 };
 
 const libraryList = {
   display: "grid",
-  gap: 7,
-  maxHeight: 220,
+  maxHeight: 240,
   overflow: "auto",
+  border: `1px solid ${colors.borderSoft}`,
+  borderRadius: radii.lg,
+  background: colors.surfaceSoft,
 };
 
 const libraryItem = {
   width: "100%",
-  border: "1px solid #242424",
-  borderRadius: 10,
-  background: "#0b0b0b",
-  padding: 10,
+  border: 0,
+  borderTop: `1px solid ${colors.borderSoft}`,
+  borderRadius: 0,
+  background: "transparent",
+  padding: "10px 12px",
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
   gap: 10,
   textAlign: "left",
+  fontWeight: 400,
 };
 
 const libraryText = {
   display: "grid",
-  gap: 3,
+  gap: 2,
   minWidth: 0,
 };
 
 const libraryName = {
   color: colors.text,
+  fontSize: 14,
+  fontWeight: 550,
 };
 
 const libraryMeta = {
-  color: "#777",
+  ...type.meta,
+  ...type.number,
   fontSize: 12,
-  fontWeight: 750,
 };
 
 const libraryAdd = {
-  color: "#32cfff",
-  fontSize: 12,
-  fontWeight: 900,
+  color: colors.brand,
+  fontSize: 13,
+  fontWeight: 600,
   flex: "0 0 auto",
 };
 
 const textarea = {
-  width: "100%",
   minHeight: 76,
   resize: "vertical",
-  borderRadius: 10,
-  border: "1px solid #2b2b2b",
-  background: "#0b0b0b",
-  color: "#f7f7f2",
-  padding: 10,
-  font: "inherit",
-  fontWeight: 700,
 };
 
 const fullButton = {
   width: "100%",
+  padding: "12px 16px",
 };

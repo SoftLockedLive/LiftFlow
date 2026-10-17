@@ -11,7 +11,7 @@ export default function Document() {
         <meta name="description" content="LiftFlow workout tracking app" />
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="theme-color" content="#32cfff" />
+        <meta name="theme-color" content="#0a0b0d" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
         <link rel="manifest" href="/manifest.webmanifest" />

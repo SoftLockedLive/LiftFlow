@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { addNote, deleteNote, getNoteLevel, getNotes, NOTE_LEVELS, updateNote } from "../lib/notes";
-import { tint } from "../lib/muscleGroups";
 import { getPlan } from "../lib/plan";
+import { colors, radii, tint, type } from "../lib/theme";
 
-const ACCENT = "#32cfff";
-const YELLOW = "#e4ff2f";
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const RECAP_KEY = "liftflow_last_workout_recap";
 
@@ -57,56 +55,58 @@ export default function Notes() {
 
   return (
     <div style={wrap}>
-      <header style={header}>
-        <div>
-          <p style={eyebrow}>Training Notes</p>
-          <h1 style={title}>Notes</h1>
-        </div>
+      <header style={pageHeader}>
+        <h1 style={type.pageTitle}>Notes</h1>
       </header>
 
-      <section style={card}>
-        {recap && (
-          <div style={recapCard}>
-            <div style={recapTop}>
-              <div>
-                <p style={eyebrow}>Workout Recap</p>
-                <h2 style={recapTitle}>{recap.focus}</h2>
-              </div>
-              <button type="button" onClick={() => dismissRecap(setRecap)} style={dismissBtn}>
-                Dismiss
-              </button>
+      {recap && (
+        <section style={card} aria-label="Workout recap">
+          <div style={recapTop}>
+            <div style={{ minWidth: 0 }}>
+              <p style={type.eyebrow}>Workout recap</p>
+              <h2 style={recapTitle}>{recap.focus}</h2>
             </div>
-            <div style={recapStats}>
-              <RecapStat label="Lifts" value={recap.lifts || 0} />
-              <RecapStat label="Sets" value={recap.sets || 0} />
-              <RecapStat label="Volume" value={`${Number(recap.volume || 0).toLocaleString()} lb`} />
-              <RecapStat label="PRs" value={recap.prs?.length || 0} />
-            </div>
-            {recap.addedLifts > 0 && (
-              <p style={recapCopy}>
-                {recap.addedLifts} added lift{recap.addedLifts === 1 ? "" : "s"} included in history.
-              </p>
-            )}
-          </div>
-        )}
-        <h2 style={cardTitle}>How did it go?</h2>
-        <div className="notes-level-grid" style={levelGrid}>
-          {NOTE_LEVELS.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setLevel(item.id)}
-              style={{
-                ...levelButton,
-                color: item.color,
-                borderColor: level === item.id ? item.color : tint(item.color, 0.28),
-                background: level === item.id ? tint(item.color, 0.16) : "#0b0b0b",
-              }}
-            >
-              <span style={emoji}>{item.emoji}</span>
-              {item.label}
+            <button type="button" className="ghost" onClick={() => dismissRecap(setRecap)} style={smallButton}>
+              Dismiss
             </button>
-          ))}
+          </div>
+          <div style={recapStats}>
+            <RecapStat label="Lifts" value={recap.lifts || 0} />
+            <RecapStat label="Sets" value={recap.sets || 0} />
+            <RecapStat label="Volume" value={Number(recap.volume || 0).toLocaleString()} unit="lb" />
+            <RecapStat label="PRs" value={recap.prs?.length || 0} highlight={recap.prs?.length > 0} />
+          </div>
+          {recap.addedLifts > 0 && (
+            <p style={recapCopy}>
+              {recap.addedLifts} added lift{recap.addedLifts === 1 ? "" : "s"} included in history.
+            </p>
+          )}
+        </section>
+      )}
+
+      <section style={formCard}>
+        <h2 style={type.sectionTitle}>{editingId ? "Edit note" : "How did it go?"}</h2>
+        <div className="notes-level-grid" style={levelGrid} role="group" aria-label="How did it go?">
+          {NOTE_LEVELS.map((item) => {
+            const selected = level === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setLevel(item.id)}
+                aria-pressed={selected}
+                style={{
+                  ...levelButton,
+                  ...(selected
+                    ? { color: item.color, borderColor: tint(item.color, 0.4), background: tint(item.color, 0.12) }
+                    : {}),
+                }}
+              >
+                <span style={emoji}>{item.emoji}</span>
+                {item.label}
+              </button>
+            );
+          })}
         </div>
 
         <label style={fieldWrap}>
@@ -132,77 +132,85 @@ export default function Notes() {
             />
           </label>
         )}
-        <textarea
-          placeholder="Custom note..."
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          style={textarea}
-        />
-        <button type="button" className="primary" onClick={saveNote} style={saveButton}>
-          {editingId ? "Save Changes" : "Save Note"}
-        </button>
-        {editingId && (
-          <button
-            type="button"
-            onClick={() => {
-              setEditingId(null);
-              setLift("");
-              setText("");
-              setLevel("solid");
-            }}
-            style={cancelBtn}
-          >
-            Cancel Edit
+        <label style={fieldWrap}>
+          <span style={fieldLabel}>Note</span>
+          <textarea
+            placeholder="How did it feel? Anything to remember next time..."
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+            style={textarea}
+          />
+        </label>
+        <div style={formActions}>
+          {editingId && (
+            <button
+              type="button"
+              onClick={() => {
+                setEditingId(null);
+                setLift("");
+                setText("");
+                setLevel("solid");
+              }}
+              style={cancelBtn}
+            >
+              Cancel
+            </button>
+          )}
+          <button type="button" className="primary" onClick={saveNote} style={saveButton}>
+            {editingId ? "Save changes" : "Save note"}
           </button>
-        )}
+        </div>
       </section>
 
-      <section style={list}>
+      <section style={{ display: "grid", gap: 10 }}>
+        <h2 style={type.sectionTitle}>Your notes</h2>
         {notes.length === 0 ? (
-          <div style={empty}>No notes yet. Save a quick session note above.</div>
+          <div style={{ ...card, ...empty }}>No notes yet. Save a quick session note above.</div>
         ) : (
-          notes.map((note) => {
-            const noteLevel = getNoteLevel(note.level);
+          <div style={list}>
+            {notes.map((note, index) => {
+              const noteLevel = getNoteLevel(note.level);
 
-            return (
-              <article
-                key={note.id}
-                style={{
-                  ...noteCard,
-                  borderColor: tint(noteLevel.color, 0.4),
-                }}
-              >
-                <div style={noteTop}>
-                  <div>
-                    <h2 style={{ ...noteTitle, color: noteLevel.color }}>
-                      <span style={emoji}>{noteLevel.emoji}</span>
-                      {note.lift || noteLevel.label}
-                    </h2>
-                    <p style={dateText}>
-                      {formatDate(note.date)} · {noteLevel.label}
-                    </p>
+              return (
+                <article key={note.id} style={{ ...noteRow, ...(index === 0 ? { borderTop: 0 } : {}) }}>
+                  <div style={noteTop}>
+                    <div style={{ minWidth: 0 }}>
+                      <h3 style={noteTitle}>{note.lift || noteLevel.label}</h3>
+                      <div style={noteMeta}>
+                        <span style={{ ...badge, color: noteLevel.color, background: tint(noteLevel.color, 0.12) }}>
+                          <span aria-hidden="true">{noteLevel.emoji}</span>
+                          {noteLevel.label}
+                        </span>
+                        <span style={dateText}>{formatDate(note.date)}</span>
+                      </div>
+                    </div>
+                    <div style={noteActions}>
+                      <button type="button" className="ghost" onClick={() => startEdit(note)} style={smallButton}>
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="danger"
+                        onClick={() => setConfirmDeleteId(note.id)}
+                        style={smallButton}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </div>
-                  <div style={noteActions}>
-                    <button type="button" onClick={() => startEdit(note)} style={editBtn}>
-                      Edit
-                    </button>
-                    <button type="button" onClick={() => setConfirmDeleteId(note.id)} style={deleteBtn}>
-                      Delete
-                    </button>
-                  </div>
-                </div>
-                {note.text && <p style={noteText}>{note.text}</p>}
-              </article>
-            );
-          })
+                  {note.text && <p style={noteText}>{note.text}</p>}
+                </article>
+              );
+            })}
+          </div>
         )}
       </section>
 
       <ConfirmDialog
         open={Boolean(confirmDeleteId)}
-        title="Delete Note?"
+        title="Delete note?"
         message="This note will be permanently removed from your training notes."
-        confirmLabel="Delete Note"
+        confirmLabel="Delete note"
         danger
         onCancel={() => setConfirmDeleteId(null)}
         onConfirm={() => {
@@ -247,116 +255,98 @@ function dismissRecap(setRecap) {
   setRecap(null);
 }
 
-function RecapStat({ label, value }) {
+function RecapStat({ label, value, unit, highlight }) {
   return (
     <div style={recapStat}>
-      <span style={recapLabel}>{label}</span>
-      <strong style={recapValue}>{value}</strong>
+      <span style={type.meta}>{label}</span>
+      <strong style={{ ...recapValue, ...(highlight ? { color: colors.accent } : {}) }}>
+        {value}
+        {unit && <span style={recapUnit}> {unit}</span>}
+      </strong>
     </div>
   );
 }
 
 const wrap = {
-  maxWidth: 760,
-  margin: "0 auto",
+  display: "grid",
+  gap: 16,
 };
 
-const header = {
-  marginBottom: 18,
-};
-
-const eyebrow = {
-  margin: 0,
-  color: ACCENT,
-  fontSize: 13,
-  fontWeight: 850,
-  textTransform: "uppercase",
-};
-
-const title = {
-  margin: "6px 0 0",
-  fontSize: 32,
-  lineHeight: 1.1,
+const pageHeader = {
+  display: "grid",
+  gap: 6,
+  padding: "8px 0 4px",
 };
 
 const card = {
-  border: "1px solid #242424",
-  borderRadius: 16,
-  background: "#101010",
+  border: `1px solid ${colors.border}`,
+  borderRadius: radii.xl,
+  background: colors.surface,
   padding: 16,
-  display: "grid",
-  gap: 12,
-  marginBottom: 14,
 };
 
-const cardTitle = {
-  margin: 0,
-  fontSize: 22,
-};
-
-const recapCard = {
-  border: "1px solid rgba(228, 255, 47, 0.34)",
-  borderRadius: 12,
-  background: "rgba(228, 255, 47, 0.08)",
-  padding: 12,
+const formCard = {
+  ...card,
   display: "grid",
-  gap: 10,
+  gap: 14,
 };
 
 const recapTop = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "flex-start",
-  gap: 10,
+  gap: 12,
+  marginBottom: 14,
 };
 
 const recapTitle = {
-  margin: "4px 0 0",
-  color: YELLOW,
-  fontSize: 20,
+  ...type.sectionTitle,
+  marginTop: 4,
+  overflowWrap: "anywhere",
 };
 
-const dismissBtn = {
-  color: "#aaa",
-  borderColor: "#333",
-  background: "#0b0b0b",
+const smallButton = {
   padding: "7px 10px",
-  fontSize: 12,
+  minHeight: 34,
+  fontSize: 13,
 };
 
 const recapStats = {
   display: "grid",
-  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-  gap: 7,
+  gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
+  gap: 8,
 };
 
 const recapStat = {
-  border: "1px solid rgba(247, 247, 242, 0.1)",
-  borderRadius: 10,
-  background: "#0b0b0b",
-  padding: 8,
-};
-
-const recapLabel = {
-  display: "block",
-  color: "#777",
-  fontSize: 10,
-  fontWeight: 850,
-  textTransform: "uppercase",
+  display: "grid",
+  gap: 2,
+  padding: "10px 12px",
+  borderRadius: radii.lg,
+  background: colors.surfaceSoft,
+  border: `1px solid ${colors.borderSoft}`,
+  minWidth: 0,
 };
 
 const recapValue = {
-  display: "block",
-  marginTop: 4,
-  color: "#f7f7f2",
-  fontSize: 14,
+  ...type.number,
+  color: colors.text,
+  fontSize: 20,
+  fontWeight: 650,
+  lineHeight: 1.2,
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+};
+
+const recapUnit = {
+  color: colors.muted,
+  fontSize: 12,
+  fontWeight: 500,
 };
 
 const recapCopy = {
-  margin: 0,
-  color: "#d7d7d2",
-  fontSize: 12,
-  fontWeight: 750,
+  ...type.meta,
+  margin: "12px 0 0",
 };
 
 const levelGrid = {
@@ -368,12 +358,16 @@ const levelButton = {
   flexDirection: "column",
   alignItems: "center",
   justifyContent: "center",
-  gap: 5,
+  gap: 6,
   minHeight: 58,
   padding: "8px 4px",
-  borderRadius: 12,
-  fontSize: 11,
-  lineHeight: 1.05,
+  borderRadius: radii.lg,
+  background: colors.surfaceRaised,
+  borderColor: colors.border,
+  color: colors.muted,
+  fontSize: 12,
+  fontWeight: 500,
+  lineHeight: 1.1,
   whiteSpace: "nowrap",
 };
 
@@ -386,23 +380,21 @@ const textarea = {
   width: "100%",
   minHeight: 96,
   resize: "vertical",
-  borderRadius: 10,
-  border: "1px solid #2b2b2b",
-  background: "#0b0b0b",
-  color: "#f7f7f2",
-  padding: 10,
-  font: "inherit",
-  fontWeight: 700,
+};
+
+const formActions = {
+  display: "flex",
+  gap: 8,
 };
 
 const saveButton = {
-  width: "100%",
+  flex: 1,
+  padding: "12px 16px",
+  fontSize: 15,
 };
 
 const cancelBtn = {
-  color: "#aaa",
-  borderColor: "#333",
-  background: "#0b0b0b",
+  padding: "12px 16px",
 };
 
 const fieldWrap = {
@@ -411,32 +403,26 @@ const fieldWrap = {
 };
 
 const fieldLabel = {
-  color: YELLOW,
-  fontSize: 12,
-  fontWeight: 850,
-  textTransform: "uppercase",
+  color: colors.textSoft,
+  fontSize: 13,
+  fontWeight: 500,
 };
 
 const list = {
-  display: "grid",
-  gap: 10,
+  ...card,
+  padding: 0,
+  overflow: "hidden",
 };
 
 const empty = {
-  border: "1px solid #222",
-  borderRadius: 16,
-  background: "#101010",
-  padding: 22,
-  color: "#555",
+  padding: "28px 16px",
+  color: colors.muted,
   textAlign: "center",
-  fontWeight: 850,
 };
 
-const noteCard = {
-  border: "1px solid",
-  borderRadius: 16,
-  background: "#101010",
-  padding: 14,
+const noteRow = {
+  padding: "13px 16px",
+  borderTop: `1px solid ${colors.borderSoft}`,
 };
 
 const noteTop = {
@@ -446,41 +432,47 @@ const noteTop = {
   gap: 12,
 };
 
-const noteActions = {
-  display: "flex",
-  gap: 8,
-  flexWrap: "wrap",
-  justifyContent: "flex-end",
-};
-
-const editBtn = {
-  color: ACCENT,
-  borderColor: "rgba(50, 207, 255, 0.45)",
-  background: "rgba(50, 207, 255, 0.12)",
-};
-
 const noteTitle = {
   margin: 0,
+  color: colors.text,
+  fontSize: 15,
+  fontWeight: 550,
+  lineHeight: 1.3,
+  overflowWrap: "anywhere",
+};
+
+const noteMeta = {
   display: "flex",
   alignItems: "center",
+  flexWrap: "wrap",
   gap: 8,
-  fontSize: 20,
+  marginTop: 6,
+};
+
+const badge = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 4,
+  padding: "3px 8px",
+  borderRadius: radii.pill,
+  fontSize: 12,
+  fontWeight: 500,
+  lineHeight: 1.3,
 };
 
 const dateText = {
-  margin: "6px 0 0",
-  color: "#777",
-  fontSize: 13,
+  ...type.meta,
+  ...type.number,
+};
+
+const noteActions = {
+  display: "flex",
+  gap: 6,
+  flex: "0 0 auto",
 };
 
 const noteText = {
-  margin: "12px 0 0",
-  color: "#ddd",
-  lineHeight: 1.45,
-};
-
-const deleteBtn = {
-  color: "#ff6b2c",
-  borderColor: "rgba(255, 107, 44, 0.45)",
-  background: "rgba(255, 107, 44, 0.12)",
+  ...type.body,
+  margin: "10px 0 0",
+  whiteSpace: "pre-wrap",
 };

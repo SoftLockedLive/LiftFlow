@@ -1,42 +1,82 @@
+// Design tokens. Keep in sync with the --lf-* variables in styles/globals.css.
 export const colors = {
-  bg: "#020305",
-  surface: "#12151a",
-  surfaceSoft: "#0c0f13",
-  surfaceRaised: "#171c22",
-  surfaceDeep: "#06080b",
-  border: "#2f3844",
-  borderSoft: "#1d2630",
-  text: "#fffdf2",
-  textSoft: "#e5e1d3",
-  muted: "#9a9689",
-  mutedStrong: "#716d63",
-  inverse: "#020305",
-  brand: "#21d9ff",
-  accent: "#efff38",
-  success: "#43f08d",
-  recovery: "#43f08d",
-  warning: "#ffb238",
-  danger: "#ff7047",
-  violet: "#b985ff",
-  blue: "#55aaff",
+  bg: "#0a0b0d",
+  surface: "#131518",
+  surfaceSoft: "#0f1113",
+  surfaceRaised: "#1a1d21",
+  surfaceDeep: "#08090b",
+  border: "#262a30",
+  borderSoft: "#1d2025",
+  text: "#f2f4f7",
+  textSoft: "#c9ced6",
+  muted: "#8b929c",
+  mutedStrong: "#5d636c",
+  inverse: "#06121a",
+  brand: "#3db8f5",
+  accent: "#f5c518",
+  success: "#3ecf8e",
+  recovery: "#3ecf8e",
+  warning: "#f5a524",
+  danger: "#f26d6d",
+  violet: "#a78bfa",
+  blue: "#60a5fa",
 };
 
+export const radii = { sm: 8, md: 10, lg: 14, xl: 18, pill: 999 };
+
+// Shared text styles so pages read as one system.
+export const type = {
+  pageTitle: {
+    margin: 0,
+    fontSize: 28,
+    lineHeight: 1.1,
+    fontWeight: 700,
+    letterSpacing: "-0.02em",
+    color: colors.text,
+  },
+  sectionTitle: {
+    margin: 0,
+    fontSize: 17,
+    lineHeight: 1.25,
+    fontWeight: 650,
+    letterSpacing: "-0.01em",
+    color: colors.text,
+  },
+  eyebrow: {
+    margin: 0,
+    fontSize: 11,
+    lineHeight: 1.3,
+    fontWeight: 600,
+    letterSpacing: "0.08em",
+    textTransform: "uppercase",
+    color: colors.muted,
+  },
+  body: { fontSize: 14, lineHeight: 1.5, color: colors.textSoft },
+  meta: { fontSize: 13, lineHeight: 1.4, color: colors.muted },
+  number: { letterSpacing: "-0.01em" },
+  // Fixed-width digits, only for values that change in place (timers). Geist's tabular
+  // figures space unevenly inside normal text.
+  tabular: { fontVariantNumeric: "tabular-nums" },
+};
+
+// The PR/lift accents used to be a rainbow; one neutral keeps numbers calm.
 export const liftColors = {
-  bench: colors.accent,
-  squat: colors.warning,
-  deadlift: colors.blue,
+  bench: colors.text,
+  squat: colors.text,
+  deadlift: colors.text,
 };
 
+// Days share the brand color; recovery days stay green.
 export const dayColors = {
-  Monday: "#21d9ff",
-  Tuesday: "#ff7047",
-  Wednesday: "#efff38",
-  Thursday: "#b985ff",
-  Friday: "#ffb238",
-  Saturday: "#f472b6",
-  Sunday: "#fffdf2",
+  Monday: colors.brand,
+  Tuesday: colors.brand,
+  Wednesday: colors.brand,
+  Thursday: colors.brand,
+  Friday: colors.brand,
+  Saturday: colors.brand,
+  Sunday: colors.brand,
   recovery: colors.recovery,
-  today: "#21d9ff",
+  today: colors.brand,
 };
 
 export function tint(hex, alpha) {

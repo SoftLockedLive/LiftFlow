@@ -2,286 +2,213 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/router";
 import MoveNotice from "./MoveNotice";
-import { getManualPRs } from "../lib/manualPRs";
-import { buildPRMap } from "../lib/prRecords";
-import { getProfile, saveProfile } from "../lib/profile";
-import { getWorkouts } from "../lib/workoutStorage";
-import { getBaseExercise, getLiftSets, getWorkoutItems, normalizeExerciseName } from "../lib/workoutAnalytics";
-import { colors, liftColors, tint } from "../lib/theme";
+import { getProfile } from "../lib/profile";
+import { colors, tint } from "../lib/theme";
+
+const PRIMARY_TABS = [
+  { name: "Home", path: "/", icon: "home" },
+  { name: "Workout", path: "/workout", icon: "workout" },
+  { name: "Program", path: "/plan", icon: "program" },
+  { name: "Progress", path: "/progress", icon: "progress" },
+];
+
+const SECONDARY_TABS = [
+  { name: "History", path: "/history" },
+  { name: "PRs", path: "/prs" },
+  { name: "Notes", path: "/notes" },
+  { name: "Profile", path: "/profile" },
+  { name: "Settings", path: "/settings" },
+];
 
 export default function Layout({ children }) {
   const router = useRouter();
-  const isHome = router.pathname === "/";
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [profile, setProfile] = useState({
-    name: "",
-    bodyweight: "154.8",
-    goal: "strength",
-    experience: "beginner",
-    units: "lbs",
-  });
-  const [prs, setPrs] = useState({});
-  const [bestSets, setBestSets] = useState({});
-  const [hydrated, setHydrated] = useState(false);
+  const [profile, setProfile] = useState({});
   const [moreOpen, setMoreOpen] = useState(false);
 
   useEffect(() => {
-    const loadDashboard = () => {
-      const workouts = getWorkouts();
-      const manualPrs = getManualPRs();
-      setPrs(buildPRMap(workouts, manualPrs));
-      setBestSets(getBigThreeBestSets(workouts, manualPrs));
-      setHydrated(true);
-      setProfile(getProfile());
-    };
-
-    const timer = window.setTimeout(loadDashboard, 0);
-    window.addEventListener("liftflow-profile-updated", loadDashboard);
+    const loadProfile = () => setProfile(getProfile());
+    const timer = window.setTimeout(loadProfile, 0);
+    window.addEventListener("liftflow-profile-updated", loadProfile);
     return () => {
       window.clearTimeout(timer);
-      window.removeEventListener("liftflow-profile-updated", loadDashboard);
+      window.removeEventListener("liftflow-profile-updated", loadProfile);
     };
   }, []);
 
   useEffect(() => {
-    document.body.style.overflow = profileOpen ? "hidden" : "auto";
-  }, [profileOpen]);
+    if (!moreOpen) return undefined;
+    const close = (event) => {
+      if (event.type === "keydown" && event.key !== "Escape") return;
+      if (event.type === "pointerdown" && event.target.closest?.("[data-more-root]")) return;
+      setMoreOpen(false);
+    };
+    window.addEventListener("pointerdown", close);
+    window.addEventListener("keydown", close);
+    return () => {
+      window.removeEventListener("pointerdown", close);
+      window.removeEventListener("keydown", close);
+    };
+  }, [moreOpen]);
 
-  const benchRecord = prs["Bench Press"];
-  const squatRecord = prs.Squat;
-  const deadliftRecord = prs.Deadlift;
-  const bench = Math.max(Number(profile.benchPR || 0), Number(benchRecord?.weight || 0));
-  const squat = Math.max(Number(profile.squatPR || 0), Number(squatRecord?.weight || 0));
-  const deadlift = Math.max(Number(profile.deadliftPR || 0), Number(deadliftRecord?.weight || 0));
-  const total = bench + squat + deadlift;
-  const hasTotal = hydrated && total > 0;
-  const units = profile.units || "lbs";
-  const bodyweightValue = profile.bodyweight || profile.weight;
-  const bodyweight = bodyweightValue ? `${bodyweightValue}${units}` : "Bodyweight --";
-  const initials = getInitials(profile.name);
-  const goalLabel = (profile.goal || "strength").replace("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
-
-  const primaryTabs = [
-    { name: "Home", path: "/" },
-    { name: "Workout", path: "/workout" },
-    { name: "Program", path: "/plan" },
-    { name: "Progress", path: "/progress" },
-  ];
-
-  const secondaryTabs = [
-    { name: "Notes", path: "/notes" },
-    { name: "History", path: "/history" },
-    { name: "PRs", path: "/prs" },
-    { name: "Profile", path: "/profile" },
-    { name: "Settings", path: "/settings" },
-  ];
-  const moreActive = secondaryTabs.some((tab) => tab.path === router.pathname);
-
-  const liftCards = [
-    { label: "Bench", value: bench, reps: benchRecord?.reps || bestSets.bench?.reps, accent: liftColors.bench },
-    { label: "Squat", value: squat, reps: squatRecord?.reps || bestSets.squat?.reps, accent: liftColors.squat },
-    {
-      label: "Dead",
-      value: deadlift,
-      reps: deadliftRecord?.reps || bestSets.deadlift?.reps,
-      accent: liftColors.deadlift,
-    },
-  ];
+  const moreActive = SECONDARY_TABS.some((tab) => tab.path === router.pathname);
 
   function navigateTab(path) {
-    if (!path || router.pathname === path) return;
     setMoreOpen(false);
-    router.push(path, undefined, { scroll: false });
+    if (!path || router.pathname === path) return;
+    router.push(path);
   }
+
+  const moreMenu = moreOpen && (
+    <div className="lf-more-menu" style={moreMenuStyle} role="menu">
+      {SECONDARY_TABS.map((tab) => {
+        const active = router.pathname === tab.path;
+        return (
+          <button
+            key={tab.path}
+            type="button"
+            role="menuitem"
+            onClick={() => navigateTab(tab.path)}
+            style={{ ...moreItem, ...(active ? moreItemActive : {}) }}
+          >
+            {tab.name}
+          </button>
+        );
+      })}
+    </div>
+  );
 
   return (
     <div style={shell}>
       <MoveNotice />
-      <header className="app-hero" style={hero}>
-        <div style={heroTitleBlock}>
-          <button type="button" onClick={() => navigateTab("/")} style={brandButton} aria-label="Go to home">
-            <Image src="/icons/icon-192.png" alt="" width={40} height={40} priority style={logoMark} />
-            <h1 style={brand}>LiftFlow</h1>
-          </button>
-          <p style={subhead}>
-            {goalLabel} training · {bodyweight}
-          </p>
-        </div>
+      <header className="lf-header">
+        <button type="button" onClick={() => navigateTab("/")} style={brandButton} aria-label="LiftFlow home">
+          <Image src="/icons/icon-192.png" alt="" width={30} height={30} priority style={logoMark} />
+          <span style={wordmark}>LiftFlow</span>
+        </button>
 
-        <div className="app-hero-right" style={heroRight}>
-          <button style={profileButton} onClick={() => setProfileOpen(true)}>
-            {profile.photo ? <span style={{ ...avatarImage, backgroundImage: `url(${profile.photo})` }} /> : initials}
-          </button>
-        </div>
-      </header>
-
-      <nav className="app-tab-shell" style={tabWrapper} aria-label="Main navigation">
-        <div className="app-tabs" style={tabBar}>
-          {primaryTabs.map((tab) => {
-            const active = tab.path && router.pathname === tab.path;
-
+        <nav className="lf-topnav" aria-label="Main navigation">
+          {PRIMARY_TABS.map((tab) => {
+            const active = router.pathname === tab.path;
             return (
               <button
-                key={tab.name}
+                key={tab.path}
                 type="button"
-                onClick={() => (tab.action ? tab.action() : navigateTab(tab.path))}
-                style={{
-                  ...tabPill,
-                  ...(active ? activeTab : {}),
-                }}
+                onClick={() => navigateTab(tab.path)}
+                aria-current={active ? "page" : undefined}
+                style={{ ...topTab, ...(active ? topTabActive : {}) }}
               >
                 {tab.name}
               </button>
             );
           })}
-          <div style={moreWrap}>
+          <div style={moreWrap} data-more-root>
             <button
               type="button"
               onClick={() => setMoreOpen((open) => !open)}
-              style={{
-                ...tabPill,
-                ...(moreActive ? activeTab : {}),
-              }}
               aria-expanded={moreOpen}
               aria-haspopup="menu"
+              style={{ ...topTab, ...(moreActive ? topTabActive : {}) }}
             >
               More
             </button>
-            {moreOpen && (
-              <div className="app-more-menu" style={moreMenu} role="menu">
-                {secondaryTabs.map((tab) => {
-                  const active = tab.path && router.pathname === tab.path;
-                  return (
-                    <button
-                      key={tab.name}
-                      type="button"
-                      onClick={() => navigateTab(tab.path)}
-                      style={{
-                        ...moreItem,
-                        ...(active ? moreItemActive : {}),
-                      }}
-                    >
-                      {tab.name}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+            {moreMenu}
           </div>
+        </nav>
+
+        <button type="button" onClick={() => navigateTab("/profile")} style={profileButton} aria-label="Open profile">
+          {profile.photo ? (
+            <span style={{ ...avatarImage, backgroundImage: `url(${profile.photo})` }} />
+          ) : (
+            getInitials(profile.name)
+          )}
+        </button>
+      </header>
+
+      <main className="app-page">{children}</main>
+
+      <nav className="lf-tabbar" aria-label="Main navigation">
+        {PRIMARY_TABS.map((tab) => {
+          const active = router.pathname === tab.path;
+          return (
+            <button
+              key={tab.path}
+              type="button"
+              onClick={() => navigateTab(tab.path)}
+              aria-current={active ? "page" : undefined}
+              style={{ ...barTab, ...(active ? barTabActive : {}) }}
+            >
+              <NavIcon name={tab.icon} />
+              <span>{tab.name}</span>
+            </button>
+          );
+        })}
+        <div style={barMoreWrap} data-more-root>
+          <button
+            type="button"
+            onClick={() => setMoreOpen((open) => !open)}
+            aria-expanded={moreOpen}
+            aria-haspopup="menu"
+            style={{ ...barTab, ...(moreActive || moreOpen ? barTabActive : {}) }}
+          >
+            <NavIcon name="more" />
+            <span>More</span>
+          </button>
+          {moreMenu}
         </div>
       </nav>
-
-      {isHome && (
-        <section className="app-metrics" style={clubGrid} aria-label="Club total and PRs">
-          <div style={totalStrip}>
-            <span style={totalStripLabel}>Big 3 Total</span>
-            <strong style={totalStripValue}>{hasTotal ? `${total} ${units}` : "--"}</strong>
-          </div>
-
-          {liftCards.map((lift) => (
-            <div key={lift.label} style={{ ...metricCard, borderColor: tint(lift.accent, 0.35) }}>
-              <span style={metricLabel}>{lift.label}</span>
-              <strong style={{ ...metricValue, color: lift.value ? lift.accent : "#3e3e3e" }}>
-                {lift.value ? `${lift.value} ${units}` : "--"}
-              </strong>
-              <span style={metricHint}>
-                {lift.value && lift.reps ? `x ${lift.reps} reps` : lift.value ? "tracked" : "not logged"}
-              </span>
-            </div>
-          ))}
-        </section>
-      )}
-
-      <main className="app-page" style={page}>
-        {children}
-      </main>
-
-      {profileOpen && (
-        <div style={overlay} onClick={() => setProfileOpen(false)}>
-          <section style={panel} onClick={(event) => event.stopPropagation()}>
-            <div style={modalHeader}>
-              <h2 style={modalTitle}>Profile</h2>
-              <button type="button" onClick={() => setProfileOpen(false)} style={closeBtn}>
-                X
-              </button>
-            </div>
-
-            <div style={modalBody}>
-              <label style={modalField}>
-                <span style={modalLabel}>Full name</span>
-                <input
-                  placeholder="Full name"
-                  value={profile.name || ""}
-                  onChange={(event) => setProfile({ ...profile, name: event.target.value })}
-                />
-              </label>
-              <label style={modalField}>
-                <span style={modalLabel}>Bodyweight</span>
-                <input
-                  type="number"
-                  placeholder="Bodyweight"
-                  value={profile.bodyweight || profile.weight || ""}
-                  onChange={(event) =>
-                    setProfile({
-                      ...profile,
-                      bodyweight: event.target.value,
-                      weight: profile.weight || event.target.value,
-                    })
-                  }
-                />
-              </label>
-              <label style={modalField}>
-                <span style={modalLabel}>Goal</span>
-                <select
-                  value={profile.goal || "strength"}
-                  onChange={(event) => setProfile({ ...profile, goal: event.target.value })}
-                >
-                  <option value="strength">Strength</option>
-                  <option value="hypertrophy">Hypertrophy</option>
-                  <option value="fat_loss">Fat Loss</option>
-                </select>
-              </label>
-              <label style={modalField}>
-                <span style={modalLabel}>Experience</span>
-                <select
-                  value={profile.experience || "beginner"}
-                  onChange={(event) => setProfile({ ...profile, experience: event.target.value })}
-                >
-                  <option value="beginner">Beginner</option>
-                  <option value="intermediate">Intermediate</option>
-                  <option value="advanced">Advanced</option>
-                </select>
-              </label>
-              <label style={modalField}>
-                <span style={modalLabel}>Units</span>
-                <select
-                  value={profile.units || "lbs"}
-                  onChange={(event) => setProfile({ ...profile, units: event.target.value })}
-                >
-                  <option value="lbs">LBS</option>
-                  <option value="kg">KG</option>
-                </select>
-              </label>
-
-              <button
-                type="button"
-                className="primary"
-                onClick={() => {
-                  saveProfile({
-                    ...profile,
-                    weight: profile.weight || profile.bodyweight,
-                  });
-                  window.dispatchEvent(new Event("liftflow-profile-updated"));
-                  setProfileOpen(false);
-                }}
-              >
-                Save Profile
-              </button>
-            </div>
-          </section>
-        </div>
-      )}
     </div>
+  );
+}
+
+function NavIcon({ name }) {
+  const paths = {
+    home: (
+      <>
+        <path d="M3 10.5 12 3l9 7.5" />
+        <path d="M5 9.5V20h5v-6h4v6h5V9.5" />
+      </>
+    ),
+    workout: (
+      <>
+        <path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11" />
+      </>
+    ),
+    program: (
+      <>
+        <rect x="3.5" y="5" width="17" height="15" rx="2.5" />
+        <path d="M3.5 10h17M8 3v4M16 3v4" />
+      </>
+    ),
+    progress: (
+      <>
+        <path d="M4 19h16" />
+        <path d="m4 15 5-5 4 3 7-7" />
+        <path d="M15 6h5v5" />
+      </>
+    ),
+    more: (
+      <>
+        <circle cx="5.5" cy="12" r="1.2" />
+        <circle cx="12" cy="12" r="1.2" />
+        <circle cx="18.5" cy="12" r="1.2" />
+      </>
+    ),
+  };
+
+  return (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {paths[name]}
+    </svg>
   );
 }
 
@@ -296,108 +223,94 @@ function getInitials(name) {
   return "ME";
 }
 
-function getBigThreeBestSets(workouts, manualPrs) {
-  const best = {};
-
-  (workouts || []).forEach((session) => {
-    getWorkoutItems(session).forEach((lift) => {
-      const key = getBigThreeKey(getBaseExercise(lift));
-      if (!key) return;
-
-      getLiftSets(lift).forEach((set) => {
-        const weight = Number(set.weight || 0);
-        if (weight > Number(best[key]?.weight || 0)) {
-          best[key] = { weight, reps: Number(set.reps || 0) || "" };
-        }
-      });
-    });
-  });
-
-  (manualPrs || []).forEach((pr) => {
-    const key = getBigThreeKey(normalizeExerciseName(pr.exercise));
-    const weight = Number(pr.weight || 0);
-    if (key && weight > 0) {
-      best[key] = { weight, reps: pr.reps || "" };
-    }
-  });
-
-  return best;
-}
-
-function getBigThreeKey(exercise) {
-  const name = String(exercise || "").toLowerCase();
-  if (name.includes("bench")) return "bench";
-  if (name.includes("squat")) return "squat";
-  if (name.includes("deadlift")) return "deadlift";
-  return "";
-}
-
 const shell = {
   minHeight: "100vh",
-  background: "transparent",
   color: colors.text,
 };
 
-const hero = {
-  position: "relative",
-};
-
-const heroTitleBlock = {
-  minWidth: 0,
-};
-
-const brandLockup = {
+const brandButton = {
   display: "flex",
   alignItems: "center",
-  gap: 9,
-};
-
-const brandButton = {
-  ...brandLockup,
+  gap: 10,
   padding: 0,
   border: 0,
-  borderRadius: 0,
   background: "transparent",
-  boxShadow: "none",
-  textAlign: "left",
 };
 
 const logoMark = {
-  width: 38,
-  height: 38,
-  borderRadius: 12,
+  width: 30,
+  height: 30,
+  borderRadius: 8,
   objectFit: "cover",
-  boxShadow: `0 0 24px ${tint(colors.brand, 0.34)}, 0 0 0 1px ${tint(colors.accent, 0.18)}`,
 };
 
-const brand = {
-  margin: 0,
-  color: colors.brand,
-  fontSize: "clamp(28px, 5vw, 42px)",
-  lineHeight: 1,
-  fontWeight: 900,
-  textShadow: `0 0 24px ${tint(colors.brand, 0.34)}`,
+const wordmark = {
+  fontSize: 18,
+  fontWeight: 700,
+  letterSpacing: "-0.02em",
+  color: colors.text,
 };
 
-const subhead = {
-  margin: "5px 0 0",
+const topTab = {
+  padding: "8px 14px",
+  border: "1px solid transparent",
+  background: "transparent",
   color: colors.muted,
-  fontSize: 13,
-  fontWeight: 750,
-  whiteSpace: "nowrap",
+  fontSize: 14,
+  fontWeight: 550,
 };
 
-const heroRight = {};
+const topTabActive = {
+  color: colors.text,
+  background: colors.surfaceRaised,
+  borderColor: colors.border,
+};
+
+const moreWrap = {
+  position: "relative",
+};
+
+const moreMenuStyle = {
+  position: "absolute",
+  zIndex: 90,
+  minWidth: 180,
+  border: `1px solid ${colors.border}`,
+  borderRadius: 14,
+  background: colors.surface,
+  padding: 6,
+  display: "grid",
+  gap: 2,
+  boxShadow: "0 16px 40px rgba(0, 0, 0, 0.5)",
+};
+
+const moreItem = {
+  width: "100%",
+  padding: "10px 12px",
+  border: 0,
+  borderRadius: 8,
+  background: "transparent",
+  color: colors.textSoft,
+  textAlign: "left",
+  fontSize: 15,
+  fontWeight: 500,
+};
+
+const moreItemActive = {
+  color: colors.brand,
+  background: tint(colors.brand, 0.1),
+};
 
 const profileButton = {
-  width: 42,
-  height: 42,
+  width: 36,
+  height: 36,
+  flex: "0 0 auto",
   padding: 0,
   borderRadius: "50%",
-  borderColor: tint(colors.brand, 0.32),
+  border: `1px solid ${colors.border}`,
+  background: colors.surfaceRaised,
   color: colors.textSoft,
-  background: `linear-gradient(180deg, ${colors.surfaceRaised}, ${colors.surfaceSoft})`,
-  boxShadow: `0 0 18px ${tint(colors.brand, 0.14)}`,
+  fontSize: 13,
+  fontWeight: 600,
   overflow: "hidden",
 };
 
@@ -409,192 +322,27 @@ const avatarImage = {
   backgroundPosition: "center",
 };
 
-const clubGrid = {
-  marginTop: 0,
-  marginBottom: 8,
-  paddingBottom: 12,
-};
-
-const totalStrip = {
-  gridColumn: "1 / -1",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  minHeight: 44,
-  border: `1px solid ${tint(colors.brand, 0.34)}`,
-  borderRadius: 14,
-  background: `linear-gradient(135deg, ${tint(colors.brand, 0.16)}, ${tint(colors.accent, 0.09)}), ${colors.surfaceSoft}`,
-  padding: "9px 12px",
-  boxShadow: `inset 0 1px 0 ${tint(colors.text, 0.08)}, 0 0 24px ${tint(colors.brand, 0.08)}`,
-};
-
-const totalStripLabel = {
-  color: colors.muted,
-  fontSize: 12,
-  fontWeight: 850,
-  textTransform: "uppercase",
-};
-
-const totalStripValue = {
-  color: colors.accent,
-  fontSize: 20,
-  lineHeight: 1,
-  textShadow: `0 0 18px ${tint(colors.accent, 0.28)}`,
-};
-
-const metricCard = {
-  gridColumn: "span 2",
-  minHeight: 82,
-  background: `linear-gradient(180deg, ${colors.surfaceRaised}, ${colors.surface})`,
-  border: "1px solid",
-  borderRadius: 14,
+const barTab = {
+  height: "var(--lf-tabbar-height)",
   display: "flex",
   flexDirection: "column",
   alignItems: "center",
   justifyContent: "center",
-  gap: 6,
-  boxShadow: "inset 0 1px 0 rgba(255, 253, 242, 0.05)",
-};
-
-const metricLabel = {
-  color: colors.muted,
-  fontSize: 12,
-  fontWeight: 800,
-  textTransform: "uppercase",
-};
-
-const metricValue = {
-  fontSize: 21,
-  lineHeight: 1,
-};
-
-const metricHint = {
+  gap: 3,
+  padding: 0,
+  border: 0,
+  borderRadius: 0,
+  background: "transparent",
   color: colors.mutedStrong,
-  fontSize: 12,
-  fontWeight: 800,
+  fontSize: 11,
+  fontWeight: 550,
 };
 
-const tabWrapper = {
-  position: "relative",
-  zIndex: 1,
-  background: "rgba(2, 3, 5, 0.84)",
-  marginTop: 0,
-  borderTop: `1px solid ${tint(colors.text, 0.06)}`,
-  borderBottom: `1px solid ${tint(colors.brand, 0.12)}`,
-  backdropFilter: "blur(14px)",
-  boxShadow: "none",
-};
-
-const tabBar = {};
-
-const moreWrap = {
-  position: "relative",
-  minWidth: 0,
-};
-
-const tabPill = {
-  flex: "0 0 auto",
-  padding: "9px 15px",
-  borderColor: colors.borderSoft,
-  background: `linear-gradient(180deg, ${colors.surfaceSoft}, ${colors.surfaceDeep})`,
-  color: colors.muted,
-  fontSize: 14,
-  textTransform: "uppercase",
-  textAlign: "center",
-};
-
-const activeTab = {
-  background: `linear-gradient(135deg, ${colors.brand}, ${colors.accent})`,
-  borderColor: colors.brand,
-  color: colors.inverse,
-  boxShadow: "none",
-};
-
-const moreMenu = {
-  position: "absolute",
-  right: 0,
-  zIndex: 90,
-  minWidth: 150,
-  border: `1px solid ${colors.border}`,
-  borderRadius: 12,
-  background: colors.surface,
-  padding: 6,
-  display: "grid",
-  gap: 4,
-  boxShadow: "0 18px 32px rgba(0, 0, 0, 0.42)",
-};
-
-const moreItem = {
-  width: "100%",
-  borderRadius: 8,
-  padding: "8px 10px",
-  color: colors.textSoft,
-  background: colors.surfaceSoft,
-  borderColor: colors.borderSoft,
-  textAlign: "left",
-  textTransform: "uppercase",
-  fontSize: 12,
-};
-
-const moreItemActive = {
-  color: colors.inverse,
-  background: colors.brand,
-  borderColor: colors.brand,
-};
-
-const page = {};
-
-const overlay = {
-  position: "fixed",
-  inset: 0,
-  zIndex: 100,
-  background: "rgba(0, 0, 0, 0.78)",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  padding: 18,
-};
-
-const panel = {
-  width: "min(420px, 100%)",
-  background: colors.surface,
-  border: `1px solid ${colors.border}`,
-  borderRadius: 12,
-};
-
-const modalHeader = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  padding: 16,
-  borderBottom: "1px solid #222",
-};
-
-const modalTitle = {
-  margin: 0,
+const barTabActive = {
   color: colors.brand,
 };
 
-const closeBtn = {
-  width: 36,
-  height: 36,
-  padding: 0,
-};
-
-const modalBody = {
+const barMoreWrap = {
+  position: "relative",
   display: "grid",
-  gap: 12,
-  padding: 16,
-};
-
-const modalField = {
-  display: "grid",
-  gap: 6,
-};
-
-const modalLabel = {
-  color: "#777",
-  fontSize: 12,
-  fontWeight: 850,
-  textTransform: "uppercase",
 };

@@ -1,5 +1,5 @@
 import { Component } from "react";
-import { colors, tint } from "../lib/theme";
+import { colors, radii, type } from "../lib/theme";
 
 export default class ErrorBoundary extends Component {
   constructor(props) {
@@ -43,23 +43,24 @@ export default class ErrorBoundary extends Component {
 
     return (
       <main style={wrap}>
-        <section style={card}>
-          <p style={eyebrow}>Recovery</p>
+        <section style={card} role="alert">
           <h1 style={title}>Something went wrong</h1>
           <p style={copy}>
-            Your LiftFlow data is still on this device. Try reloading the page, go home, or export a backup before
-            resetting anything.
+            Your LiftFlow data is still on this device. Try again, go home, or export a backup before resetting
+            anything.
           </p>
           <div style={actions}>
-            <button type="button" className="primary" onClick={this.reset}>
-              Try Again
+            <button type="button" className="primary" onClick={this.reset} style={fullButton}>
+              Try again
             </button>
-            <button type="button" onClick={this.goHome} style={secondary}>
-              Go Home
-            </button>
-            <button type="button" onClick={this.exportData} style={secondary}>
-              Export Data
-            </button>
+            <div style={secondaryRow}>
+              <button type="button" onClick={this.goHome}>
+                Go home
+              </button>
+              <button type="button" onClick={this.exportData}>
+                Export data
+              </button>
+            </div>
           </div>
         </section>
       </main>
@@ -71,47 +72,45 @@ const wrap = {
   minHeight: "100vh",
   display: "grid",
   placeItems: "center",
-  padding: 18,
+  padding: 16,
   background: colors.bg,
   color: colors.text,
 };
 
 const card = {
-  width: "min(460px, 100%)",
+  width: "min(420px, 100%)",
   border: `1px solid ${colors.border}`,
-  borderRadius: 14,
+  borderRadius: radii.xl,
   background: colors.surface,
-  padding: 18,
-};
-
-const eyebrow = {
-  margin: 0,
-  color: colors.brand,
-  fontSize: 13,
-  fontWeight: 850,
-  textTransform: "uppercase",
+  padding: 20,
+  textAlign: "center",
 };
 
 const title = {
-  margin: "6px 0 0",
-  fontSize: 30,
+  ...type.pageTitle,
+  fontSize: 22,
 };
 
 const copy = {
-  margin: "10px 0 0",
+  ...type.body,
   color: colors.muted,
-  lineHeight: 1.45,
-  fontWeight: 700,
+  margin: "8px 0 0",
 };
 
 const actions = {
   display: "grid",
-  gap: 9,
-  marginTop: 16,
+  gap: 8,
+  marginTop: 18,
 };
 
-const secondary = {
-  color: colors.brand,
-  borderColor: tint(colors.brand, 0.36),
-  background: colors.surfaceSoft,
+const fullButton = {
+  width: "100%",
+  padding: "12px 16px",
+  fontSize: 15,
+};
+
+const secondaryRow = {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gap: 8,
 };

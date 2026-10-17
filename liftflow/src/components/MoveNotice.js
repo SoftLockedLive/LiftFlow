@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import ConfirmDialog from "./ConfirmDialog";
 import { buildTransferUrl, decodeTransfer, downloadBackup, importBackup, takeTransfer } from "../lib/backup";
-import { colors, tint } from "../lib/theme";
+import { colors, radii, tint, type } from "../lib/theme";
 
 export const NEW_ORIGIN = "https://liftflow.softlockedlive.com";
 const NEW_HOST = NEW_ORIGIN.replace("https://", "");
@@ -76,13 +76,13 @@ export default function MoveNotice() {
           </p>
           <p style={bannerCopy}>
             Use LiftFlow from your home screen? Tap <b>Download backup</b>, add {NEW_HOST} to your home screen, then
-            open it and go to More → Settings → Import Data.
+            open it and go to More → Settings → Import data.
           </p>
           <div style={bannerActions}>
             <button type="button" className="primary" onClick={moveData} disabled={busy}>
               {busy ? "Moving..." : "Move my data"}
             </button>
-            <button type="button" onClick={downloadBackup} style={secondaryBtn}>
+            <button type="button" onClick={downloadBackup}>
               Download backup
             </button>
             <a href={NEW_ORIGIN} style={link}>
@@ -95,8 +95,8 @@ export default function MoveNotice() {
       {status && (
         <div style={statusBox} role="status">
           <span>{status}</span>
-          <button type="button" onClick={() => setStatus("")} style={dismissBtn} aria-label="Dismiss">
-            X
+          <button type="button" className="ghost" onClick={() => setStatus("")} style={dismissBtn} aria-label="Dismiss">
+            ✕
           </button>
         </div>
       )}
@@ -117,56 +117,52 @@ function clearHash() {
   window.history.replaceState(null, "", window.location.pathname + window.location.search);
 }
 
+// Sits above the header, so it lines up with the page column itself.
 const banner = {
-  margin: "0 0 12px",
-  border: `1px solid ${tint(colors.brand, 0.45)}`,
-  borderRadius: 14,
-  background: `linear-gradient(135deg, ${tint(colors.brand, 0.16)}, ${tint(colors.accent, 0.09)}), ${colors.surfaceSoft}`,
-  padding: "12px 14px",
+  width: "min(912px, calc(100% - 32px))",
+  margin: "12px auto 0",
+  border: `1px solid ${tint(colors.brand, 0.35)}`,
+  borderRadius: radii.xl,
+  background: tint(colors.brand, 0.06),
+  padding: 16,
   display: "grid",
   gap: 8,
 };
 
 const bannerTitle = {
-  color: colors.brand,
-  fontSize: 17,
+  ...type.sectionTitle,
 };
 
 const bannerCopy = {
+  ...type.body,
   margin: 0,
-  color: colors.textSoft,
-  lineHeight: 1.45,
-  fontSize: 14,
-  fontWeight: 700,
 };
 
 const bannerActions = {
   display: "flex",
   flexWrap: "wrap",
   alignItems: "center",
-  gap: 10,
-  marginTop: 4,
-};
-
-const secondaryBtn = {
-  color: colors.brand,
-  borderColor: tint(colors.brand, 0.35),
-  background: colors.surfaceSoft,
+  gap: 8,
+  marginTop: 6,
 };
 
 const link = {
+  padding: "9px 8px",
   color: colors.brand,
-  fontWeight: 850,
+  fontSize: 14,
+  fontWeight: 600,
 };
 
 const statusBox = {
-  margin: "0 0 12px",
-  border: `1px solid ${tint(colors.brand, 0.35)}`,
-  borderRadius: 12,
-  background: tint(colors.brand, 0.1),
-  color: colors.brand,
-  padding: "10px 12px",
-  fontWeight: 850,
+  width: "min(912px, calc(100% - 32px))",
+  margin: "12px auto 0",
+  border: `1px solid ${tint(colors.brand, 0.3)}`,
+  borderRadius: radii.lg,
+  background: tint(colors.brand, 0.08),
+  color: colors.text,
+  padding: "8px 8px 8px 14px",
+  fontSize: 14,
+  fontWeight: 500,
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
@@ -174,8 +170,8 @@ const statusBox = {
 };
 
 const dismissBtn = {
-  width: 32,
-  height: 32,
+  width: 34,
+  height: 34,
   padding: 0,
   flex: "0 0 auto",
 };

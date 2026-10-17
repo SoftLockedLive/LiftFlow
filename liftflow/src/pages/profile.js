@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { calculateLeanMass, calculateTotal, getProfile, saveProfile } from "../lib/profile";
+import { colors, radii, tint, type } from "../lib/theme";
 
 export default function Profile() {
   const [profile, setProfile] = useState({});
@@ -77,22 +78,25 @@ export default function Profile() {
   return (
     <div style={wrap}>
       <header className="profile-header" style={header}>
-        <div>
-          <p style={eyebrow}>Athlete</p>
-          <h1 style={title}>Profile</h1>
-        </div>
+        <h1 style={type.pageTitle}>Profile</h1>
         <button type="button" className="primary" onClick={save} style={saveTop}>
           Save
         </button>
       </header>
 
-      {saveState && <div style={saveNotice}>{saveState}</div>}
+      {saveState && (
+        <div style={saveNotice} role="status">
+          {saveState}
+        </div>
+      )}
 
-      <section className="profile-stats" style={statsGrid}>
-        <Stat label="Big 3" value={`${total} lb`} />
-        <Stat label="DOTS" value={dotsScore || "--"} />
-        <Stat label="Lean Mass" value={`${leanMass} lb`} />
-        <Stat label="Change" value={`${weightChange > 0 ? "+" : ""}${weightChange} lb`} />
+      <section style={card} aria-label="Stats">
+        <div className="profile-stats" style={statsGrid}>
+          <Stat label="Big 3" value={total} unit="lb" />
+          <Stat label="DOTS" value={dotsScore || "--"} />
+          <Stat label="Lean mass" value={leanMass} unit="lb" />
+          <Stat label="Change" value={`${weightChange > 0 ? "+" : ""}${weightChange}`} unit="lb" />
+        </div>
       </section>
 
       <section className="profile-grid" style={grid}>
@@ -106,7 +110,7 @@ export default function Profile() {
               )}
             </div>
             <label style={uploadButton}>
-              Choose Photo
+              Choose photo
               <input type="file" accept="image/*" onChange={handlePhoto} style={hiddenFile} />
             </label>
           </div>
@@ -132,7 +136,7 @@ export default function Profile() {
             >
               <option value="strength">Strength</option>
               <option value="hypertrophy">Hypertrophy</option>
-              <option value="fat_loss">Fat Loss</option>
+              <option value="fat_loss">Fat loss</option>
             </SelectField>
             <SelectField
               label="Experience"
@@ -146,7 +150,7 @@ export default function Profile() {
           </div>
         </Panel>
 
-        <Panel title="Body Metrics">
+        <Panel title="Body metrics">
           <Field
             label="Height"
             value={profile.height || ""}
@@ -167,8 +171,8 @@ export default function Profile() {
               value={profile.units || "lbs"}
               onChange={(event) => update("units", event.target.value)}
             >
-              <option value="lbs">LBS</option>
-              <option value="kg">KG</option>
+              <option value="lbs">lbs</option>
+              <option value="kg">kg</option>
             </SelectField>
           </div>
           <div className="field-row" style={fieldRow}>
@@ -261,11 +265,14 @@ function getInitials(name) {
   return "ME";
 }
 
-function Stat({ label, value }) {
+function Stat({ label, value, unit }) {
   return (
     <div style={statCard}>
-      <span style={statLabel}>{label}</span>
-      <strong style={statValue}>{value}</strong>
+      <span style={type.meta}>{label}</span>
+      <strong style={statValue}>
+        {value}
+        {unit ? <span style={statUnit}> {unit}</span> : null}
+      </strong>
     </div>
   );
 }
@@ -291,7 +298,7 @@ function calculateDotsScore({ total, bodyweight, sex, units }) {
 function Panel({ title, children }) {
   return (
     <section style={panel}>
-      <h2 style={panelTitle}>{title}</h2>
+      <h2 style={type.sectionTitle}>{title}</h2>
       <div style={panelBody}>{children}</div>
     </section>
   );
@@ -316,129 +323,121 @@ function SelectField({ label, children, ...props }) {
 }
 
 const wrap = {
-  maxWidth: 860,
-  margin: "0 auto",
+  display: "grid",
+  gap: 16,
 };
 
 const header = {
   justifyContent: "space-between",
-  alignItems: "flex-start",
+  alignItems: "center",
   gap: 16,
-  marginBottom: 18,
-};
-
-const eyebrow = {
-  margin: 0,
-  color: "#be72ff",
-  fontSize: 14,
-  fontWeight: 850,
-  textTransform: "uppercase",
-};
-
-const title = {
-  margin: "6px 0 0",
-  fontSize: 34,
-  lineHeight: 1,
+  padding: "8px 0 4px",
 };
 
 const saveTop = {
-  minWidth: 90,
+  minWidth: 88,
 };
 
 const saveNotice = {
-  border: "1px solid rgba(50, 223, 118, 0.34)",
-  borderRadius: 12,
-  background: "rgba(50, 223, 118, 0.1)",
-  color: "#32df76",
-  padding: "10px 12px",
-  marginBottom: 14,
-  fontWeight: 850,
+  border: `1px solid ${tint(colors.success, 0.3)}`,
+  borderRadius: radii.lg,
+  background: tint(colors.success, 0.08),
+  color: colors.success,
+  padding: "10px 14px",
+  fontSize: 14,
+  fontWeight: 500,
+};
+
+const card = {
+  border: `1px solid ${colors.border}`,
+  borderRadius: radii.xl,
+  background: colors.surface,
+  padding: 16,
 };
 
 const statsGrid = {
-  gap: 12,
-  marginBottom: 16,
+  gap: 8,
 };
 
 const statCard = {
-  border: "1px solid rgba(190, 114, 255, 0.32)",
-  borderRadius: 16,
-  background: "#101010",
-  padding: 16,
-};
-
-const statLabel = {
-  display: "block",
-  color: "#666",
-  fontSize: 13,
-  fontWeight: 850,
-  textTransform: "uppercase",
+  display: "grid",
+  gap: 2,
+  padding: "10px 12px",
+  borderRadius: radii.lg,
+  background: colors.surfaceSoft,
+  border: `1px solid ${colors.borderSoft}`,
+  minWidth: 0,
 };
 
 const statValue = {
-  display: "block",
-  marginTop: 8,
-  color: "#be72ff",
-  fontSize: 24,
+  ...type.number,
+  color: colors.text,
+  fontSize: 22,
+  fontWeight: 650,
+  lineHeight: 1.2,
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+};
+
+const statUnit = {
+  color: colors.muted,
+  fontSize: 13,
+  fontWeight: 500,
 };
 
 const grid = {
-  gap: 14,
+  gap: 16,
+  alignItems: "start",
 };
 
 const panel = {
-  border: "1px solid #242424",
-  borderRadius: 16,
-  background: "#101010",
-  padding: 16,
-};
-
-const panelTitle = {
-  margin: 0,
-  fontSize: 22,
+  ...card,
 };
 
 const panelBody = {
   display: "grid",
-  gap: 10,
-  marginTop: 12,
+  gap: 12,
+  marginTop: 14,
 };
 
 const fieldRow = {
-  gap: 10,
+  gap: 12,
 };
 
 const fieldWrap = {
   display: "grid",
   gap: 6,
+  minWidth: 0,
 };
 
 const fieldLabel = {
-  color: "#777",
-  fontSize: 12,
-  fontWeight: 850,
-  textTransform: "uppercase",
+  color: colors.textSoft,
+  fontSize: 13,
+  fontWeight: 500,
 };
 
 const photoRow = {
   display: "flex",
   alignItems: "center",
-  gap: 12,
+  gap: 14,
   flexWrap: "wrap",
 };
 
 const photoPreview = {
-  width: 74,
-  height: 74,
+  width: 64,
+  height: 64,
   borderRadius: "50%",
-  border: "1px solid rgba(190, 114, 255, 0.45)",
-  background: "#0b0b0b",
-  color: "#be72ff",
+  border: `1px solid ${colors.border}`,
+  background: colors.surfaceRaised,
+  color: colors.textSoft,
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  fontWeight: 900,
+  fontSize: 20,
+  fontWeight: 600,
   overflow: "hidden",
+  flex: "0 0 auto",
 };
 
 const photoImage = {
@@ -449,13 +448,16 @@ const photoImage = {
   backgroundPosition: "center",
 };
 
+// A label (not a button) so it opens the file picker; styled to match the base button.
 const uploadButton = {
-  border: "1px solid rgba(190, 114, 255, 0.45)",
-  borderRadius: 999,
-  padding: "10px 14px",
-  color: "#be72ff",
-  background: "rgba(190, 114, 255, 0.1)",
-  fontWeight: 850,
+  border: `1px solid ${colors.border}`,
+  borderRadius: radii.md,
+  padding: "9px 14px",
+  color: colors.text,
+  background: colors.surfaceRaised,
+  fontSize: 14,
+  fontWeight: 600,
+  lineHeight: 1.2,
   cursor: "pointer",
 };
 

@@ -9,6 +9,7 @@ import {
   getLiftSets,
   getWorkoutItems,
 } from "../lib/workoutAnalytics";
+import { colors, radii, type } from "../lib/theme";
 
 export default function History() {
   const router = useRouter();
@@ -90,162 +91,209 @@ export default function History() {
 
   return (
     <div style={wrap}>
-      <header style={header}>
-        <div>
-          <p style={eyebrow}>Training Log</p>
-          <h1 style={title}>History</h1>
-        </div>
+      <header style={pageHeader}>
+        <p style={type.eyebrow}>Training log</p>
+        <h1 style={type.pageTitle}>History</h1>
       </header>
 
-      <section className="history-stats" style={statsGrid}>
-        <Stat label="Sessions" value={totals.sessions} />
-        <Stat label="Sets" value={totals.sets} />
-        <Stat label="Volume" value={`${totals.volume.toLocaleString()} lb`} />
+      <section style={statsGrid} aria-label="Totals">
+        <Stat label="Sessions" value={totals.sessions.toLocaleString()} hint="logged" />
+        <Stat label="Sets" value={totals.sets.toLocaleString()} hint="completed" />
+        <Stat label="Volume" value={totals.volume.toLocaleString()} hint="lb lifted" />
       </section>
 
-      {exerciseHistory.length > 0 && (
-        <section style={exercisePanel}>
-          <div style={sectionHeader}>
-            <div>
-              <p style={eyebrow}>Search Lifts</p>
-              <h2 style={sectionTitle}>Find Past Work</h2>
-            </div>
-          </div>
+      <section style={{ display: "grid", gap: 10 }}>
+        <div style={sectionHeader}>
+          <h2 style={type.sectionTitle}>Workouts</h2>
+          {search.trim() && (
+            <span style={type.meta}>
+              {filteredSessions.length} match{filteredSessions.length === 1 ? "" : "es"}
+            </span>
+          )}
+        </div>
+
+        {exerciseHistory.length > 0 && (
           <input
-            placeholder="Search exercise or workout..."
+            aria-label="Search workouts"
+            placeholder="Search exercise or workout"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
-        </section>
-      )}
+        )}
 
-      {filteredSessions.length === 0 ? (
-        <section style={empty}>
-          <span>No workouts logged yet.</span>
-          <button type="button" className="primary" onClick={() => router.push("/workout")}>
-            Start Workout
-          </button>
-        </section>
-      ) : (
-        <section style={sessionList}>
-          {filteredSessions.map((session) => {
-            const sessionOpen = Boolean(openSessions[session.id]);
-
-            return (
-              <article key={session.id} style={sessionCard}>
-                <button type="button" onClick={() => toggleSession(session.id)} style={sessionHeader}>
-                  <div>
-                    <h2 style={sessionTitle}>
-                      {session.name} {sessionOpen ? "▲" : "▼"}
-                    </h2>
-                    <p style={sessionMeta}>
-                      {formatDate(session.date)} · {session.sets} sets · Total weight lifted:{" "}
-                      {session.volume.toLocaleString()} lb
-                    </p>
-                  </div>
-                  <span style={liftVolume}>{session.volume.toLocaleString()} lb</span>
-                </button>
-
-                {sessionOpen && (
-                  <div style={liftList}>
-                    {session.lifts.map(({ lift, index }) => {
-                      const liftId = `${session.id}-${index}`;
-                      const liftOpen = Boolean(openLifts[liftId]);
-                      const sets = getLiftSets(lift);
-
-                      return (
-                        <div key={liftId} style={liftRow}>
-                          <button type="button" onClick={() => toggleLift(liftId)} style={liftSummary}>
-                            <div>
-                              <strong style={liftName}>
-                                {getBaseExercise(lift)} {liftOpen ? "▲" : "▼"}
-                              </strong>
-                              <p style={setLine}>
-                                {lift.variation ? `${lift.variation} · ` : ""}
-                                Total {getBaseExercise(lift).toLowerCase()} volume:{" "}
-                                {calculateLiftVolume(lift).toLocaleString()} lb
-                              </p>
-                            </div>
-                            <span style={liftVolume}>{sets.length} sets</span>
-                          </button>
-
-                          {liftOpen && (
-                            <div style={setDetails}>
-                              {sets.length > 0 ? (
-                                sets.map((set, setIndex) => (
-                                  <p key={setIndex} style={setDetailLine}>
-                                    {formatLoggedSet(set)}
-                                  </p>
-                                ))
-                              ) : (
-                                <p style={setDetailLine}>No sets logged</p>
-                              )}
-                              <div style={liftActions}>
-                                <button
-                                  type="button"
-                                  onClick={() => startEditLift(session.id, index, lift)}
-                                  style={editBtn}
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setConfirmDelete({ sessionId: session.id, liftIndex: index })}
-                                  style={deleteBtn}
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                    <button type="button" onClick={() => setConfirmDeleteSession(session.id)} style={deleteWorkoutBtn}>
-                      Delete Workout
-                    </button>
-                  </div>
-                )}
-              </article>
-            );
-          })}
-        </section>
-      )}
-
-      {editingLift && (
-        <section style={editPanel}>
-          <h2 style={sectionTitle}>Edit History Lift</h2>
-          <label style={fieldWrap}>
-            <span style={fieldLabel}>Exercise</span>
-            <input
-              value={editingLift.exercise}
-              onChange={(event) => setEditingLift({ ...editingLift, exercise: event.target.value })}
-            />
-          </label>
-          <label style={fieldWrap}>
-            <span style={fieldLabel}>Sets</span>
-            <input
-              value={editingLift.setsText}
-              placeholder="225x5, 225x4, 205x8"
-              onChange={(event) => setEditingLift({ ...editingLift, setsText: event.target.value })}
-            />
-          </label>
-          <div style={editActions}>
-            <button type="button" onClick={() => setEditingLift(null)} style={cancelBtn}>
-              Cancel
-            </button>
-            <button type="button" className="primary" onClick={saveEditedLift}>
-              Save Lift
+        {filteredSessions.length === 0 ? (
+          <div style={{ ...card, ...emptyState }}>
+            <span>No workouts logged yet.</span>
+            <button type="button" className="primary" onClick={() => router.push("/workout")}>
+              Start a workout
             </button>
           </div>
-        </section>
+        ) : (
+          <div style={sessionList}>
+            {filteredSessions.map((session, sessionIndex) => {
+              const sessionOpen = Boolean(openSessions[session.id]);
+
+              return (
+                <article key={session.id} style={{ ...sessionItem, ...(sessionIndex === 0 ? { borderTop: 0 } : {}) }}>
+                  <button
+                    type="button"
+                    onClick={() => toggleSession(session.id)}
+                    style={sessionSummary}
+                    aria-expanded={sessionOpen}
+                  >
+                    <div style={{ minWidth: 0 }}>
+                      <h3 style={sessionName}>{session.name}</h3>
+                      <p style={metaLine}>
+                        {formatDate(session.date)} · {session.sets} sets
+                      </p>
+                    </div>
+                    <span style={summaryRight}>
+                      <span style={sessionVolume}>{session.volume.toLocaleString()} lb</span>
+                      <Chevron open={sessionOpen} />
+                    </span>
+                  </button>
+
+                  {sessionOpen && (
+                    <div style={sessionDetails}>
+                      {session.lifts.map(({ lift, index }) => {
+                        const liftId = `${session.id}-${index}`;
+                        const liftOpen = Boolean(openLifts[liftId]);
+                        const sets = getLiftSets(lift);
+
+                        return (
+                          <div key={liftId} style={liftRow}>
+                            <button
+                              type="button"
+                              onClick={() => toggleLift(liftId)}
+                              style={liftSummary}
+                              aria-expanded={liftOpen}
+                            >
+                              <div style={{ minWidth: 0 }}>
+                                <strong style={liftName}>{getBaseExercise(lift)}</strong>
+                                <p style={metaLine}>
+                                  {lift.variation ? `${lift.variation} · ` : ""}
+                                  {sets.length} set{sets.length === 1 ? "" : "s"}
+                                </p>
+                              </div>
+                              <span style={summaryRight}>
+                                <span style={liftVolume}>{calculateLiftVolume(lift).toLocaleString()} lb</span>
+                                <Chevron open={liftOpen} />
+                              </span>
+                            </button>
+
+                            {liftOpen && (
+                              <div style={setDetails}>
+                                <ol style={setList}>
+                                  {sets.length > 0 ? (
+                                    sets.map((set, setIndex) => (
+                                      <li key={setIndex} style={setLine}>
+                                        <span style={setNumber}>{setIndex + 1}</span>
+                                        {formatLoggedSet(set)}
+                                      </li>
+                                    ))
+                                  ) : (
+                                    <li style={setLine}>No sets logged</li>
+                                  )}
+                                </ol>
+                                <div style={liftActions}>
+                                  <button
+                                    type="button"
+                                    onClick={() => startEditLift(session.id, index, lift)}
+                                    style={smallBtn}
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="danger"
+                                    onClick={() => setConfirmDelete({ sessionId: session.id, liftIndex: index })}
+                                    style={smallBtn}
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                      <div style={sessionActions}>
+                        <button
+                          type="button"
+                          className="danger"
+                          onClick={() => setConfirmDeleteSession(session.id)}
+                          style={smallBtn}
+                        >
+                          Delete workout
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {editingLift && (
+        <div style={modalOverlay} onClick={() => setEditingLift(null)}>
+          <section
+            style={modalPanel}
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="edit-lift-title"
+          >
+            <div style={modalHeader}>
+              <h2 id="edit-lift-title" style={type.sectionTitle}>
+                Edit lift
+              </h2>
+              <button
+                type="button"
+                className="ghost"
+                onClick={() => setEditingLift(null)}
+                style={closeBtn}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            <div style={modalBody}>
+              <label style={field}>
+                <span style={fieldLabel}>Exercise</span>
+                <input
+                  value={editingLift.exercise}
+                  onChange={(event) => setEditingLift({ ...editingLift, exercise: event.target.value })}
+                />
+              </label>
+              <label style={field}>
+                <span style={fieldLabel}>Sets</span>
+                <input
+                  value={editingLift.setsText}
+                  placeholder="225x5, 225x4, 205x8"
+                  onChange={(event) => setEditingLift({ ...editingLift, setsText: event.target.value })}
+                />
+                <span style={fieldHint}>Weight x reps, separated by commas.</span>
+              </label>
+              <div style={editActions}>
+                <button type="button" onClick={() => setEditingLift(null)}>
+                  Cancel
+                </button>
+                <button type="button" className="primary" onClick={saveEditedLift}>
+                  Save lift
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
       )}
 
       <ConfirmDialog
         open={Boolean(confirmDelete)}
-        title="Delete History Lift?"
+        title="Delete this lift?"
         message="This lift will be removed from the logged workout. If it is the only lift in that workout, the workout entry will be removed too."
-        confirmLabel="Delete Lift"
+        confirmLabel="Delete lift"
         danger
         onCancel={() => setConfirmDelete(null)}
         onConfirm={() => {
@@ -257,9 +305,9 @@ export default function History() {
 
       <ConfirmDialog
         open={Boolean(confirmDeleteSession)}
-        title="Delete Workout?"
+        title="Delete this workout?"
         message="This full workout history entry will be permanently removed."
-        confirmLabel="Delete Workout"
+        confirmLabel="Delete workout"
         danger
         onCancel={() => setConfirmDeleteSession(null)}
         onConfirm={() => {
@@ -272,12 +320,32 @@ export default function History() {
   );
 }
 
-function Stat({ label, value }) {
+function Stat({ label, value, hint }) {
   return (
-    <div style={statCard}>
-      <span style={statLabel}>{label}</span>
+    <div style={statCell}>
+      <span style={type.meta}>{label}</span>
       <strong style={statValue}>{value}</strong>
+      <span style={statHint}>{hint}</span>
     </div>
+  );
+}
+
+function Chevron({ open }) {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      style={{ ...chevron, transform: open ? "rotate(180deg)" : "none" }}
+    >
+      <path d="m6 9 6 6 6-6" />
+    </svg>
   );
 }
 
@@ -342,165 +410,138 @@ function parseDisplayDate(date) {
 }
 
 const wrap = {
-  maxWidth: 820,
-  margin: "0 auto",
+  display: "grid",
+  gap: 16,
 };
 
-const header = {
-  marginBottom: 18,
+const pageHeader = {
+  display: "grid",
+  gap: 6,
+  padding: "8px 0 4px",
 };
 
-const eyebrow = {
-  margin: 0,
-  color: "#32cfff",
-  fontSize: 14,
-  fontWeight: 850,
-  textTransform: "uppercase",
-};
-
-const title = {
-  margin: "6px 0 0",
-  fontSize: 34,
-  lineHeight: 1,
+const card = {
+  border: `1px solid ${colors.border}`,
+  borderRadius: radii.xl,
+  background: colors.surface,
+  padding: 16,
 };
 
 const statsGrid = {
-  gap: 12,
-  marginBottom: 16,
+  display: "grid",
+  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+  gap: 8,
+};
+
+const statCell = {
+  display: "grid",
+  gap: 2,
+  padding: "10px 12px",
+  borderRadius: radii.lg,
+  background: colors.surface,
+  border: `1px solid ${colors.border}`,
+  minWidth: 0,
+};
+
+const statValue = {
+  ...type.number,
+  color: colors.text,
+  fontSize: 22,
+  fontWeight: 650,
+  lineHeight: 1.2,
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+};
+
+const statHint = {
+  color: colors.mutedStrong,
+  fontSize: 12,
 };
 
 const sectionHeader = {
   display: "flex",
+  alignItems: "baseline",
   justifyContent: "space-between",
-  alignItems: "flex-start",
   gap: 12,
-  marginBottom: 12,
 };
 
-const sectionTitle = {
-  margin: "6px 0 0",
-  fontSize: 24,
-};
-
-const exercisePanel = {
-  border: "1px solid rgba(50, 207, 255, 0.28)",
-  borderRadius: 16,
-  background: "#101010",
-  padding: 16,
-  marginBottom: 16,
-};
-
-const editPanel = {
-  border: "1px solid rgba(50, 207, 255, 0.35)",
-  borderRadius: 16,
-  background: "#101010",
-  padding: 16,
-  marginTop: 16,
+const emptyState = {
   display: "grid",
-  gap: 10,
-};
-
-const fieldWrap = {
-  display: "grid",
-  gap: 6,
-};
-
-const fieldLabel = {
-  color: "#777",
-  fontSize: 12,
-  fontWeight: 850,
-  textTransform: "uppercase",
-};
-
-const editActions = {
-  display: "flex",
-  justifyContent: "flex-end",
-  gap: 10,
-  flexWrap: "wrap",
-};
-
-const statCard = {
-  border: "1px solid rgba(50, 207, 255, 0.3)",
-  borderRadius: 16,
-  background: "#101010",
-  padding: 16,
-};
-
-const statLabel = {
-  display: "block",
-  color: "#666",
-  fontSize: 13,
-  fontWeight: 850,
-  textTransform: "uppercase",
-};
-
-const statValue = {
-  display: "block",
-  marginTop: 8,
-  color: "#32cfff",
-  fontSize: 24,
-};
-
-const empty = {
-  border: "1px solid #222",
-  borderRadius: 16,
-  background: "#101010",
-  padding: 26,
-  color: "#555",
-  textAlign: "center",
-  fontWeight: 850,
-  display: "grid",
-  gap: 10,
   justifyItems: "center",
+  gap: 12,
+  padding: "28px 16px",
+  color: colors.muted,
+  textAlign: "center",
 };
 
 const sessionList = {
-  display: "grid",
-  gap: 14,
-};
-
-const sessionCard = {
-  border: "1px solid #242424",
-  borderRadius: 12,
-  background: "#101010",
+  ...card,
+  padding: 0,
   overflow: "hidden",
 };
 
-const sessionHeader = {
+const sessionItem = {
+  borderTop: `1px solid ${colors.borderSoft}`,
+};
+
+const sessionSummary = {
   width: "100%",
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: 14,
-  padding: 14,
   border: 0,
   borderRadius: 0,
   background: "transparent",
+  padding: "13px 16px",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 16,
   textAlign: "left",
+  fontWeight: 400,
 };
 
-const sessionTitle = {
+const sessionName = {
   margin: 0,
-  fontSize: 22,
+  color: colors.text,
+  fontSize: 15,
+  fontWeight: 550,
 };
 
-const sessionMeta = {
-  margin: "6px 0 0",
-  color: "#777",
-  fontWeight: 750,
+const metaLine = {
+  ...type.meta,
+  ...type.number,
+  margin: "2px 0 0",
 };
 
-const liftList = {
+const summaryRight = {
+  display: "flex",
+  alignItems: "center",
+  gap: 10,
+  flex: "0 0 auto",
+  color: colors.muted,
+};
+
+const chevron = {
+  flex: "0 0 auto",
+  transition: "transform 160ms ease",
+};
+
+const sessionVolume = {
+  ...type.number,
+  color: colors.textSoft,
+  fontSize: 14,
+  fontWeight: 500,
+  whiteSpace: "nowrap",
+};
+
+const sessionDetails = {
   display: "grid",
-  gap: 8,
-  padding: "0 12px 12px",
+  padding: "0 16px",
+  background: colors.surfaceSoft,
+  borderTop: `1px solid ${colors.borderSoft}`,
 };
 
 const liftRow = {
-  border: "1px solid #202020",
-  borderRadius: 10,
-  background: "#0b0b0b",
-  overflow: "hidden",
+  borderBottom: `1px solid ${colors.borderSoft}`,
 };
 
 const liftSummary = {
@@ -508,78 +549,137 @@ const liftSummary = {
   border: 0,
   borderRadius: 0,
   background: "transparent",
-  padding: "10px 12px",
+  padding: "10px 0",
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
   gap: 12,
   textAlign: "left",
+  fontWeight: 400,
 };
 
 const liftName = {
-  color: "#f7f7f2",
-};
-
-const setLine = {
-  margin: "5px 0 0",
-  color: "#777",
-  fontSize: 13,
+  color: colors.textSoft,
+  fontSize: 14,
+  fontWeight: 550,
 };
 
 const liftVolume = {
-  color: "#32cfff",
-  fontWeight: 850,
+  ...type.number,
+  color: colors.muted,
+  fontSize: 13,
   whiteSpace: "nowrap",
+};
+
+const setDetails = {
+  display: "grid",
+  gap: 10,
+  padding: "0 0 12px",
+};
+
+const setList = {
+  listStyle: "none",
+  margin: 0,
+  padding: "4px 12px",
+  borderRadius: radii.md,
+  background: colors.surface,
+  border: `1px solid ${colors.borderSoft}`,
+};
+
+const setLine = {
+  ...type.number,
+  display: "flex",
+  alignItems: "center",
+  gap: 10,
+  padding: "6px 0",
+  color: colors.textSoft,
+  fontSize: 13,
+};
+
+const setNumber = {
+  width: 18,
+  color: colors.mutedStrong,
+  fontSize: 12,
 };
 
 const liftActions = {
   display: "flex",
-  alignItems: "center",
-  gap: 10,
-  flexWrap: "wrap",
   justifyContent: "flex-end",
-  marginTop: 8,
+  gap: 8,
 };
 
-const setDetails = {
-  borderTop: "1px solid #1d1d1d",
-  padding: "8px 12px 10px",
+const sessionActions = {
+  display: "flex",
+  justifyContent: "flex-end",
+  padding: "12px 0",
 };
 
-const setDetailLine = {
-  margin: "4px 0",
-  color: "#bdbdb8",
-  fontSize: 13,
-  fontWeight: 750,
-};
-
-const editBtn = {
-  color: "#32cfff",
-  borderColor: "rgba(50, 207, 255, 0.45)",
-  background: "rgba(50, 207, 255, 0.12)",
-  padding: "7px 11px",
+const smallBtn = {
+  minHeight: 34,
+  padding: "7px 12px",
   fontSize: 13,
 };
 
-const cancelBtn = {
-  color: "#aaa",
-  borderColor: "#333",
-  background: "#0b0b0b",
+const modalOverlay = {
+  position: "fixed",
+  inset: 0,
+  zIndex: 230,
+  background: "rgba(0, 0, 0, 0.7)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: 16,
 };
 
-const deleteBtn = {
-  color: "#ff6b2c",
-  borderColor: "rgba(255, 107, 44, 0.45)",
-  background: "rgba(255, 107, 44, 0.12)",
-  padding: "7px 11px",
-  fontSize: 13,
+const modalPanel = {
+  width: "min(440px, 100%)",
+  maxHeight: "88vh",
+  overflow: "auto",
+  border: `1px solid ${colors.border}`,
+  borderRadius: radii.xl,
+  background: colors.surface,
+  boxShadow: "0 24px 60px rgba(0, 0, 0, 0.5)",
 };
 
-const deleteWorkoutBtn = {
-  width: "100%",
-  color: "#ff6b2c",
-  borderColor: "rgba(255, 107, 44, 0.35)",
-  background: "rgba(255, 107, 44, 0.08)",
-  padding: "8px 11px",
+const modalHeader = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 12,
+  padding: "14px 14px 0 18px",
+};
+
+const closeBtn = {
+  width: 34,
+  height: 34,
+  padding: 0,
+};
+
+const modalBody = {
+  display: "grid",
+  gap: 14,
+  padding: 18,
+};
+
+const field = {
+  display: "grid",
+  gap: 6,
+};
+
+const fieldLabel = {
+  color: colors.textSoft,
   fontSize: 13,
+  fontWeight: 500,
+};
+
+const fieldHint = {
+  ...type.meta,
+  fontSize: 12,
+};
+
+const editActions = {
+  display: "flex",
+  justifyContent: "flex-end",
+  gap: 8,
+  marginTop: 4,
 };

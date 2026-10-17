@@ -3,54 +3,48 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Keep in sync with lib/theme.js */
 :root {
-  --lf-bg: #020305;
-  --lf-surface: #12151a;
-  --lf-surface-soft: #0c0f13;
-  --lf-surface-raised: #171c22;
-  --lf-surface-deep: #06080b;
-  --lf-border: #2f3844;
-  --lf-border-soft: #1d2630;
-  --lf-text: #fffdf2;
-  --lf-text-soft: #e5e1d3;
-  --lf-muted: #9a9689;
-  --lf-brand: #21d9ff;
-  --lf-accent: #efff38;
-  --lf-success: #43f08d;
-  --lf-warning: #ffb238;
-  --lf-danger: #ff7047;
-  --lf-glow-cyan: rgba(33, 217, 255, 0.28);
-  --lf-glow-lime: rgba(239, 255, 56, 0.2);
+  --lf-bg: #0a0b0d;
+  --lf-surface: #131518;
+  --lf-surface-soft: #0f1113;
+  --lf-surface-raised: #1a1d21;
+  --lf-border: #262a30;
+  --lf-border-soft: #1d2025;
+  --lf-text: #f2f4f7;
+  --lf-text-soft: #c9ced6;
+  --lf-muted: #8b929c;
+  --lf-brand: #3db8f5;
+  --lf-inverse: #06121a;
+  --lf-danger: #f26d6d;
+  --lf-tabbar-height: 64px;
+  color-scheme: dark;
 }
 
 html,
 body {
   margin: 0;
   padding: 0;
-  background:
-    radial-gradient(circle at 50% -20%, rgba(33, 217, 255, 0.11), transparent 34rem),
-    radial-gradient(circle at 92% 12%, rgba(239, 255, 56, 0.055), transparent 24rem), var(--lf-bg);
+  background: var(--lf-bg);
   color: var(--lf-text);
   font-family:
-    "Segoe UI Variable",
-    "Aptos",
-    "Inter",
+    var(--font-sans),
     ui-sans-serif,
     system-ui,
     -apple-system,
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
-  font-weight: 600;
 }
 
 #__next {
   overflow-x: clip;
-}
-
-html {
-  scroll-behavior: smooth;
 }
 
 a {
@@ -59,108 +53,152 @@ a {
 }
 
 ::selection {
-  background: rgba(33, 217, 255, 0.32);
+  background: rgba(61, 184, 245, 0.3);
 }
 
 h1,
 h2,
 h3 {
-  font-family:
-    "Segoe UI Variable Display", "Aptos Display", "Segoe UI Variable", "Aptos", ui-sans-serif, system-ui, sans-serif;
-  letter-spacing: 0;
-  text-transform: none;
-  font-weight: 850;
+  letter-spacing: -0.01em;
+  font-weight: 650;
 }
 
+/* Base controls. Pages layer inline styles on top of these. */
 button {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.2;
   border: 1px solid var(--lf-border);
-  border-radius: 999px;
-  padding: 10px 16px;
-  font-weight: 750;
-  background: linear-gradient(180deg, #171c22, #0d1014);
+  border-radius: 10px;
+  padding: 9px 14px;
+  background: var(--lf-surface-raised);
   color: var(--lf-text);
   cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease,
+    transform 80ms ease;
+}
+
+button:hover {
+  border-color: #353a42;
 }
 
 button:active {
   transform: scale(0.98);
 }
 
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--lf-brand);
+  outline-offset: 2px;
+}
+
 button.primary {
-  background: linear-gradient(135deg, var(--lf-brand), #7cf0ff);
-  color: #050505;
+  background: var(--lf-brand);
+  color: var(--lf-inverse);
   border-color: var(--lf-brand);
-  box-shadow: 0 0 18px rgba(33, 217, 255, 0.2);
+}
+
+button.primary:hover {
+  background: #5ec6f7;
+  border-color: #5ec6f7;
+}
+
+button.ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--lf-muted);
+}
+
+button.ghost:hover {
+  color: var(--lf-text);
+  background: var(--lf-surface-raised);
+}
+
+button.danger {
+  background: transparent;
+  border-color: rgba(242, 109, 109, 0.35);
+  color: var(--lf-danger);
+}
+
+button.danger:hover {
+  background: rgba(242, 109, 109, 0.1);
 }
 
 input,
-select {
+select,
+textarea {
   width: 100%;
-  padding: 10px;
-  border-radius: 8px;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  padding: 10px 12px;
+  border-radius: 10px;
   border: 1px solid var(--lf-border);
-  background: linear-gradient(180deg, #0f1318, var(--lf-surface-soft));
+  background: var(--lf-surface-soft);
   color: var(--lf-text);
-  font-weight: 800;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #5d636c;
+  font-weight: 400;
 }
 
 input:focus,
-select:focus {
+select:focus,
+textarea:focus {
   border-color: var(--lf-brand);
-  box-shadow:
-    0 0 0 3px rgba(33, 217, 255, 0.16),
-    0 0 18px rgba(33, 217, 255, 0.16);
+  box-shadow: 0 0 0 3px rgba(61, 184, 245, 0.18);
   outline: none;
 }
 
-.app-hero,
-.app-metrics,
-.app-tabs,
+/* App shell (components/Layout.js) */
+.lf-header,
 .app-page {
-  max-width: 980px;
+  max-width: 960px;
   margin-left: auto;
   margin-right: auto;
 }
 
-.app-hero {
+.lf-header {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: flex-start;
   gap: 16px;
-  padding: 28px 24px 14px;
+  padding: 16px 24px;
 }
 
-.app-hero-right {
+.lf-topnav {
   display: flex;
-  align-items: flex-start;
-  gap: 14px;
+  gap: 4px;
 }
 
-.app-metrics {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 12px;
-  padding: 10px 24px 18px;
-  margin-bottom: 36px;
-  border-bottom: 1px solid rgba(255, 253, 242, 0.08);
-}
-
-.app-tabs {
-  display: flex;
-  gap: 8px;
-  padding: 16px 16px 14px;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.app-more-menu {
-  top: calc(100% + 8px);
+.lf-tabbar {
+  display: none;
 }
 
 .app-page {
-  padding: 24px 24px calc(120px + env(safe-area-inset-bottom));
+  padding: 8px 24px 64px;
 }
 
+.lf-more-menu {
+  top: calc(100% + 8px);
+  right: 0;
+}
+
+/* Page layout helpers */
 .profile-header {
   display: flex;
 }
@@ -175,7 +213,6 @@ select:focus {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.profile-stats,
 .history-stats {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -195,17 +232,17 @@ select:focus {
 }
 
 .home-flow-next {
-  animation: home-flow-next 280ms ease-out;
+  animation: home-flow-next 220ms ease-out;
 }
 
 .home-flow-prev {
-  animation: home-flow-prev 280ms ease-out;
+  animation: home-flow-prev 220ms ease-out;
 }
 
 @keyframes home-flow-next {
   from {
-    opacity: 0.58;
-    transform: translateX(18px);
+    opacity: 0.6;
+    transform: translateX(14px);
   }
   to {
     opacity: 1;
@@ -215,8 +252,8 @@ select:focus {
 
 @keyframes home-flow-prev {
   from {
-    opacity: 0.58;
-    transform: translateX(-18px);
+    opacity: 0.6;
+    transform: translateX(-14px);
   }
   to {
     opacity: 1;
@@ -229,134 +266,67 @@ select:focus {
   .home-flow-prev {
     animation: none;
   }
-}
-
-@media (max-width: 980px) {
-  html,
-  body {
-    font-size: 14px;
-  }
 
   button {
-    padding: 8px 12px;
+    transition: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .lf-header {
+    padding: 12px 16px 4px;
   }
 
-  .app-hero {
-    padding: 14px 14px 8px;
-    gap: 12px;
-    align-items: center;
+  .lf-topnav {
+    display: none;
   }
 
-  .app-hero-right {
-    align-items: center;
-    gap: 9px;
-  }
-
-  .app-metrics {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    padding: 4px 14px 10px;
-    gap: 8px;
-    margin-bottom: 4px;
-  }
-
-  .app-tab-shell {
-    height: 0 !important;
-    min-height: 0 !important;
-    margin: 0 !important;
-    border: 0 !important;
-    background: transparent !important;
-    box-shadow: none !important;
-    backdrop-filter: none !important;
-  }
-
-  .app-tabs {
-    display: flex;
+  .lf-tabbar {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     position: fixed;
-    left: 10px;
-    right: 10px;
-    bottom: calc(8px + env(safe-area-inset-bottom));
+    left: 0;
+    right: 0;
+    bottom: 0;
     z-index: 80;
-    padding: 6px;
-    gap: 4px;
-    border: 1px solid rgba(33, 217, 255, 0.22);
-    border-radius: 14px;
-    background: rgba(6, 8, 11, 0.96);
-    box-shadow:
-      0 12px 30px rgba(0, 0, 0, 0.45),
-      0 0 28px rgba(33, 217, 255, 0.1);
-    overflow-x: auto;
-    overflow-y: visible;
-    scrollbar-width: none;
+    height: calc(var(--lf-tabbar-height) + env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom);
+    background: rgba(10, 11, 13, 0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid var(--lf-border-soft);
   }
 
-  .app-more-menu {
+  .lf-more-menu {
     position: fixed !important;
     top: auto;
-    right: 12px !important;
-    bottom: calc(64px + env(safe-area-inset-bottom));
-  }
-
-  .app-tabs button {
-    flex: 0 0 auto;
-    min-width: 76px;
-    height: 40px;
-    padding: 0 10px;
-    font-size: 11px !important;
-    line-height: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    white-space: nowrap;
-    overflow: visible;
+    right: 12px;
+    bottom: calc(var(--lf-tabbar-height) + env(safe-area-inset-bottom) + 8px);
   }
 
   .app-page {
-    padding: 14px 14px calc(116px + env(safe-area-inset-bottom));
+    padding: 8px 16px calc(var(--lf-tabbar-height) + 32px + env(safe-area-inset-bottom));
   }
 
-  h1 {
-    font-size: 30px !important;
-  }
-
-  h2 {
-    font-size: 22px !important;
-  }
-
-  h3 {
-    font-size: 18px !important;
-  }
-
-  .profile-header {
-    align-items: center;
-  }
-
-  .history-stats {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* 16px stops iOS Safari zooming into focused fields */
+  input,
+  select,
+  textarea {
+    font-size: 16px;
   }
 
   .profile-stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .profile-grid {
+    grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 560px) {
   .notes-level-grid {
     grid-template-columns: repeat(5, minmax(54px, 1fr));
-  }
-}
-
-@media (max-width: 430px) {
-  .app-metrics {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-  }
-
-  .app-hero-right {
-    gap: 7px;
-  }
-
-  .field-row {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
