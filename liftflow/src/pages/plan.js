@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import ConfirmDialog from "../components/ConfirmDialog";
+import ConfirmDialog, { useDialogFocus } from "../components/ConfirmDialog";
 import { deleteCustomExercise, getCustomExercises, upsertCustomExercise } from "../lib/customExercises";
 import { getMuscleGroup, MUSCLE_GROUPS } from "../lib/muscleGroups";
-import { getLoadProfile, LOAD_TYPES } from "../lib/loadProfiles";
+import { getLoadProfile, inferLoadType, LOAD_TYPES, normalizeLoadType } from "../lib/loadProfiles";
 import { deleteSavedSplit, getPlan, getSavedSplits, saveCurrentSplit, savePlan } from "../lib/plan";
 import { colors, radii, tint, type } from "../lib/theme";
 import {
@@ -47,6 +47,9 @@ export default function Plan() {
   const [saveSplitName, setSaveSplitName] = useState("");
   const [librarySearch, setLibrarySearch] = useState("");
   const [libraryGroup, setLibraryGroup] = useState("all");
+  const editorDialog = useDialogFocus(editorOpen, clearForm);
+  const previewDialog = useDialogFocus(Boolean(templatePreview), () => setTemplatePreview(null));
+  const saveSplitDialog = useDialogFocus(saveSplitOpen, () => setSaveSplitOpen(false));
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -229,7 +232,8 @@ export default function Plan() {
     setReps(lift.targetType === "time" ? "" : String(lift.reps || ""));
     setDuration(lift.targetType === "time" ? String(lift.duration || lift.reps || "") : "");
     setStretches(lift.note || lift.stretches || "");
-    setLoadType(getLoadProfile(lift).type);
+    // Custom exercises store "" for Auto; keep it so a rename re-infers the type.
+    setLoadType(normalizeLoadType(lift.loadType));
     setMuscleGroup(lift.muscleGroup || "other");
   }
 
@@ -242,7 +246,10 @@ export default function Plan() {
     setReps(lift.targetType === "time" ? "" : String(lift.reps || ""));
     setDuration(lift.targetType === "time" ? String(lift.duration || lift.reps || "") : "");
     setStretches(lift.note || lift.stretches || "");
-    setLoadType(getLoadProfile(lift).type);
+    // Plan lifts store the resolved type; one that matches what Auto infers shows as Auto, so
+    // renaming the lift re-infers it instead of keeping the old name's equipment.
+    const storedType = normalizeLoadType(lift.loadType);
+    setLoadType(storedType && storedType !== inferLoadType(lift.exercise || lift.baseExercise) ? storedType : "");
     setMuscleGroup(lift.muscleGroup || "other");
   }
 
@@ -405,8 +412,14 @@ export default function Plan() {
     clearForm();
   }
 
-  function removeSavedSplit(id) {
-    setSavedSplits(deleteSavedSplit(id));
+  function confirmDeleteSavedSplit(split) {
+    setConfirmAction({
+      title: "Delete saved split?",
+      message: `"${split.name || "This split"}" will be removed from your saved splits.`,
+      confirmLabel: "Delete",
+      danger: true,
+      onConfirm: () => setSavedSplits(deleteSavedSplit(split.id)),
+    });
   }
 
   function confirmDeleteExercise(id) {
@@ -715,7 +728,7 @@ export default function Plan() {
                     <button
                       type="button"
                       className="danger"
-                      onClick={() => removeSavedSplit(split.id)}
+                      onClick={() => confirmDeleteSavedSplit(split)}
                       style={smallBtn}
                     >
                       Delete
@@ -917,6 +930,7 @@ export default function Plan() {
       {editorOpen && (
         <div style={modalOverlay} onClick={clearForm}>
           <section
+            {...editorDialog}
             style={modalPanel}
             onClick={(event) => event.stopPropagation()}
             role="dialog"
@@ -963,6 +977,7 @@ export default function Plan() {
       {templatePreview && (
         <div style={modalOverlay} onClick={() => setTemplatePreview(null)}>
           <section
+            {...previewDialog}
             style={previewPanel}
             onClick={(event) => event.stopPropagation()}
             role="dialog"
@@ -1034,6 +1049,7 @@ export default function Plan() {
       {saveSplitOpen && (
         <div style={modalOverlay} onClick={() => setSaveSplitOpen(false)}>
           <section
+            {...saveSplitDialog}
             style={modalPanel}
             onClick={(event) => event.stopPropagation()}
             role="dialog"
@@ -1616,6 +1632,7 @@ const modalPanel = {
   borderRadius: radii.xl,
   background: colors.surface,
   boxShadow: "0 24px 60px rgba(0, 0, 0, 0.5)",
+  outline: "none",
 };
 
 const previewPanel = {

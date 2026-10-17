@@ -20,6 +20,8 @@ export default function Profile() {
   // `stored` is the saved profile (lb), used to keep untouched weights exact.
   const [profile, setProfile] = useState({});
   const [stored, setStored] = useState({});
+  // Exact lb behind each weight the unit switch rewrote, so switching back and forth doesn't drift.
+  const [exact, setExact] = useState({});
   const [saveState, setSaveState] = useState("");
   const [workouts, setWorkouts] = useState([]);
   const [manualPrs, setManualPrs] = useState([]);
@@ -51,17 +53,19 @@ export default function Profile() {
 
   // Switching units re-expresses the typed weights in the new unit (same quantity).
   function changeUnits(value) {
-    setProfile((prev) => {
-      const next = { ...prev, units: normalizeUnits(value) };
-      PROFILE_WEIGHT_FIELDS.forEach((field) => {
-        next[field] = toInputValue(readFormWeight(prev, stored, field), next.units);
-      });
-      return next;
+    const next = { ...profile, units: normalizeUnits(value) };
+    const pinned = {};
+    PROFILE_WEIGHT_FIELDS.forEach((field) => {
+      const lb = readFormWeight(profile, stored, exact, field);
+      next[field] = toInputValue(lb, next.units);
+      if (next[field] !== "") pinned[field] = { units: next.units, text: next[field], lb };
     });
+    setProfile(next);
+    setExact(pinned);
   }
 
   function save() {
-    const lbProfile = fromForm(profile, stored);
+    const lbProfile = fromForm(profile, stored, exact);
     const normalized = {
       ...lbProfile,
       sex: normalizeSex(profile.sex),
@@ -70,6 +74,7 @@ export default function Profile() {
 
     const saved = saveProfile(normalized);
     setStored(saved);
+    setExact({});
     setProfile(toForm(saved));
     window.dispatchEvent(new Event("liftflow-profile-updated"));
     setSaveState("Profile saved");
@@ -107,7 +112,7 @@ export default function Profile() {
   // Stats use the form's values (unsaved edits included) converted to lb, shown in the form's unit.
   const units = normalizeUnits(profile.units);
   const label = unitLabel(units);
-  const lbProfile = fromForm(profile, stored);
+  const lbProfile = fromForm(profile, stored, exact);
   const total = getBigThree(workouts, manualPrs).total;
   const leanMass = calculateLeanMass(lbProfile);
   const currentWeight = Number(lbProfile.weight || lbProfile.bodyweight || 0);
@@ -338,17 +343,19 @@ function toForm(saved) {
   return form;
 }
 
-function readFormWeight(form, saved, field) {
+function readFormWeight(form, saved, exact, field) {
   const units = normalizeUnits(form.units);
   const text = String(form[field] ?? "");
+  const pinned = exact?.[field];
+  if (pinned && pinned.units === units && pinned.text === text) return pinned.lb;
   if (text === toInputValue(saved[field], units)) return saved[field] ?? "";
   return fromInputValue(text, units);
 }
 
-function fromForm(form, saved) {
+function fromForm(form, saved, exact) {
   const lb = { ...form };
   PROFILE_WEIGHT_FIELDS.forEach((field) => {
-    lb[field] = readFormWeight(form, saved, field);
+    lb[field] = readFormWeight(form, saved, exact, field);
   });
   return lb;
 }

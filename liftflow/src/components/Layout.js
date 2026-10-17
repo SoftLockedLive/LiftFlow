@@ -40,7 +40,10 @@ export default function Layout({ children }) {
     const close = (event) => {
       if (event.type === "keydown" && event.key !== "Escape") return;
       if (event.type === "pointerdown" && event.target.closest?.("[data-more-root]")) return;
+      // Escape from inside the menu would drop focus on <body> when the menu unmounts; return it to More.
+      const root = event.type === "keydown" ? document.activeElement?.closest?.("[data-more-root]") : null;
       setMoreOpen(false);
+      root?.querySelector("button")?.focus();
     };
     window.addEventListener("pointerdown", close);
     window.addEventListener("keydown", close);
@@ -263,7 +266,7 @@ const topTab = {
 const topTabActive = {
   color: colors.text,
   background: colors.surfaceRaised,
-  borderColor: colors.border,
+  border: `1px solid ${colors.border}`,
 };
 
 const moreWrap = {

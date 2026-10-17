@@ -59,7 +59,8 @@ export default function Notes() {
     setLift(inOptions ? subject : "custom");
     setCustomLift(inOptions ? "" : subject);
     setText(note.text || "");
-    setLevel(note.level || "good");
+    // Old notes store aliases ("good", "bad"); select the level button they display as.
+    setLevel(getNoteLevel(note.level).id);
   }
 
   const recapPrs = getRecapPrs(recap);
